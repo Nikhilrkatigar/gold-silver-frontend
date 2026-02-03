@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // ❌ NO fallback URL — force env correctness
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: 'https://gold-silver-backend-hrcq.onrender.com',
   headers: {
     'Content-Type': 'application/json',
   },
