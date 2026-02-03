@@ -37,57 +37,57 @@ api.interceptors.response.use(
 
 // Auth APIs
 export const authAPI = {
-  login: (credentials) => api.post('/auth/login', credentials),
-  getMe: () => api.get('/auth/me'),
-  updateSettings: (settings) => api.patch('/auth/settings', settings),
-  createAdmin: (data) => api.post('/auth/create-admin', data),
+  login: (credentials) => api.post('/api/auth/login', credentials),
+  getMe: () => api.get('/api/auth/me'),
+  updateSettings: (settings) => api.patch('/api/auth/settings', settings),
+  createAdmin: (data) => api.post('/api/auth/create-admin', data),
 };
 
 // Admin APIs
 export const adminAPI = {
-  createUser: (userData) => api.post('/admin/users', userData),
-  getUsers: () => api.get('/admin/users'),
-  getExpiringUsers: () => api.get('/admin/users/expiring'),
-  updateUser: (id, updates) => api.patch(`/admin/users/${id}`, updates),
-  deleteUser: (id) => api.delete(`/admin/users/${id}`),
-  getStats: () => api.get('/admin/stats'),
+  createUser: (userData) => api.post('/api/admin/users', userData),
+  getUsers: () => api.get('/api/admin/users'),
+  getExpiringUsers: () => api.get('/api/admin/users/expiring'),
+  updateUser: (id, updates) => api.patch(`/api/admin/users/${id}`, updates),
+  deleteUser: (id) => api.delete(`/api/admin/users/${id}`),
+  getStats: () => api.get('/api/admin/stats'),
 };
 
 // Ledger APIs
 export const ledgerAPI = {
-  create: (data) => api.post('/ledger', data),
-  getAll: () => api.get('/ledger'),
-  getOne: (id) => api.get(`/ledger/${id}`),
+  create: (data) => api.post('/api/ledger', data),
+  getAll: () => api.get('/api/ledger'),
+  getOne: (id) => api.get(`/api/ledger/${id}`),
   getTransactions: (id, params) =>
-    api.get(`/ledger/${id}/transactions`, { params }),
-  update: (id, updates) => api.patch(`/ledger/${id}`, updates),
-  delete: (id) => api.delete(`/ledger/${id}`),
-  deleteAllVouchers: (id) => api.delete(`/ledger/${id}/vouchers`),
+    api.get(`/api/ledger/${id}/transactions`, { params }),
+  update: (id, updates) => api.patch(`/api/ledger/${id}`, updates),
+  delete: (id) => api.delete(`/api/ledger/${id}`),
+  deleteAllVouchers: (id) => api.delete(`/api/ledger/${id}/vouchers`),
 };
 
 // Voucher APIs
 export const voucherAPI = {
-  create: (data) => api.post('/voucher', data),
-  getAll: (params) => api.get('/voucher', { params }),
-  getDueCredits: () => api.get('/voucher/due-credits'),
-  getOne: (id) => api.get(`/voucher/${id}`),
-  delete: (id) => api.delete(`/voucher/${id}`),
+  create: (data) => api.post('/api/voucher', data),
+  getAll: (params) => api.get('/api/voucher', { params }),
+  getDueCredits: () => api.get('/api/voucher/due-credits'),
+  getOne: (id) => api.get(`/api/voucher/${id}`),
+  delete: (id) => api.delete(`/api/voucher/${id}`),
 };
 
 // Settlement APIs
 export const settlementAPI = {
-  create: (data) => api.post('/settlement', data),
-  getAll: (params) => api.get('/settlement', { params }),
-  getOne: (id) => api.get(`/settlement/${id}`),
-  delete: (id) => api.delete(`/settlement/${id}`),
+  create: (data) => api.post('/api/settlement', data),
+  getAll: (params) => api.get('/api/settlement', { params }),
+  getOne: (id) => api.get(`/api/settlement/${id}`),
+  delete: (id) => api.delete(`/api/settlement/${id}`),
 };
 
 // Stock APIs
 export const stockAPI = {
-  getStock: () => api.get('/stock'),
-  addStock: (data) => api.post('/stock/add', data),
-  getHistory: () => api.get('/stock/history'),
-  undoStock: () => api.post('/stock/undo'),
+  getStock: () => api.get('/api/stock'),
+  addStock: (data) => api.post('/api/stock/add', data),
+  getHistory: () => api.get('/api/stock/history'),
+  undoStock: () => api.post('/api/stock/undo'),
 };
 
 export default api;
