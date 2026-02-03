@@ -1,0 +1,204 @@
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { 
+  FiHome, FiUsers, FiClock, FiLogOut, FiMenu, FiX,
+  FiDollarSign, FiBook, FiTrendingUp, FiSettings,
+  FiFileText
+} from 'react-icons/fi';
+
+export default function Layout({ children }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user, logout, isAdmin } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const adminNav = [
+    { path: '/admin', icon: FiHome, label: 'Dashboard' },
+    { path: '/admin/add-user', icon: FiUsers, label: 'Add User' },
+    { path: '/admin/users', icon: FiBook, label: 'User List' },
+    { path: '/admin/expiring', icon: FiClock, label: 'Expiring Soon' },
+  ];
+
+  const userNav = [
+    { path: '/dashboard', icon: FiHome, label: 'Dashboard' },
+    { path: '/billing', icon: FiFileText, label: 'Billing' },
+    { path: '/ledgers', icon: FiBook, label: 'Ledgers' },
+    { path: '/settlement', icon: FiTrendingUp, label: 'Settlement' },
+    { path: '/stock', icon: FiDollarSign, label: 'Stock Management' },
+    { path: '/account', icon: FiSettings, label: 'Account' },
+  ];
+
+  const navItems = isAdmin ? adminNav : userNav;
+
+  const handleLogout = () => {
+    if (confirm('Are you sure you want to logout?')) {
+      logout();
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', minHeight: '100vh' }}>
+      {/* Sidebar */}
+      <aside style={{
+        width: sidebarOpen ? '260px' : '0',
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        bottom: 0,
+        background: 'var(--bg-primary)',
+        borderRight: '1px solid var(--border-color)',
+        transition: 'width 0.3s',
+        overflow: 'hidden',
+        zIndex: 1000
+      }}>
+        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                background: 'linear-gradient(135deg, #f59e0b, #fbbf24)',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '1.25rem'
+              }}>
+                ✨
+              </div>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{user?.shopName}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                  {isAdmin ? 'Admin' : 'User'}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setSidebarOpen(false)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: 'var(--text-secondary)',
+                padding: '0.5rem'
+              }}
+            >
+              <FiX size={20} />
+            </button>
+          </div>
+        </div>
+
+        <nav style={{ padding: '1rem' }}>
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path;
+            const Icon = item.icon;
+            
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={() => setSidebarOpen(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.875rem 1rem',
+                  borderRadius: '8px',
+                  marginBottom: '0.5rem',
+                  textDecoration: 'none',
+                  color: isActive ? 'var(--color-primary)' : 'var(--text-primary)',
+                  background: isActive ? 'rgba(245, 158, 11, 0.1)' : 'transparent',
+                  fontWeight: isActive ? 600 : 500,
+                  transition: 'all 0.2s'
+                }}
+              >
+                <Icon size={18} />
+                {item.label}
+              </Link>
+            );
+          })}
+
+          <button
+            onClick={handleLogout}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              padding: '0.875rem 1rem',
+              borderRadius: '8px',
+              marginTop: '1rem',
+              width: '100%',
+              textAlign: 'left',
+              background: 'none',
+              border: 'none',
+              color: 'var(--color-danger)',
+              fontWeight: 500,
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              fontSize: '1rem'
+            }}
+          >
+            <FiLogOut size={18} />
+            Logout
+          </button>
+        </nav>
+      </aside>
+
+      {/* Main Content */}
+      <div style={{ 
+        flex: 1, 
+        marginLeft: sidebarOpen ? '260px' : '0',
+        transition: 'margin-left 0.3s',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        {/* Header */}
+        <header style={{
+          background: 'var(--bg-primary)',
+          borderBottom: '1px solid var(--border-color)',
+          padding: '1rem 1.5rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          position: 'sticky',
+          top: 0,
+          zIndex: 100
+        }}>
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="btn btn-secondary"
+            style={{ padding: '0.625rem' }}
+          >
+            <FiMenu size={20} />
+          </button>
+
+          {!isAdmin && user?.daysUntilExpiry <= 7 && (
+            <div className="badge badge-warning">
+              License expires in {user.daysUntilExpiry} days
+            </div>
+          )}
+        </header>
+
+        {/* Page Content */}
+        <main style={{ flex: 1, padding: '2rem 1.5rem' }}>
+          {children}
+        </main>
+      </div>
+
+      {/* Sidebar overlay for mobile */}
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 999
+          }}
+        />
+      )}
+    </div>
+  );
+}
