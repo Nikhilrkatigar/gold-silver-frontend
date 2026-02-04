@@ -242,11 +242,12 @@ export default function Billing() {
       grossWeight: acc.grossWeight + (parseFloat(item.grossWeight) || 0),
       lessWeight: acc.lessWeight + (parseFloat(item.lessWeight) || 0),
       netWeight: acc.netWeight + (parseFloat(item.netWeight) || 0),
+      melting: acc.melting + (parseFloat(item.melting) || 0),
       wastage: acc.wastage + (parseFloat(item.wastage) || 0),
       fineWeight: acc.fineWeight + (parseFloat(item.fineWeight) || 0),
       labourRate: acc.labourRate + (parseFloat(item.labourRate) || 0),
       amount: acc.amount + (parseFloat(item.amount) || 0)
-    }), { pieces: 0, grossWeight: 0, lessWeight: 0, netWeight: 0, wastage: 0, fineWeight: 0, labourRate: 0, amount: 0 });
+    }), { pieces: 0, grossWeight: 0, lessWeight: 0, netWeight: 0, melting: 0, wastage: 0, fineWeight: 0, labourRate: 0, amount: 0 });
   };
 
   const handleSubmit = async (e) => {
@@ -593,6 +594,7 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                   <th>Gross Wt</th>
                   <th>Less</th>
                   <th>Net Wt</th>
+                  <th>Melting %</th>
                   <th>Wastage</th>
                   <th>Fine Wt</th>
                   <th>Lab Rate</th>
@@ -675,6 +677,21 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                     <td>
                       <input
                         type="number"
+                        step="0.01"
+                        className="input"
+                        value={item.melting}
+                        onChange={(e) => {
+                          const newItems = [...items];
+                          newItems[index].melting = e.target.value;
+                          setItems(newItems);
+                          calculateItem(index);
+                        }}
+                        style={{ width: '80px' }}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        type="number"
                         step="0.001"
                         className="input"
                         value={item.wastage}
@@ -740,6 +757,7 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                   <td>{totals.grossWeight.toFixed(3)}</td>
                   <td>{totals.lessWeight.toFixed(3)}</td>
                   <td>{totals.netWeight.toFixed(3)}</td>
+                  <td>{totals.melting.toFixed(2)}</td>
                   <td>{totals.wastage.toFixed(3)}</td>
                   <td>{totals.fineWeight.toFixed(3)}</td>
                   <td>{totals.labourRate.toFixed(2)}</td>
