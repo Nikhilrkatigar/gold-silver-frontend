@@ -564,21 +564,43 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
           </div>
 
           <div className="table-responsive">
-            <table className="table table-bordered">
+            <style>
+              {`
+                @media (max-width: 768px) {
+                  .billing-table input[type="text"] {
+                    min-width: 150px !important;
+                    font-size: 14px;
+                  }
+                  .billing-table input[type="number"] {
+                    font-size: 14px;
+                  }
+                  .billing-table th,
+                  .billing-table td {
+                    padding: 8px 4px !important;
+                    font-size: 12px;
+                  }
+                }
+                .item-name-input {
+                  min-width: 200px;
+                  width: 100%;
+                }
+              `}
+            </style>
+            <table className="table table-bordered billing-table">
               <thead className="thead-dark">
                 <tr>
-                  <th style={{ width: '40px' }}>Sl</th>
+                  <th style={{ width: '40px', minWidth: '40px' }}>Sl</th>
                   <th style={{ minWidth: '200px' }}>Item Name</th>
-                  <th style={{ width: '70px' }}>Pcs</th>
-                  <th style={{ width: '90px' }}>Gross Wt</th>
-                  <th style={{ width: '80px' }}>Less</th>
-                  <th style={{ width: '90px' }}>Net Wt</th>
-                  <th style={{ width: '80px' }}>Melting %</th>
-                  <th style={{ width: '80px' }}>Wastage</th>
-                  <th style={{ width: '90px' }}>Fine Wt</th>
-                  <th style={{ width: '90px' }}>Lab Rate</th>
-                  <th style={{ width: '100px' }}>Amount</th>
-                  <th style={{ width: '80px' }}>Action</th>
+                  <th style={{ width: '70px', minWidth: '70px' }}>Pcs</th>
+                  <th style={{ width: '90px', minWidth: '90px' }}>Gross Wt</th>
+                  <th style={{ width: '80px', minWidth: '80px' }}>Less</th>
+                  <th style={{ width: '90px', minWidth: '90px' }}>Net Wt</th>
+                  <th style={{ width: '80px', minWidth: '80px' }}>Melting %</th>
+                  <th style={{ width: '80px', minWidth: '80px' }}>Wastage</th>
+                  <th style={{ width: '90px', minWidth: '90px' }}>Fine Wt</th>
+                  <th style={{ width: '90px', minWidth: '90px' }}>Lab Rate</th>
+                  <th style={{ width: '100px', minWidth: '100px' }}>Amount</th>
+                  <th style={{ width: '80px', minWidth: '80px' }}>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -588,14 +610,13 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                     <td>
                       <input
                         type="text"
-                        className="form-control"
+                        className="form-control item-name-input"
                         value={item.itemName}
                         onChange={(e) => {
                           const newItems = [...items];
                           newItems[index].itemName = e.target.value;
                           setItems(newItems);
                         }}
-                        style={{ minWidth: '180px' }}
                         required
                       />
                     </td>
@@ -732,7 +753,8 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                   </tr>
                 ))}
                 <tr className="font-weight-bold bg-light">
-                  <td colSpan="2" className="text-center">Total</td>
+                  <td className="text-center">Total</td>
+                  <td></td>
                   <td className="text-center">{totals.pieces}</td>
                   <td>{totals.grossWeight.toFixed(3)}</td>
                   <td>{totals.lessWeight.toFixed(3)}</td>
