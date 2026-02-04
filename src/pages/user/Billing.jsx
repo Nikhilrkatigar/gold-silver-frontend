@@ -18,7 +18,7 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
     amount: items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
   };
 
-  const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0);
+  const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0);
 
   return (
     <div style={{ fontFamily: 'Arial, sans-serif', padding: '40px', maxWidth: '900px', margin: '0 auto' }}>
@@ -70,7 +70,6 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
               <th style={{ width: '10%' }}>Gross</th>
               <th style={{ width: '10%' }}>Less</th>
               <th style={{ width: '10%' }}>Net Wt</th>
-              <th style={{ width: '10%' }}>Melting</th>
               <th style={{ width: '10%' }}>Wastage</th>
               <th style={{ width: '10%' }}>Fine Wt</th>
               <th style={{ width: '10%' }}>Lab Rt</th>
@@ -86,7 +85,6 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
                 <td>{parseFloat(item.grossWeight).toFixed(3)}</td>
                 <td>{parseFloat(item.lessWeight).toFixed(3)}</td>
                 <td>{parseFloat(item.netWeight).toFixed(3)}</td>
-                <td>{parseFloat(item.melting).toFixed(3)}</td>
                 <td>{parseFloat(item.wastage).toFixed(3)}</td>
                 <td>{parseFloat(item.fineWeight).toFixed(3)}</td>
                 <td>{parseFloat(item.labourRate).toFixed(2)}</td>
@@ -99,8 +97,7 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
               <td>{totals.grossWeight.toFixed(3)}</td>
               <td>{totals.lessWeight.toFixed(3)}</td>
               <td>{totals.netWeight.toFixed(3)}</td>
-              <td></td>
-              <td></td>
+              <td>{totals.wastage.toFixed(3)}</td>
               <td>{totals.fineWeight.toFixed(3)}</td>
               <td>{totals.labourRate.toFixed(2)}</td>
               <td>{totals.amount.toFixed(2)}</td>
@@ -113,9 +110,6 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
           <div>
             <div className="section-label">Stone Amount :</div>
             <div>{parseFloat(formData.stoneAmount || 0).toFixed(2)}</div>
-            
-            <div className="section-label" style={{ marginTop: '10px' }}>Fine Amount :</div>
-            <div>{parseFloat(formData.fineAmount || 0).toFixed(2)}</div>
             
             <div className="section-label" style={{ marginTop: '10px' }}>Labour :</div>
             <div>{totals.labourRate.toFixed(2)}</div>
@@ -174,28 +168,25 @@ export default function Billing() {
     goldRate: '',
     silverRate: '',
     stoneAmount: '',
-    fineAmount: '',
     issueGross: '',
     receiptGross: '',
     narration: ''
   });
-  const [items, setItems] = useState([{
-    metalType: 'gold',
-    itemName: '',
-    pieces: 1,
-    grossWeight: '',
-    lessWeight: '',
-    netWeight: '',
-    melting: '',
-    wastage: '',
-    fineWeight: '',
-    labourRate: '',
-    amount: ''
-  }]);
+  const [items, setItems] = useState([]);
 
   useEffect(() => {
     fetchLedgers();
+    // Initialize with empty items array instead of one item
   }, []);
+
+  // Auto-calculate Issue (Gross) when items change
+  useEffect(() => {
+    const newTotals = calculateTotals();
+    setFormData(prev => ({
+      ...prev,
+      issueGross: newTotals.grossWeight.toString()
+    }));
+  }, [items]);
 
   const fetchLedgers = async () => {
     try {
@@ -251,12 +242,11 @@ export default function Billing() {
       grossWeight: acc.grossWeight + (parseFloat(item.grossWeight) || 0),
       lessWeight: acc.lessWeight + (parseFloat(item.lessWeight) || 0),
       netWeight: acc.netWeight + (parseFloat(item.netWeight) || 0),
-      melting: acc.melting + (parseFloat(item.melting) || 0),
       wastage: acc.wastage + (parseFloat(item.wastage) || 0),
       fineWeight: acc.fineWeight + (parseFloat(item.fineWeight) || 0),
       labourRate: acc.labourRate + (parseFloat(item.labourRate) || 0),
       amount: acc.amount + (parseFloat(item.amount) || 0)
-    }), { pieces: 0, grossWeight: 0, lessWeight: 0, netWeight: 0, melting: 0, wastage: 0, fineWeight: 0, labourRate: 0, amount: 0 });
+    }), { pieces: 0, grossWeight: 0, lessWeight: 0, netWeight: 0, wastage: 0, fineWeight: 0, labourRate: 0, amount: 0 });
   };
 
   const handleSubmit = async (e) => {
@@ -268,7 +258,7 @@ export default function Billing() {
     }
 
     const totals = calculateTotals();
-    const total = totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0);
+    const total = totals.amount + (parseFloat(formData.stoneAmount) || 0);
 
     // Convert all numeric fields to proper numbers
     const cleanedItems = items.map(item => ({
@@ -285,7 +275,7 @@ export default function Billing() {
       amount: parseFloat(item.amount) || 0
     }));
 
-    const voucherData = {
+      voucherData = {
       ledgerId: formData.ledgerId,
       date: formData.date,
       voucherNumber: formData.voucherNumber,
@@ -293,7 +283,6 @@ export default function Billing() {
       goldRate: parseFloat(formData.goldRate) || 0,
       silverRate: parseFloat(formData.silverRate) || 0,
       stoneAmount: parseFloat(formData.stoneAmount) || 0,
-      fineAmount: parseFloat(formData.fineAmount) || 0,
       items: cleanedItems,
       issue: { gross: parseFloat(formData.issueGross) || 0 },
       receipt: { gross: parseFloat(formData.receiptGross) || 0 },
@@ -311,7 +300,7 @@ export default function Billing() {
   };
 
   const totals = calculateTotals();
-  const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0);
+  const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0);
 
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
@@ -364,7 +353,6 @@ export default function Billing() {
                 <th style="width: 10%;">Gross</th>
                 <th style="width: 10%;">Less</th>
                 <th style="width: 10%;">Net Wt</th>
-                <th style="width: 10%;">Melting</th>
                 <th style="width: 10%;">Wastage</th>
                 <th style="width: 10%;">Fine Wt</th>
                 <th style="width: 10%;">Lab Rt</th>
@@ -380,7 +368,6 @@ export default function Billing() {
                   <td>${parseFloat(item.grossWeight).toFixed(3)}</td>
                   <td>${parseFloat(item.lessWeight).toFixed(3)}</td>
                   <td>${parseFloat(item.netWeight).toFixed(3)}</td>
-                  <td>${parseFloat(item.melting).toFixed(3)}</td>
                   <td>${parseFloat(item.wastage).toFixed(3)}</td>
                   <td>${parseFloat(item.fineWeight).toFixed(3)}</td>
                   <td>${parseFloat(item.labourRate).toFixed(2)}</td>
@@ -393,8 +380,7 @@ export default function Billing() {
                 <td>${items.reduce((sum, item) => sum + (parseFloat(item.grossWeight) || 0), 0).toFixed(3)}</td>
                 <td>${items.reduce((sum, item) => sum + (parseFloat(item.lessWeight) || 0), 0).toFixed(3)}</td>
                 <td>${items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0).toFixed(3)}</td>
-                <td></td>
-                <td></td>
+                <td>${items.reduce((sum, item) => sum + (parseFloat(item.wastage) || 0), 0).toFixed(3)}</td>
                 <td>${items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0).toFixed(3)}</td>
                 <td>${items.reduce((sum, item) => sum + (parseFloat(item.labourRate) || 0), 0).toFixed(2)}</td>
                 <td>${items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)}</td>
@@ -406,9 +392,6 @@ export default function Billing() {
             <div>
               <div style="font-weight: bold; margin-bottom: 5px;">Stone Amount :</div>
               <div>${parseFloat(formData.stoneAmount || 0).toFixed(2)}</div>
-              
-              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 10px;">Fine Amount :</div>
-              <div>${parseFloat(formData.fineAmount || 0).toFixed(2)}</div>
               
               <div style="font-weight: bold; margin-bottom: 5px; margin-top: 10px;">Labour :</div>
               <div>${items.reduce((sum, item) => sum + (parseFloat(item.labourRate) || 0), 0).toFixed(2)}</div>
@@ -445,7 +428,7 @@ export default function Billing() {
               <div>${(((ledgers.find(l => l._id === formData.ledgerId)?.balances?.goldFineWeight || 0) + (ledgers.find(l => l._id === formData.ledgerId)?.balances?.silverFineWeight || 0))).toFixed(3)}</div>
 
               <div style="font-weight: bold; margin-bottom: 5px; margin-top: 15px;">Cur Bal Amt :</div>
-              <div>${((parseFloat(ledgers.find(l => l._id === formData.ledgerId)?.balances?.amount || 0)) - (items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0))).toFixed(2)}</div>
+              <div>${((parseFloat(ledgers.find(l => l._id === formData.ledgerId)?.balances?.amount || 0)) - (items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0))).toFixed(2)}</div>
 
               <div style="font-weight: bold; margin-bottom: 5px; margin-top: 10px;">Cur Bal Net Wt :</div>
               <div>${((((ledgers.find(l => l._id === formData.ledgerId)?.balances?.goldFineWeight || 0) + (ledgers.find(l => l._id === formData.ledgerId)?.balances?.silverFineWeight || 0))) - items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0)).toFixed(3)}</div>
@@ -465,7 +448,7 @@ export default function Billing() {
 
   const handleShare = () => {
     const ledger = ledgers.find(l => l._id === formData.ledgerId);
-    const grandTot = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0);
+    const grandTot = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0);
     
     const voucherText = `ESTIMATE/ON APPROVAL - Issue
 
@@ -506,6 +489,18 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
 
   return (
     <Layout>
+      <style>{`
+        @media (max-width: 768px) {
+          .card .input {
+            width: 100% !important;
+            min-width: unset !important;
+          }
+          .card table input {
+            width: 100% !important;
+            min-width: 70px;
+          }
+        }
+      `}</style>
       <div>
         <h1 style={{ marginBottom: '2rem' }}>Billing</h1>
 
@@ -761,7 +756,6 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                   <td>{totals.grossWeight.toFixed(3)}</td>
                   <td>{totals.lessWeight.toFixed(3)}</td>
                   <td>{totals.netWeight.toFixed(3)}</td>
-                  <td>{totals.melting.toFixed(2)}</td>
                   <td>{totals.wastage.toFixed(3)}</td>
                   <td>{totals.fineWeight.toFixed(3)}</td>
                   <td>{totals.labourRate.toFixed(2)}</td>
@@ -795,17 +789,6 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
               </div>
               
               <div className="input-group">
-                <label className="input-label">Fine Amount</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="input"
-                  value={formData.fineAmount}
-                  onChange={(e) => setFormData({...formData, fineAmount: e.target.value})}
-                />
-              </div>
-              
-              <div className="input-group">
                 <label className="input-label">Issue (Gross)</label>
                 <input
                   type="number"
@@ -815,9 +798,7 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                   onChange={(e) => setFormData({...formData, issueGross: e.target.value})}
                 />
               </div>
-            </div>
 
-            <div className="grid grid-2">
               <div className="input-group">
                 <label className="input-label">Receipt (Gross)</label>
                 <input
@@ -827,12 +808,6 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                   value={formData.receiptGross}
                   onChange={(e) => setFormData({...formData, receiptGross: e.target.value})}
                 />
-              </div>
-              
-              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                <div style={{ fontWeight: 700, fontSize: '1.5rem' }}>
-                  Total: ₹{grandTotal.toFixed(2)}
-                </div>
               </div>
             </div>
 
@@ -844,6 +819,12 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                 onChange={(e) => setFormData({...formData, narration: e.target.value})}
                 rows="3"
               ></textarea>
+            </div>
+
+            <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '4px', textAlign: 'right' }}>
+              <div style={{ fontWeight: 700, fontSize: '1.5rem' }}>
+                Total: ₹{grandTotal.toFixed(2)}
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>

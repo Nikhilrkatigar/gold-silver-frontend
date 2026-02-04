@@ -4,7 +4,7 @@ import Layout from '../../components/Layout';
 import { ledgerAPI, voucherAPI, settlementAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
-import { FiTrash2, FiArrowLeft, FiEye, FiX, FiPrinter } from 'react-icons/fi';
+import { FiTrash2, FiArrowLeft, FiEye, FiX, FiPrinter, FiShare2 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 
 export default function LedgerDetail() {
@@ -302,6 +302,72 @@ export default function LedgerDetail() {
     }
   };
 
+  const handleShareVoucher = (voucher) => {
+    const voucherText = `ESTIMATE/ON APPROVAL - Issue
+
+Customer: ${ledger?.name || 'N/A'}
+Voucher No: ${voucher.voucherNumber}
+Date: ${new Date(voucher.date).toLocaleDateString('en-IN')}
+Payment Type: ${voucher.paymentType}
+
+Items Summary:
+- Total Pieces: ${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseInt(item.pieces) || 0), 0) : 0}
+- Total Net Wt: ${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0).toFixed(3) : '0.000'} g
+- Total Fine Wt: ${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0).toFixed(3) : '0.000'} g
+
+Stone Amount: ₹${parseFloat(voucher.stoneAmount || 0).toFixed(2)}
+Total Amount: ₹${voucher.total?.toFixed(2) || ((voucher.items?.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) || 0) + (parseFloat(voucher.stoneAmount) || 0)).toFixed(2)}
+
+Gold Rate: ₹${parseFloat(voucher.goldRate || 0).toFixed(2)}
+Silver Rate: ₹${parseFloat(voucher.silverRate || 0).toFixed(2)}`;
+
+    if (navigator.share) {
+      navigator.share({
+        title: `Voucher #${voucher.voucherNumber}`,
+        text: voucherText
+      }).catch(err => {
+        if (err.name !== 'AbortError') {
+          toast.error('Error sharing voucher');
+        }
+      });
+    } else {
+      navigator.clipboard.writeText(voucherText).then(() => {
+        toast.success('Voucher details copied to clipboard!');
+      }).catch(() => {
+        toast.error('Failed to copy to clipboard');
+      });
+    }
+  };
+
+  const handleShareSettlement = (settlement) => {
+    const settlementText = `Settlement
+
+Customer: ${ledger?.name || 'N/A'}
+Date: ${new Date(settlement.date).toLocaleDateString('en-IN')}
+Metal Type: ${settlement.metalType}
+Fine Given: ${parseFloat(settlement.fineGiven).toFixed(3)} g
+Metal Rate: ₹${parseFloat(settlement.metalRate).toFixed(2)}
+
+Settlement Amount: ₹${parseFloat(settlement.amount).toFixed(2)}`;
+
+    if (navigator.share) {
+      navigator.share({
+        title: 'Settlement',
+        text: settlementText
+      }).catch(err => {
+        if (err.name !== 'AbortError') {
+          toast.error('Error sharing settlement');
+        }
+      });
+    } else {
+      navigator.clipboard.writeText(settlementText).then(() => {
+        toast.success('Settlement details copied to clipboard!');
+      }).catch(() => {
+        toast.error('Failed to copy to clipboard');
+      });
+    }
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -407,6 +473,13 @@ export default function LedgerDetail() {
                           title="Print"
                         >
                           <FiPrinter />
+                        </button>
+                        <button 
+                          onClick={() => txn.type === 'voucher' ? handleShareVoucher(txn) : handleShareSettlement(txn)}
+                          className="btn btn-sm btn-secondary"
+                          title="Share"
+                        >
+                          <FiShare2 />
                         </button>
                         <button 
                           onClick={() => txn.type === 'voucher' ? handleDeleteVoucher(txn._id) : handleDeleteSettlement(txn._id)}
