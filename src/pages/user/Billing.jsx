@@ -593,7 +593,6 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                   <th>Gross Wt</th>
                   <th>Less</th>
                   <th>Net Wt</th>
-                  <th>Melting %</th>
                   <th>Wastage</th>
                   <th>Fine Wt</th>
                   <th>Lab Rate</th>
@@ -671,21 +670,6 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                         value={item.netWeight}
                         disabled
                         style={{ width: '90px' }}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.01"
-                        className="input"
-                        value={item.melting}
-                        onChange={(e) => {
-                          const newItems = [...items];
-                          newItems[index].melting = e.target.value;
-                          setItems(newItems);
-                          calculateItem(index);
-                        }}
-                        style={{ width: '80px' }}
                       />
                     </td>
                     <td>
