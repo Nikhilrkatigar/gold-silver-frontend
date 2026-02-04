@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { FiPlus, FiX, FiSave, FiPrinter, FiShare2 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 
-// Voucher Print Template Component - Billing Management
+// Voucher Print Template Component
 const VoucherTemplate = ({ formData, items, ledgers, user }) => {
   const ledger = ledgers.find(l => l._id === formData.ledgerId);
   const totals = {
@@ -485,15 +485,288 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
 
   return (
     <Layout>
-      <div className="container-fluid">
-        <h2 className="mb-4">Billing</h2>
+      <style>
+        {`
+          .billing-container {
+            padding: 20px;
+            max-width: 100%;
+          }
+          
+          .billing-header {
+            margin-bottom: 25px;
+          }
+          
+          .billing-header h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0;
+          }
+          
+          .form-row-custom {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+          }
+          
+          .form-group-custom {
+            display: flex;
+            flex-direction: column;
+          }
+          
+          .form-group-custom label {
+            font-size: 13px;
+            font-weight: 500;
+            margin-bottom: 6px;
+            color: #e0e0e0;
+          }
+          
+          .form-group-custom input,
+          .form-group-custom select,
+          .form-group-custom textarea {
+            padding: 8px 12px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: #2a2a2a;
+            color: #fff;
+          }
+          
+          .form-group-custom input:focus,
+          .form-group-custom select:focus,
+          .form-group-custom textarea:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+          }
+          
+          .table-responsive {
+            margin: 20px 0;
+            overflow-x: auto;
+          }
+          
+          .billing-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #1e1e1e;
+            border: 1px solid #444;
+          }
+          
+          .billing-table thead th {
+            background-color: #2d3748;
+            color: #fff;
+            padding: 12px 8px;
+            font-size: 13px;
+            font-weight: 600;
+            text-align: left;
+            border: 1px solid #444;
+            white-space: nowrap;
+          }
+          
+          .billing-table tbody td {
+            padding: 8px;
+            border: 1px solid #444;
+            background-color: #252525;
+          }
+          
+          .billing-table tbody tr.totals-row {
+            background-color: #2d3748;
+            font-weight: 600;
+          }
+          
+          .billing-table tbody tr.totals-row td {
+            background-color: #2d3748;
+            color: #fff;
+          }
+          
+          .billing-table input {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid #444;
+            border-radius: 3px;
+            font-size: 13px;
+            background-color: #1a1a1a;
+            color: #fff;
+          }
+          
+          .billing-table input:focus {
+            outline: none;
+            border-color: #007bff;
+          }
+          
+          .billing-table input:read-only {
+            background-color: #2a2a2a;
+            color: #aaa;
+          }
+          
+          .item-name-input {
+            min-width: 200px;
+          }
+          
+          .text-center {
+            text-align: center;
+          }
+          
+          .btn-action-delete {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+          }
+          
+          .btn-action-delete:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+            opacity: 0.5;
+          }
+          
+          .btn-action-delete:hover:not(:disabled) {
+            background-color: #c82333;
+          }
+          
+          .add-row-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+          }
+          
+          .btn-add-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+          }
+          
+          .btn-gold {
+            background-color: #ffc107;
+            color: #000;
+          }
+          
+          .btn-gold:hover {
+            background-color: #e0a800;
+          }
+          
+          .btn-silver {
+            background-color: #6c757d;
+            color: #fff;
+          }
+          
+          .btn-silver:hover {
+            background-color: #5a6268;
+          }
+          
+          .bottom-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+          }
+          
+          .grand-total {
+            font-size: 20px;
+            font-weight: 600;
+            margin: 20px 0;
+            color: #fff;
+          }
+          
+          .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+          }
+          
+          .btn-primary-action {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+          }
+          
+          .btn-save {
+            background-color: #28a745;
+            color: white;
+          }
+          
+          .btn-save:hover {
+            background-color: #218838;
+          }
+          
+          .btn-print {
+            background-color: #17a2b8;
+            color: white;
+          }
+          
+          .btn-print:hover {
+            background-color: #138496;
+          }
+          
+          .btn-share {
+            background-color: #6c757d;
+            color: white;
+          }
+          
+          .btn-share:hover {
+            background-color: #5a6268;
+          }
+          
+          @media (max-width: 768px) {
+            .billing-container {
+              padding: 10px;
+            }
+            
+            .form-row-custom {
+              grid-template-columns: 1fr;
+            }
+            
+            .billing-table {
+              font-size: 12px;
+            }
+            
+            .billing-table thead th,
+            .billing-table tbody td {
+              padding: 6px 4px;
+            }
+            
+            .item-name-input {
+              min-width: 150px;
+            }
+            
+            .action-buttons {
+              flex-direction: column;
+            }
+            
+            .btn-primary-action {
+              width: 100%;
+              justify-content: center;
+            }
+          }
+        `}
+      </style>
+      <div className="billing-container">
+        <div className="billing-header">
+          <h2>Billing</h2>
+        </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="row mb-3">
-            <div className="col-md-3">
+          <div className="form-row-custom">
+            <div className="form-group-custom">
               <label>Customer Name</label>
               <select
-                className="form-control"
                 value={formData.ledgerId}
                 onChange={(e) => setFormData({...formData, ledgerId: e.target.value})}
                 required
@@ -505,22 +778,20 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
               </select>
             </div>
 
-            <div className="col-md-2">
+            <div className="form-group-custom">
               <label>Date</label>
               <input
                 type="date"
-                className="form-control"
                 value={formData.date}
                 onChange={(e) => setFormData({...formData, date: e.target.value})}
                 required
               />
             </div>
 
-            <div className="col-md-2">
+            <div className="form-group-custom">
               <label>Voucher Number</label>
               <input
                 type="text"
-                className="form-control"
                 value={formData.voucherNumber}
                 onChange={(e) => setFormData({...formData, voucherNumber: e.target.value})}
                 disabled={user?.voucherSettings?.autoIncrement}
@@ -528,10 +799,9 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
               />
             </div>
 
-            <div className="col-md-2">
+            <div className="form-group-custom">
               <label>Payment Type</label>
               <select
-                className="form-control"
                 value={formData.paymentType}
                 onChange={(e) => setFormData({...formData, paymentType: e.target.value})}
               >
@@ -540,23 +810,21 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
               </select>
             </div>
 
-            <div className="col-md-1">
+            <div className="form-group-custom">
               <label>Gold Rate</label>
               <input
                 type="number"
                 step="0.01"
-                className="form-control"
                 value={formData.goldRate}
                 onChange={(e) => setFormData({...formData, goldRate: e.target.value})}
               />
             </div>
 
-            <div className="col-md-2">
+            <div className="form-group-custom">
               <label>Silver Rate</label>
               <input
                 type="number"
                 step="0.01"
-                className="form-control"
                 value={formData.silverRate}
                 onChange={(e) => setFormData({...formData, silverRate: e.target.value})}
               />
@@ -564,43 +832,21 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
           </div>
 
           <div className="table-responsive">
-            <style>
-              {`
-                @media (max-width: 768px) {
-                  .billing-table input[type="text"] {
-                    min-width: 150px !important;
-                    font-size: 14px;
-                  }
-                  .billing-table input[type="number"] {
-                    font-size: 14px;
-                  }
-                  .billing-table th,
-                  .billing-table td {
-                    padding: 8px 4px !important;
-                    font-size: 12px;
-                  }
-                }
-                .item-name-input {
-                  min-width: 200px;
-                  width: 100%;
-                }
-              `}
-            </style>
-            <table className="table table-bordered billing-table">
-              <thead className="thead-dark">
+            <table className="billing-table">
+              <thead>
                 <tr>
-                  <th style={{ width: '40px', minWidth: '40px' }}>Sl</th>
-                  <th style={{ minWidth: '200px' }}>Item Name</th>
-                  <th style={{ width: '70px', minWidth: '70px' }}>Pcs</th>
-                  <th style={{ width: '90px', minWidth: '90px' }}>Gross Wt</th>
-                  <th style={{ width: '80px', minWidth: '80px' }}>Less</th>
-                  <th style={{ width: '90px', minWidth: '90px' }}>Net Wt</th>
-                  <th style={{ width: '80px', minWidth: '80px' }}>Melting %</th>
-                  <th style={{ width: '80px', minWidth: '80px' }}>Wastage</th>
-                  <th style={{ width: '90px', minWidth: '90px' }}>Fine Wt</th>
-                  <th style={{ width: '90px', minWidth: '90px' }}>Lab Rate</th>
-                  <th style={{ width: '100px', minWidth: '100px' }}>Amount</th>
-                  <th style={{ width: '80px', minWidth: '80px' }}>Action</th>
+                  <th style={{ width: '40px', minWidth: '40px' }}>SL</th>
+                  <th style={{ minWidth: '200px' }}>ITEM NAME</th>
+                  <th style={{ width: '70px', minWidth: '70px' }}>PCS</th>
+                  <th style={{ width: '90px', minWidth: '90px' }}>GROSS WT</th>
+                  <th style={{ width: '80px', minWidth: '80px' }}>LESS</th>
+                  <th style={{ width: '90px', minWidth: '90px' }}>NET WT</th>
+                  <th style={{ width: '80px', minWidth: '80px' }}>MELTING %</th>
+                  <th style={{ width: '80px', minWidth: '80px' }}>WASTAGE</th>
+                  <th style={{ width: '90px', minWidth: '90px' }}>FINE WT</th>
+                  <th style={{ width: '90px', minWidth: '90px' }}>LAB RATE</th>
+                  <th style={{ width: '100px', minWidth: '100px' }}>AMOUNT</th>
+                  <th style={{ width: '80px', minWidth: '80px' }}>ACTION</th>
                 </tr>
               </thead>
               <tbody>
@@ -610,27 +856,26 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                     <td>
                       <input
                         type="text"
-                        className="form-control item-name-input"
+                        className="item-name-input"
                         value={item.itemName}
                         onChange={(e) => {
                           const newItems = [...items];
                           newItems[index].itemName = e.target.value;
                           setItems(newItems);
                         }}
+                        placeholder="Item name"
                         required
                       />
                     </td>
                     <td>
                       <input
                         type="number"
-                        className="form-control"
                         value={item.pieces}
                         onChange={(e) => {
                           const newItems = [...items];
                           newItems[index].pieces = e.target.value;
                           setItems(newItems);
                         }}
-                        style={{ width: '70px' }}
                         required
                       />
                     </td>
@@ -638,7 +883,6 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                       <input
                         type="number"
                         step="0.001"
-                        className="form-control"
                         value={item.grossWeight}
                         onChange={(e) => {
                           const newItems = [...items];
@@ -646,7 +890,6 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                           setItems(newItems);
                           calculateItem(index);
                         }}
-                        style={{ width: '90px' }}
                         required
                       />
                     </td>
@@ -654,7 +897,6 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                       <input
                         type="number"
                         step="0.001"
-                        className="form-control"
                         value={item.lessWeight}
                         onChange={(e) => {
                           const newItems = [...items];
@@ -662,24 +904,20 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                           setItems(newItems);
                           calculateItem(index);
                         }}
-                        style={{ width: '80px' }}
                       />
                     </td>
                     <td>
                       <input
                         type="number"
                         step="0.001"
-                        className="form-control"
                         value={item.netWeight}
                         readOnly
-                        style={{ width: '90px' }}
                       />
                     </td>
                     <td>
                       <input
                         type="number"
                         step="0.01"
-                        className="form-control"
                         value={item.melting}
                         onChange={(e) => {
                           const newItems = [...items];
@@ -687,14 +925,12 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                           setItems(newItems);
                           calculateItem(index);
                         }}
-                        style={{ width: '80px' }}
                       />
                     </td>
                     <td>
                       <input
                         type="number"
                         step="0.001"
-                        className="form-control"
                         value={item.wastage}
                         onChange={(e) => {
                           const newItems = [...items];
@@ -702,24 +938,20 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                           setItems(newItems);
                           calculateItem(index);
                         }}
-                        style={{ width: '80px' }}
                       />
                     </td>
                     <td>
                       <input
                         type="number"
                         step="0.001"
-                        className="form-control"
                         value={item.fineWeight}
                         readOnly
-                        style={{ width: '90px' }}
                       />
                     </td>
                     <td>
                       <input
                         type="number"
                         step="0.01"
-                        className="form-control"
                         value={item.labourRate}
                         onChange={(e) => {
                           const newItems = [...items];
@@ -727,24 +959,21 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                           setItems(newItems);
                           calculateItem(index);
                         }}
-                        style={{ width: '90px' }}
                       />
                     </td>
                     <td>
                       <input
                         type="number"
                         step="0.01"
-                        className="form-control"
                         value={item.amount}
                         readOnly
-                        style={{ width: '100px' }}
                       />
                     </td>
-                    <td>
+                    <td className="text-center">
                       <button
                         type="button"
                         onClick={() => deleteRow(index)}
-                        className="btn btn-sm btn-danger"
+                        className="btn-action-delete"
                         disabled={items.length === 1}
                       >
                         <FiX />
@@ -752,7 +981,7 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                     </td>
                   </tr>
                 ))}
-                <tr className="font-weight-bold bg-light">
+                <tr className="totals-row">
                   <td className="text-center">Total</td>
                   <td></td>
                   <td className="text-center">{totals.pieces}</td>
@@ -770,75 +999,68 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
             </table>
           </div>
 
-          <div className="mb-3">
-            <button type="button" onClick={() => addRow('gold')} className="btn btn-sm btn-primary">
+          <div className="add-row-buttons">
+            <button type="button" onClick={() => addRow('gold')} className="btn-add-row btn-gold">
               <FiPlus /> Add Gold Row
             </button>
-            <button type="button" onClick={() => addRow('silver')} className="btn btn-sm btn-secondary ml-2">
+            <button type="button" onClick={() => addRow('silver')} className="btn-add-row btn-silver">
               <FiPlus /> Add Silver Row
             </button>
           </div>
 
-          <div className="row mb-3">
-            <div className="col-md-3">
+          <div className="bottom-section">
+            <div className="form-group-custom">
               <label>Stone Amount</label>
               <input
                 type="number"
                 step="0.01"
-                className="form-control"
                 value={formData.stoneAmount}
                 onChange={(e) => setFormData({...formData, stoneAmount: e.target.value})}
               />
             </div>
 
-            <div className="col-md-3">
+            <div className="form-group-custom">
               <label>Issue (Gross)</label>
               <input
                 type="number"
                 step="0.001"
-                className="form-control"
                 value={formData.issueGross}
                 onChange={(e) => setFormData({...formData, issueGross: e.target.value})}
               />
             </div>
 
-            <div className="col-md-3">
+            <div className="form-group-custom">
               <label>Receipt (Gross)</label>
               <input
                 type="number"
                 step="0.001"
-                className="form-control"
                 value={formData.receiptGross}
                 onChange={(e) => setFormData({...formData, receiptGross: e.target.value})}
               />
             </div>
           </div>
 
-          <div className="row mb-3">
-            <div className="col-md-6">
-              <label>Narration</label>
-              <textarea
-                className="form-control"
-                value={formData.narration}
-                onChange={(e) => setFormData({...formData, narration: e.target.value})}
-                rows="3"
-              >
-              </textarea>
-            </div>
+          <div className="form-group-custom" style={{ maxWidth: '500px' }}>
+            <label>Narration</label>
+            <textarea
+              value={formData.narration}
+              onChange={(e) => setFormData({...formData, narration: e.target.value})}
+              rows="3"
+            />
           </div>
 
-          <div className="mb-3">
-            <h5>Total: ₹{grandTotal.toFixed(2)}</h5>
+          <div className="grand-total">
+            Total: ₹{grandTotal.toFixed(2)}
           </div>
 
-          <div className="mb-3">
-            <button type="submit" className="btn btn-success">
+          <div className="action-buttons">
+            <button type="submit" className="btn-primary-action btn-save">
               <FiSave /> Save
             </button>
-            <button type="button" onClick={handlePrint} className="btn btn-info ml-2">
+            <button type="button" onClick={handlePrint} className="btn-primary-action btn-print">
               <FiPrinter /> Print
             </button>
-            <button type="button" onClick={handleShare} className="btn btn-secondary ml-2">
+            <button type="button" onClick={handleShare} className="btn-primary-action btn-share">
               <FiShare2 /> Share
             </button>
           </div>
