@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 import { FiPlus, FiX, FiSave, FiPrinter, FiShare2 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 
-// Voucher Print Template Component
+// Voucher Print Template Component - Billing Management
 const VoucherTemplate = ({ formData, items, ledgers, user }) => {
   const ledger = ledgers.find(l => l._id === formData.ledgerId);
   const totals = {
