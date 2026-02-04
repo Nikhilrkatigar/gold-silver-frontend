@@ -21,121 +21,139 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
   const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0);
 
   return (
-    <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
-      {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-        <h2 style={{ margin: '0', fontSize: '24px', fontWeight: 'bold' }}>{user?.shopName || 'ESTIMATE/ON APPROVAL'}</h2>
-        <p style={{ margin: '5px 0', fontSize: '16px' }}>ESTIMATE/ON APPROVAL - Issue</p>
-      </div>
+    <div style={{ fontFamily: 'Arial, sans-serif', padding: '40px', maxWidth: '900px', margin: '0 auto' }}>
+      <style>{`
+        @media print {
+          body { margin: 0; padding: 0; }
+          .voucher-container { page-break-inside: avoid; }
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+        th { background-color: #f5f5f5; font-weight: bold; }
+        .header { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 10px; }
+        .subheader { text-align: center; font-size: 14px; margin-bottom: 20px; }
+        .details-row { display: flex; justify-content: space-between; margin-bottom: 15px; }
+        .details-col { flex: 1; }
+        .total-row { font-weight: bold; background-color: #f5f5f5; }
+        .footer-section { margin-top: 20px; }
+        .amount-section { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+        .section-label { font-weight: bold; margin-bottom: 5px; }
+        .line-height { height: 30px; border-bottom: 1px solid #000; }
+      `}</style>
 
-      {/* Top Info */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '14px' }}>
-        <div>Name : {ledger?.name || 'N/A'}</div>
-        <div>Voucher No : {formData.voucherNumber}</div>
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', fontSize: '14px' }}>
-        <div>Date : {new Date(formData.date).toLocaleDateString('en-IN')}</div>
-        <div>Page No : 1/1</div>
-      </div>
+      <div className="voucher-container">
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #000', paddingBottom: '10px' }}>
+          <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{user?.shopName || 'ESTIMATE/ON APPROVAL'}</div>
+          <div style={{ fontSize: '14px', marginTop: '5px' }}>ESTIMATE/ON APPROVAL - Issue</div>
+        </div>
 
-      {/* Items Table */}
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
-        <thead>
-          <tr style={{ backgroundColor: '#f0f0f0' }}>
-            <th style={{ border: '1px solid #000', padding: '5px' }}>Sr</th>
-            <th style={{ border: '1px solid #000', padding: '5px' }}>Item Name</th>
-            <th style={{ border: '1px solid #000', padding: '5px' }}>Pcs</th>
-            <th style={{ border: '1px solid #000', padding: '5px' }}>Gross</th>
-            <th style={{ border: '1px solid #000', padding: '5px' }}>Less</th>
-            <th style={{ border: '1px solid #000', padding: '5px' }}>Net Wt</th>
-            <th style={{ border: '1px solid #000', padding: '5px' }}>Wastage</th>
-            <th style={{ border: '1px solid #000', padding: '5px' }}>Fine Wt</th>
-            <th style={{ border: '1px solid #000', padding: '5px' }}>Lab Rt</th>
-            <th style={{ border: '1px solid #000', padding: '5px' }}>Amount</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((item, index) => (
-            <tr key={index}>
-              <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center' }}>{index + 1}</td>
-              <td style={{ border: '1px solid #000', padding: '5px' }}>{item.itemName}</td>
-              <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center' }}>{item.pieces}</td>
-              <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right' }}>{parseFloat(item.grossWeight).toFixed(3)}</td>
-              <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right' }}>{parseFloat(item.lessWeight).toFixed(3)}</td>
-              <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right' }}>{parseFloat(item.netWeight).toFixed(3)}</td>
-              <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right' }}>{parseFloat(item.wastage).toFixed(3)}</td>
-              <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right' }}>{parseFloat(item.fineWeight).toFixed(3)}</td>
-              <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right' }}>{parseFloat(item.labourRate).toFixed(2)}</td>
-              <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right' }}>{parseFloat(item.amount).toFixed(2)}</td>
+        {/* Top Info */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <div>
+            <div>Name : <strong>{ledger?.name || 'N/A'}</strong></div>
+            <div>Voucher No : <strong>{formData.voucherNumber}</strong></div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div>Date : {new Date(formData.date).toLocaleDateString('en-IN')}</div>
+            <div>Page No : 1/1</div>
+          </div>
+        </div>
+
+        {/* Items Table */}
+        <table style={{ marginBottom: '20px' }}>
+          <thead>
+            <tr>
+              <th style={{ width: '5%' }}>Sr</th>
+              <th style={{ width: '15%' }}>Item Name</th>
+              <th style={{ width: '5%' }}>Pcs</th>
+              <th style={{ width: '10%' }}>Gross</th>
+              <th style={{ width: '10%' }}>Less</th>
+              <th style={{ width: '10%' }}>Net Wt</th>
+              <th style={{ width: '10%' }}>Melting</th>
+              <th style={{ width: '10%' }}>Wastage</th>
+              <th style={{ width: '10%' }}>Fine Wt</th>
+              <th style={{ width: '10%' }}>Lab Rt</th>
+              <th style={{ width: '10%' }}>Amount</th>
             </tr>
-          ))}
-          <tr style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>
-            <td colSpan="2" style={{ border: '1px solid #000', padding: '5px', textAlign: 'center' }}>Total</td>
-            <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center' }}>{totals.pieces}</td>
-            <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right' }}>{totals.grossWeight.toFixed(3)}</td>
-            <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right' }}>{totals.lessWeight.toFixed(3)}</td>
-            <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right' }}>{totals.netWeight.toFixed(3)}</td>
-            <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right' }}>{totals.wastage.toFixed(3)}</td>
-            <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right' }}>{totals.fineWeight.toFixed(3)}</td>
-            <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right' }}>{totals.labourRate.toFixed(2)}</td>
-            <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right' }}>{totals.amount.toFixed(2)}</td>
-          </tr>
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {items.map((item, index) => (
+              <tr key={index}>
+                <td>{index + 1}</td>
+                <td>{item.itemName}</td>
+                <td>{item.pieces}</td>
+                <td>{parseFloat(item.grossWeight).toFixed(3)}</td>
+                <td>{parseFloat(item.lessWeight).toFixed(3)}</td>
+                <td>{parseFloat(item.netWeight).toFixed(3)}</td>
+                <td>{parseFloat(item.melting).toFixed(3)}</td>
+                <td>{parseFloat(item.wastage).toFixed(3)}</td>
+                <td>{parseFloat(item.fineWeight).toFixed(3)}</td>
+                <td>{parseFloat(item.labourRate).toFixed(2)}</td>
+                <td>{parseFloat(item.amount).toFixed(2)}</td>
+              </tr>
+            ))}
+            <tr className="total-row">
+              <td colSpan="2">Total</td>
+              <td>{totals.pieces}</td>
+              <td>{totals.grossWeight.toFixed(3)}</td>
+              <td>{totals.lessWeight.toFixed(3)}</td>
+              <td>{totals.netWeight.toFixed(3)}</td>
+              <td></td>
+              <td></td>
+              <td>{totals.fineWeight.toFixed(3)}</td>
+              <td>{totals.labourRate.toFixed(2)}</td>
+              <td>{totals.amount.toFixed(2)}</td>
+            </tr>
+          </tbody>
+        </table>
 
-      {/* Amount Section */}
-      <div style={{ marginTop: '20px', fontSize: '14px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div>Stone Amount :</div>
-          <div>{parseFloat(formData.stoneAmount || 0).toFixed(2)}</div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div>Labour :</div>
-          <div>{totals.labourRate.toFixed(2)}</div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div>Net Balance :</div>
-          <div></div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div>Narration :</div>
-          <div></div>
-        </div>
-      </div>
+        {/* Amount Section */}
+        <div className="amount-section">
+          <div>
+            <div className="section-label">Stone Amount :</div>
+            <div>{parseFloat(formData.stoneAmount || 0).toFixed(2)}</div>
+            
+            <div className="section-label" style={{ marginTop: '10px' }}>Labour :</div>
+            <div>{totals.labourRate.toFixed(2)}</div>
 
-      {/* Rates and Balance Section */}
-      <div style={{ marginTop: '20px', fontSize: '14px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div>Gold Rate :</div>
-          <div>{parseFloat(formData.goldRate || 0).toFixed(2)}</div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div>Silver Rate :</div>
-          <div>{parseFloat(formData.silverRate || 0).toFixed(2)}</div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div>Issue</div>
-          <div>{parseFloat(formData.issueGross || 0).toFixed(3)}</div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div>Recept</div>
-          <div>{parseFloat(formData.receiptGross || 0).toFixed(3)}</div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div>Old Bal Amt :</div>
-          <div>{ledger?.balances?.amount?.toFixed(2) || '0.00'}</div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div>Old Bal Fine Wt :</div>
-          <div>{((ledger?.balances?.goldFineWeight || 0) + (ledger?.balances?.silverFineWeight || 0)).toFixed(3)}</div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div>Cur Bal Amt :</div>
-          <div>{(parseFloat(ledger?.balances?.amount || 0) - grandTotal).toFixed(2)}</div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div>Cur Bal Net Wt :</div>
-          <div>{(((ledger?.balances?.goldFineWeight || 0) + (ledger?.balances?.silverFineWeight || 0)) - totals.netWeight).toFixed(3)}</div>
+            <div className="section-label" style={{ marginTop: '20px' }}>Net Balance :</div>
+            <div className="line-height"></div>
+
+            <div className="section-label" style={{ marginTop: '20px' }}>Narration :</div>
+            <div className="line-height" style={{ height: '60px' }}></div>
+          </div>
+
+          <div>
+            <div className="section-label">Gold Rate :</div>
+            <div>{parseFloat(formData.goldRate || 0).toFixed(2)}</div>
+
+            <div className="section-label" style={{ marginTop: '10px' }}>Silver Rate :</div>
+            <div>{parseFloat(formData.silverRate || 0).toFixed(2)}</div>
+            
+            <div style={{ marginTop: '10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div>
+                <div className="section-label">Issue</div>
+                <div>{parseFloat(formData.issueGross || 0).toFixed(3)}</div>
+              </div>
+              <div>
+                <div className="section-label">Recept</div>
+                <div>{parseFloat(formData.receiptGross || 0).toFixed(3)}</div>
+              </div>
+            </div>
+
+            <div className="section-label" style={{ marginTop: '15px' }}>Old Bal Amt :</div>
+            <div>{ledger?.balances?.amount?.toFixed(2) || '0.00'}</div>
+
+            <div className="section-label" style={{ marginTop: '10px' }}>Old Bal Fine Wt :</div>
+            <div>{((ledger?.balances?.goldFineWeight || 0) + (ledger?.balances?.silverFineWeight || 0)).toFixed(3)}</div>
+
+            <div className="section-label" style={{ marginTop: '15px' }}>Cur Bal Amt :</div>
+            <div>{(parseFloat(ledger?.balances?.amount || 0) - grandTotal).toFixed(2)}</div>
+
+            <div className="section-label" style={{ marginTop: '10px' }}>Cur Bal Net Wt :</div>
+            <div>{(((ledger?.balances?.goldFineWeight || 0) + (ledger?.balances?.silverFineWeight || 0)) - totals.netWeight).toFixed(3)}</div>
+          </div>
         </div>
       </div>
     </div>
@@ -157,20 +175,18 @@ export default function Billing() {
     receiptGross: '',
     narration: ''
   });
-
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState([]); // Start with empty array
 
   useEffect(() => {
     fetchLedgers();
-    // Initialize with empty items array instead of one item
   }, []);
 
   // Auto-calculate Issue (Gross) when items change
   useEffect(() => {
-    const newTotals = calculateTotals();
+    const totalGross = items.reduce((sum, item) => sum + (parseFloat(item.grossWeight) || 0), 0);
     setFormData(prev => ({
       ...prev,
-      issueGross: newTotals.grossWeight.toString()
+      issueGross: totalGross.toFixed(3)
     }));
   }, [items]);
 
@@ -217,9 +233,7 @@ export default function Billing() {
   };
 
   const deleteRow = (index) => {
-    if (items.length > 1) {
-      setItems(items.filter((_, i) => i !== index));
-    }
+    setItems(items.filter((_, i) => i !== index));
   };
 
   const calculateTotals = () => {
@@ -233,17 +247,7 @@ export default function Billing() {
       fineWeight: acc.fineWeight + (parseFloat(item.fineWeight) || 0),
       labourRate: acc.labourRate + (parseFloat(item.labourRate) || 0),
       amount: acc.amount + (parseFloat(item.amount) || 0)
-    }), {
-      pieces: 0,
-      grossWeight: 0,
-      lessWeight: 0,
-      netWeight: 0,
-      melting: 0,
-      wastage: 0,
-      fineWeight: 0,
-      labourRate: 0,
-      amount: 0
-    });
+    }), { pieces: 0, grossWeight: 0, lessWeight: 0, netWeight: 0, melting: 0, wastage: 0, fineWeight: 0, labourRate: 0, amount: 0 });
   };
 
   const handleSubmit = async (e) => {
@@ -251,6 +255,11 @@ export default function Billing() {
 
     if (!formData.ledgerId) {
       toast.error('Please select a customer');
+      return;
+    }
+
+    if (items.length === 0) {
+      toast.error('Please add at least one item');
       return;
     }
 
@@ -281,12 +290,8 @@ export default function Billing() {
       silverRate: parseFloat(formData.silverRate) || 0,
       stoneAmount: parseFloat(formData.stoneAmount) || 0,
       items: cleanedItems,
-      issue: {
-        gross: parseFloat(formData.issueGross) || 0
-      },
-      receipt: {
-        gross: parseFloat(formData.receiptGross) || 0
-      },
+      issue: { gross: parseFloat(formData.issueGross) || 0 },
+      receipt: { gross: parseFloat(formData.receiptGross) || 0 },
       narration: formData.narration
     };
 
@@ -304,6 +309,11 @@ export default function Billing() {
   const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0);
 
   const handlePrint = () => {
+    if (items.length === 0) {
+      toast.error('Please add items before printing');
+      return;
+    }
+
     const printWindow = window.open('', '_blank');
     const voucherHTML = `
       <!DOCTYPE html>
@@ -311,141 +321,154 @@ export default function Billing() {
       <head>
         <title>Voucher Print</title>
         <style>
-          body { font-family: Arial, sans-serif; padding: 20px; }
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
           table { width: 100%; border-collapse: collapse; }
-          th, td { border: 1px solid #000; padding: 5px; text-align: left; }
-          th { background-color: #f0f0f0; }
-          .text-right { text-align: right; }
-          .text-center { text-align: center; }
-          @media print {
-            button { display: none; }
-          }
+          th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+          th { background-color: #f5f5f5; font-weight: bold; }
+          .header { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 10px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+          .subheader { text-align: center; font-size: 14px; margin-bottom: 20px; }
+          .details-row { display: flex; justify-content: space-between; margin-bottom: 15px; }
+          .total-row { font-weight: bold; background-color: #f5f5f5; }
+          .amount-section { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
+          .section-label { font-weight: bold; margin-bottom: 5px; margin-top: 10px; }
+          .line-height { height: 30px; border-bottom: 1px solid #000; }
+          .voucher-container { max-width: 900px; margin: 0 auto; }
+          .shop-name { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
+          @media print { body { margin: 0; padding: 0; } }
         </style>
       </head>
       <body>
-        <div style="text-align: center; margin-bottom: 20px;">
-          <h2 style="margin: 0;">${user?.shopName || 'ESTIMATE/ON APPROVAL'}</h2>
-          <p style="margin: 5px 0;">ESTIMATE/ON APPROVAL - Issue</p>
-        </div>
-        
-        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-          <div>Name : ${ledgers.find(l => l._id === formData.ledgerId)?.name || 'N/A'}</div>
-          <div>Voucher No : ${formData.voucherNumber}</div>
-        </div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-          <div>Date : ${new Date(formData.date).toLocaleDateString('en-IN')}</div>
-          <div>Page No : 1/1</div>
-        </div>
+        <div class="voucher-container">
+          <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px;">
+            <div class="shop-name">${user?.shopName || 'ESTIMATE/ON APPROVAL'}</div>
+            <div style="font-size: 14px; margin-top: 5px;">ESTIMATE/ON APPROVAL - Issue</div>
+          </div>
 
-        <table>
-          <thead>
-            <tr>
-              <th>Sr</th>
-              <th>Item Name</th>
-              <th>Pcs</th>
-              <th>Gross</th>
-              <th>Less</th>
-              <th>Net Wt</th>
-              <th>Wastage</th>
-              <th>Fine Wt</th>
-              <th>Lab Rt</th>
-              <th>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${items.map((item, index) => `
+          <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+            <div>
+              <div>Name : <strong>${ledgers.find(l => l._id === formData.ledgerId)?.name || 'N/A'}</strong></div>
+              <div>Voucher No : <strong>${formData.voucherNumber}</strong></div>
+            </div>
+            <div style="text-align: right;">
+              <div>Date : ${new Date(formData.date).toLocaleDateString('en-IN')}</div>
+              <div>Page No : 1/1</div>
+            </div>
+          </div>
+
+          <table style="margin-bottom: 20px;">
+            <thead>
               <tr>
-                <td class="text-center">${index + 1}</td>
-                <td>${item.itemName}</td>
-                <td class="text-center">${item.pieces}</td>
-                <td class="text-right">${parseFloat(item.grossWeight).toFixed(3)}</td>
-                <td class="text-right">${parseFloat(item.lessWeight).toFixed(3)}</td>
-                <td class="text-right">${parseFloat(item.netWeight).toFixed(3)}</td>
-                <td class="text-right">${parseFloat(item.wastage).toFixed(3)}</td>
-                <td class="text-right">${parseFloat(item.fineWeight).toFixed(3)}</td>
-                <td class="text-right">${parseFloat(item.labourRate).toFixed(2)}</td>
-                <td class="text-right">${parseFloat(item.amount).toFixed(2)}</td>
+                <th style="width: 5%;">Sr</th>
+                <th style="width: 15%;">Item Name</th>
+                <th style="width: 5%;">Pcs</th>
+                <th style="width: 10%;">Gross</th>
+                <th style="width: 10%;">Less</th>
+                <th style="width: 10%;">Net Wt</th>
+                <th style="width: 10%;">Melting</th>
+                <th style="width: 10%;">Wastage</th>
+                <th style="width: 10%;">Fine Wt</th>
+                <th style="width: 10%;">Lab Rt</th>
+                <th style="width: 10%;">Amount</th>
               </tr>
-            `).join('')}
-            <tr style="font-weight: bold;">
-              <td colspan="2" class="text-center">Total</td>
-              <td class="text-center">${items.reduce((sum, item) => sum + (parseInt(item.pieces) || 0), 0)}</td>
-              <td class="text-right">${items.reduce((sum, item) => sum + (parseFloat(item.grossWeight) || 0), 0).toFixed(3)}</td>
-              <td class="text-right">${items.reduce((sum, item) => sum + (parseFloat(item.lessWeight) || 0), 0).toFixed(3)}</td>
-              <td class="text-right">${items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0).toFixed(3)}</td>
-              <td class="text-right">${items.reduce((sum, item) => sum + (parseFloat(item.wastage) || 0), 0).toFixed(3)}</td>
-              <td class="text-right">${items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0).toFixed(3)}</td>
-              <td class="text-right">${items.reduce((sum, item) => sum + (parseFloat(item.labourRate) || 0), 0).toFixed(2)}</td>
-              <td class="text-right">${items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)}</td>
-            </tr>
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              ${items.map((item, index) => `
+                <tr>
+                  <td>${index + 1}</td>
+                  <td>${item.itemName}</td>
+                  <td>${item.pieces}</td>
+                  <td>${parseFloat(item.grossWeight).toFixed(3)}</td>
+                  <td>${parseFloat(item.lessWeight).toFixed(3)}</td>
+                  <td>${parseFloat(item.netWeight).toFixed(3)}</td>
+                  <td>${parseFloat(item.melting).toFixed(3)}</td>
+                  <td>${parseFloat(item.wastage).toFixed(3)}</td>
+                  <td>${parseFloat(item.fineWeight).toFixed(3)}</td>
+                  <td>${parseFloat(item.labourRate).toFixed(2)}</td>
+                  <td>${parseFloat(item.amount).toFixed(2)}</td>
+                </tr>
+              `).join('')}
+              <tr style="font-weight: bold; background-color: #f5f5f5;">
+                <td colspan="2">Total</td>
+                <td>${items.reduce((sum, item) => sum + (parseInt(item.pieces) || 0), 0)}</td>
+                <td>${items.reduce((sum, item) => sum + (parseFloat(item.grossWeight) || 0), 0).toFixed(3)}</td>
+                <td>${items.reduce((sum, item) => sum + (parseFloat(item.lessWeight) || 0), 0).toFixed(3)}</td>
+                <td>${items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0).toFixed(3)}</td>
+                <td></td>
+                <td></td>
+                <td>${items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0).toFixed(3)}</td>
+                <td>${items.reduce((sum, item) => sum + (parseFloat(item.labourRate) || 0), 0).toFixed(2)}</td>
+                <td>${items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)}</td>
+              </tr>
+            </tbody>
+          </table>
 
-        <div style="margin-top: 20px;">
-          <div style="display: flex; justify-content: space-between;">
-            <div>Stone Amount :</div>
-            <div>${parseFloat(formData.stoneAmount || 0).toFixed(2)}</div>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <div>Labour :</div>
-            <div>${items.reduce((sum, item) => sum + (parseFloat(item.labourRate) || 0), 0).toFixed(2)}</div>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <div>Net Balance :</div>
-            <div></div>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <div>Narration :</div>
-            <div></div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+            <div>
+              <div style="font-weight: bold; margin-bottom: 5px;">Stone Amount :</div>
+              <div>${parseFloat(formData.stoneAmount || 0).toFixed(2)}</div>
+              
+              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 10px;">Labour :</div>
+              <div>${items.reduce((sum, item) => sum + (parseFloat(item.labourRate) || 0), 0).toFixed(2)}</div>
+
+              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 20px;">Net Balance :</div>
+              <div style="height: 30px; border-bottom: 1px solid #000;"></div>
+
+              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 20px;">Narration :</div>
+              <div style="height: 60px; border-bottom: 1px solid #000;"></div>
+            </div>
+
+            <div>
+              <div style="font-weight: bold; margin-bottom: 5px;">Gold Rate :</div>
+              <div>${parseFloat(formData.goldRate || 0).toFixed(2)}</div>
+
+              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 10px;">Silver Rate :</div>
+              <div>${parseFloat(formData.silverRate || 0).toFixed(2)}</div>
+              
+              <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                  <div style="font-weight: bold; margin-bottom: 5px;">Issue</div>
+                  <div>${parseFloat(formData.issueGross || 0).toFixed(3)}</div>
+                </div>
+                <div>
+                  <div style="font-weight: bold; margin-bottom: 5px;">Recept</div>
+                  <div>${parseFloat(formData.receiptGross || 0).toFixed(3)}</div>
+                </div>
+              </div>
+
+              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 15px;">Old Bal Amt :</div>
+              <div>${ledgers.find(l => l._id === formData.ledgerId)?.balances?.amount?.toFixed(2) || '0.00'}</div>
+
+              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 10px;">Old Bal Fine Wt :</div>
+              <div>${(((ledgers.find(l => l._id === formData.ledgerId)?.balances?.goldFineWeight || 0) + (ledgers.find(l => l._id === formData.ledgerId)?.balances?.silverFineWeight || 0))).toFixed(3)}</div>
+
+              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 15px;">Cur Bal Amt :</div>
+              <div>${((parseFloat(ledgers.find(l => l._id === formData.ledgerId)?.balances?.amount || 0)) - (items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0))).toFixed(2)}</div>
+
+              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 10px;">Cur Bal Net Wt :</div>
+              <div>${((((ledgers.find(l => l._id === formData.ledgerId)?.balances?.goldFineWeight || 0) + (ledgers.find(l => l._id === formData.ledgerId)?.balances?.silverFineWeight || 0))) - items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0)).toFixed(3)}</div>
+            </div>
           </div>
         </div>
-
-        <div style="margin-top: 20px;">
-          <div style="display: flex; justify-content: space-between;">
-            <div>Gold Rate :</div>
-            <div>${parseFloat(formData.goldRate || 0).toFixed(2)}</div>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <div>Silver Rate :</div>
-            <div>${parseFloat(formData.silverRate || 0).toFixed(2)}</div>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <div>Issue</div>
-            <div>${parseFloat(formData.issueGross || 0).toFixed(3)}</div>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <div>Recept</div>
-            <div>${parseFloat(formData.receiptGross || 0).toFixed(3)}</div>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <div>Old Bal Amt :</div>
-            <div>${ledgers.find(l => l._id === formData.ledgerId)?.balances?.amount?.toFixed(2) || '0.00'}</div>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <div>Old Bal Fine Wt :</div>
-            <div>${(((ledgers.find(l => l._id === formData.ledgerId)?.balances?.goldFineWeight || 0) + (ledgers.find(l => l._id === formData.ledgerId)?.balances?.silverFineWeight || 0))).toFixed(3)}</div>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <div>Cur Bal Amt :</div>
-            <div>${((parseFloat(ledgers.find(l => l._id === formData.ledgerId)?.balances?.amount || 0)) - (items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0))).toFixed(2)}</div>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <div>Cur Bal Net Wt :</div>
-            <div>${((((ledgers.find(l => l._id === formData.ledgerId)?.balances?.goldFineWeight || 0) + (ledgers.find(l => l._id === formData.ledgerId)?.balances?.silverFineWeight || 0))) - items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0)).toFixed(3)}</div>
-          </div>
-        </div>
+        <script>
+          window.print();
+          setTimeout(() => window.close(), 1000);
+        </script>
       </body>
       </html>
     `;
-
     printWindow.document.write(voucherHTML);
     printWindow.document.close();
   };
 
   const handleShare = () => {
+    if (items.length === 0) {
+      toast.error('Please add items before sharing');
+      return;
+    }
+
     const ledger = ledgers.find(l => l._id === formData.ledgerId);
     const grandTot = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0);
-
+    
     const voucherText = `ESTIMATE/ON APPROVAL - Issue
 
 Name: ${ledger?.name || 'N/A'}
@@ -459,7 +482,6 @@ Items Summary:
 - Total Amount: ₹${items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)}
 
 Stone Amount: ₹${parseFloat(formData.stoneAmount || 0).toFixed(2)}
-Fine Amount: ₹${parseFloat(formData.fineAmount || 0).toFixed(2)}
 Grand Total: ₹${grandTot.toFixed(2)}
 
 Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
@@ -485,584 +507,367 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
 
   return (
     <Layout>
-      <style>
-        {`
-          .billing-container {
-            padding: 20px;
-            max-width: 100%;
-          }
-          
-          .billing-header {
-            margin-bottom: 25px;
-          }
-          
-          .billing-header h2 {
-            font-size: 24px;
-            font-weight: 600;
-            margin: 0;
-          }
-          
-          .form-row-custom {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-          }
-          
-          .form-group-custom {
-            display: flex;
-            flex-direction: column;
-          }
-          
-          .form-group-custom label {
-            font-size: 13px;
-            font-weight: 500;
-            margin-bottom: 6px;
-            color: #e0e0e0;
-          }
-          
-          .form-group-custom input,
-          .form-group-custom select,
-          .form-group-custom textarea {
-            padding: 8px 12px;
-            border: 1px solid #444;
-            border-radius: 4px;
-            font-size: 14px;
-            background-color: #2a2a2a;
-            color: #fff;
-          }
-          
-          .form-group-custom input:focus,
-          .form-group-custom select:focus,
-          .form-group-custom textarea:focus {
-            outline: none;
-            border-color: #007bff;
-            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
-          }
-          
-          .table-responsive {
-            margin: 20px 0;
-            overflow-x: auto;
-          }
-          
-          .billing-table {
-            width: 100%;
-            border-collapse: collapse;
-            background-color: #1e1e1e;
-            border: 1px solid #444;
-          }
-          
-          .billing-table thead th {
-            background-color: #2d3748;
-            color: #fff;
-            padding: 12px 8px;
-            font-size: 13px;
-            font-weight: 600;
-            text-align: left;
-            border: 1px solid #444;
-            white-space: nowrap;
-          }
-          
-          .billing-table tbody td {
-            padding: 8px;
-            border: 1px solid #444;
-            background-color: #252525;
-          }
-          
-          .billing-table tbody tr.totals-row {
-            background-color: #2d3748;
-            font-weight: 600;
-          }
-          
-          .billing-table tbody tr.totals-row td {
-            background-color: #2d3748;
-            color: #fff;
-          }
-          
-          .billing-table input {
-            width: 100%;
-            padding: 6px 8px;
-            border: 1px solid #444;
-            border-radius: 3px;
-            font-size: 13px;
-            background-color: #1a1a1a;
-            color: #fff;
-          }
-          
-          .billing-table input:focus {
-            outline: none;
-            border-color: #007bff;
-          }
-          
-          .billing-table input:read-only {
-            background-color: #2a2a2a;
-            color: #aaa;
-          }
-          
-          .item-name-input {
-            min-width: 200px;
-          }
-          
-          .text-center {
-            text-align: center;
-          }
-          
-          .btn-action-delete {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            padding: 6px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-          }
-          
-          .btn-action-delete:disabled {
-            background-color: #555;
-            cursor: not-allowed;
-            opacity: 0.5;
-          }
-          
-          .btn-action-delete:hover:not(:disabled) {
-            background-color: #c82333;
-          }
-          
-          .add-row-buttons {
-            display: flex;
-            gap: 10px;
-            margin: 15px 0;
-          }
-          
-          .btn-add-row {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-          }
-          
-          .btn-gold {
-            background-color: #ffc107;
-            color: #000;
-          }
-          
-          .btn-gold:hover {
-            background-color: #e0a800;
-          }
-          
-          .btn-silver {
-            background-color: #6c757d;
-            color: #fff;
-          }
-          
-          .btn-silver:hover {
-            background-color: #5a6268;
-          }
-          
-          .bottom-section {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-          }
-          
-          .grand-total {
-            font-size: 20px;
-            font-weight: 600;
-            margin: 20px 0;
-            color: #fff;
-          }
-          
-          .action-buttons {
-            display: flex;
-            gap: 10px;
-            margin: 20px 0;
-          }
-          
-          .btn-primary-action {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-          }
-          
-          .btn-save {
-            background-color: #28a745;
-            color: white;
-          }
-          
-          .btn-save:hover {
-            background-color: #218838;
-          }
-          
-          .btn-print {
-            background-color: #17a2b8;
-            color: white;
-          }
-          
-          .btn-print:hover {
-            background-color: #138496;
-          }
-          
-          .btn-share {
-            background-color: #6c757d;
-            color: white;
-          }
-          
-          .btn-share:hover {
-            background-color: #5a6268;
-          }
-          
-          @media (max-width: 768px) {
-            .billing-container {
-              padding: 10px;
-            }
-            
-            .form-row-custom {
-              grid-template-columns: 1fr;
-            }
-            
-            .billing-table {
-              font-size: 12px;
-            }
-            
-            .billing-table thead th,
-            .billing-table tbody td {
-              padding: 6px 4px;
-            }
-            
-            .item-name-input {
-              min-width: 150px;
-            }
-            
-            .action-buttons {
-              flex-direction: column;
-            }
-            
-            .btn-primary-action {
-              width: 100%;
-              justify-content: center;
-            }
-          }
-        `}
-      </style>
-      <div className="billing-container">
-        <div className="billing-header">
-          <h2>Billing</h2>
-        </div>
+      <div>
+        <h1 style={{ marginBottom: '2rem' }}>Billing</h1>
 
         <form onSubmit={handleSubmit}>
-          <div className="form-row-custom">
-            <div className="form-group-custom">
-              <label>Customer Name</label>
-              <select
-                value={formData.ledgerId}
-                onChange={(e) => setFormData({...formData, ledgerId: e.target.value})}
-                required
-              >
-                <option value="">Select Customer</option>
-                {ledgers.map(ledger => (
-                  <option key={ledger._id} value={ledger._id}>{ledger.name}</option>
-                ))}
-              </select>
+          <div className="card" style={{ marginBottom: '1.5rem' }}>
+            <div className="grid grid-3" style={{ marginBottom: '1rem' }}>
+              <div className="input-group">
+                <label className="input-label">Customer Name</label>
+                <select
+                  className="input"
+                  value={formData.ledgerId}
+                  onChange={(e) => setFormData({...formData, ledgerId: e.target.value})}
+                  required
+                >
+                  <option value="">Select Customer</option>
+                  {ledgers.map(ledger => (
+                    <option key={ledger._id} value={ledger._id}>{ledger.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="input-group">
+                <label className="input-label">Date</label>
+                <input
+                  type="date"
+                  className="input"
+                  value={formData.date}
+                  onChange={(e) => setFormData({...formData, date: e.target.value})}
+                  required
+                />
+              </div>
+              
+              <div className="input-group">
+                <label className="input-label">Voucher Number</label>
+                <input
+                  type="text"
+                  className="input"
+                  value={formData.voucherNumber}
+                  onChange={(e) => setFormData({...formData, voucherNumber: e.target.value})}
+                  disabled={user?.voucherSettings?.autoIncrement}
+                  required
+                />
+              </div>
             </div>
 
-            <div className="form-group-custom">
-              <label>Date</label>
-              <input
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({...formData, date: e.target.value})}
-                required
-              />
-            </div>
-
-            <div className="form-group-custom">
-              <label>Voucher Number</label>
-              <input
-                type="text"
-                value={formData.voucherNumber}
-                onChange={(e) => setFormData({...formData, voucherNumber: e.target.value})}
-                disabled={user?.voucherSettings?.autoIncrement}
-                required
-              />
-            </div>
-
-            <div className="form-group-custom">
-              <label>Payment Type</label>
-              <select
-                value={formData.paymentType}
-                onChange={(e) => setFormData({...formData, paymentType: e.target.value})}
-              >
-                <option value="cash">Cash</option>
-                <option value="credit">Credit</option>
-              </select>
-            </div>
-
-            <div className="form-group-custom">
-              <label>Gold Rate</label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.goldRate}
-                onChange={(e) => setFormData({...formData, goldRate: e.target.value})}
-              />
-            </div>
-
-            <div className="form-group-custom">
-              <label>Silver Rate</label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.silverRate}
-                onChange={(e) => setFormData({...formData, silverRate: e.target.value})}
-              />
-            </div>
-          </div>
-
-          <div className="table-responsive">
-            <table className="billing-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '40px', minWidth: '40px' }}>SL</th>
-                  <th style={{ minWidth: '200px' }}>ITEM NAME</th>
-                  <th style={{ width: '70px', minWidth: '70px' }}>PCS</th>
-                  <th style={{ width: '90px', minWidth: '90px' }}>GROSS WT</th>
-                  <th style={{ width: '80px', minWidth: '80px' }}>LESS</th>
-                  <th style={{ width: '90px', minWidth: '90px' }}>NET WT</th>
-                  <th style={{ width: '80px', minWidth: '80px' }}>MELTING %</th>
-                  <th style={{ width: '80px', minWidth: '80px' }}>WASTAGE</th>
-                  <th style={{ width: '90px', minWidth: '90px' }}>FINE WT</th>
-                  <th style={{ width: '90px', minWidth: '90px' }}>LAB RATE</th>
-                  <th style={{ width: '100px', minWidth: '100px' }}>AMOUNT</th>
-                  <th style={{ width: '80px', minWidth: '80px' }}>ACTION</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, index) => (
-                  <tr key={index}>
-                    <td className="text-center">{index + 1}</td>
-                    <td>
-                      <input
-                        type="text"
-                        className="item-name-input"
-                        value={item.itemName}
-                        onChange={(e) => {
-                          const newItems = [...items];
-                          newItems[index].itemName = e.target.value;
-                          setItems(newItems);
-                        }}
-                        placeholder="Item name"
-                        required
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        value={item.pieces}
-                        onChange={(e) => {
-                          const newItems = [...items];
-                          newItems[index].pieces = e.target.value;
-                          setItems(newItems);
-                        }}
-                        required
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={item.grossWeight}
-                        onChange={(e) => {
-                          const newItems = [...items];
-                          newItems[index].grossWeight = e.target.value;
-                          setItems(newItems);
-                          calculateItem(index);
-                        }}
-                        required
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={item.lessWeight}
-                        onChange={(e) => {
-                          const newItems = [...items];
-                          newItems[index].lessWeight = e.target.value;
-                          setItems(newItems);
-                          calculateItem(index);
-                        }}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={item.netWeight}
-                        readOnly
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={item.melting}
-                        onChange={(e) => {
-                          const newItems = [...items];
-                          newItems[index].melting = e.target.value;
-                          setItems(newItems);
-                          calculateItem(index);
-                        }}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={item.wastage}
-                        onChange={(e) => {
-                          const newItems = [...items];
-                          newItems[index].wastage = e.target.value;
-                          setItems(newItems);
-                          calculateItem(index);
-                        }}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={item.fineWeight}
-                        readOnly
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={item.labourRate}
-                        onChange={(e) => {
-                          const newItems = [...items];
-                          newItems[index].labourRate = e.target.value;
-                          setItems(newItems);
-                          calculateItem(index);
-                        }}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={item.amount}
-                        readOnly
-                      />
-                    </td>
-                    <td className="text-center">
-                      <button
-                        type="button"
-                        onClick={() => deleteRow(index)}
-                        className="btn-action-delete"
-                        disabled={items.length === 1}
-                      >
-                        <FiX />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                <tr className="totals-row">
-                  <td className="text-center">Total</td>
-                  <td></td>
-                  <td className="text-center">{totals.pieces}</td>
-                  <td>{totals.grossWeight.toFixed(3)}</td>
-                  <td>{totals.lessWeight.toFixed(3)}</td>
-                  <td>{totals.netWeight.toFixed(3)}</td>
-                  <td>{totals.melting.toFixed(2)}</td>
-                  <td>{totals.wastage.toFixed(3)}</td>
-                  <td>{totals.fineWeight.toFixed(3)}</td>
-                  <td>{totals.labourRate.toFixed(2)}</td>
-                  <td>{totals.amount.toFixed(2)}</td>
-                  <td></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div className="add-row-buttons">
-            <button type="button" onClick={() => addRow('gold')} className="btn-add-row btn-gold">
-              <FiPlus /> Add Gold Row
-            </button>
-            <button type="button" onClick={() => addRow('silver')} className="btn-add-row btn-silver">
-              <FiPlus /> Add Silver Row
-            </button>
-          </div>
-
-          <div className="bottom-section">
-            <div className="form-group-custom">
-              <label>Stone Amount</label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.stoneAmount}
-                onChange={(e) => setFormData({...formData, stoneAmount: e.target.value})}
-              />
-            </div>
-
-            <div className="form-group-custom">
-              <label>Issue (Gross)</label>
-              <input
-                type="number"
-                step="0.001"
-                value={formData.issueGross}
-                onChange={(e) => setFormData({...formData, issueGross: e.target.value})}
-              />
-            </div>
-
-            <div className="form-group-custom">
-              <label>Receipt (Gross)</label>
-              <input
-                type="number"
-                step="0.001"
-                value={formData.receiptGross}
-                onChange={(e) => setFormData({...formData, receiptGross: e.target.value})}
-              />
+            <div className="grid grid-3">
+              <div className="input-group">
+                <label className="input-label">Payment Type</label>
+                <select
+                  className="input"
+                  value={formData.paymentType}
+                  onChange={(e) => setFormData({...formData, paymentType: e.target.value})}
+                >
+                  <option value="cash">Cash</option>
+                  <option value="credit">Credit</option>
+                </select>
+              </div>
+              
+              <div className="input-group">
+                <label className="input-label">Gold Rate</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="input"
+                  value={formData.goldRate}
+                  onChange={(e) => setFormData({...formData, goldRate: e.target.value})}
+                />
+              </div>
+              
+              <div className="input-group">
+                <label className="input-label">Silver Rate</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="input"
+                  value={formData.silverRate}
+                  onChange={(e) => setFormData({...formData, silverRate: e.target.value})}
+                />
+              </div>
             </div>
           </div>
 
-          <div className="form-group-custom" style={{ maxWidth: '500px' }}>
-            <label>Narration</label>
-            <textarea
-              value={formData.narration}
-              onChange={(e) => setFormData({...formData, narration: e.target.value})}
-              rows="3"
-            />
-          </div>
+          {/* Add Row Buttons - Show prominently when no items */}
+          {items.length === 0 && (
+            <div className="card" style={{ marginBottom: '1.5rem', textAlign: 'center', padding: '2rem' }}>
+              <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>No items added yet. Click below to add items:</p>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                <button type="button" onClick={() => addRow('gold')} className="btn btn-primary">
+                  <FiPlus /> Add Gold Row
+                </button>
+                <button type="button" onClick={() => addRow('silver')} className="btn btn-secondary">
+                  <FiPlus /> Add Silver Row
+                </button>
+              </div>
+            </div>
+          )}
 
-          <div className="grand-total">
-            Total: ₹{grandTotal.toFixed(2)}
-          </div>
+          {/* Items Table - Only show if items exist */}
+          {items.length > 0 && (
+            <div className="card" style={{ marginBottom: '1.5rem' }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="table" style={{ minWidth: '1200px' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: '40px' }}>Sl</th>
+                      <th style={{ minWidth: '150px' }}>Item Name</th>
+                      <th style={{ width: '70px' }}>Pcs</th>
+                      <th style={{ width: '90px' }}>Gross Wt</th>
+                      <th style={{ width: '80px' }}>Less</th>
+                      <th style={{ width: '90px' }}>Net Wt</th>
+                      <th style={{ width: '80px' }}>Melting %</th>
+                      <th style={{ width: '80px' }}>Wastage</th>
+                      <th style={{ width: '90px' }}>Fine Wt</th>
+                      <th style={{ width: '90px' }}>Lab Rate</th>
+                      <th style={{ width: '100px' }}>Amount</th>
+                      <th style={{ width: '80px' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item, index) => (
+                      <tr key={index}>
+                        <td>{index + 1}</td>
+                        <td>
+                          <input
+                            type="text"
+                            className="input"
+                            value={item.itemName}
+                            onChange={(e) => {
+                              const newItems = [...items];
+                              newItems[index].itemName = e.target.value;
+                              setItems(newItems);
+                            }}
+                            style={{ minWidth: '140px' }}
+                            required
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            className="input"
+                            value={item.pieces}
+                            onChange={(e) => {
+                              const newItems = [...items];
+                              newItems[index].pieces = e.target.value;
+                              setItems(newItems);
+                            }}
+                            style={{ width: '70px' }}
+                            required
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            step="0.001"
+                            className="input"
+                            value={item.grossWeight}
+                            onChange={(e) => {
+                              const newItems = [...items];
+                              newItems[index].grossWeight = e.target.value;
+                              setItems(newItems);
+                              calculateItem(index);
+                            }}
+                            style={{ width: '90px' }}
+                            required
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            step="0.001"
+                            className="input"
+                            value={item.lessWeight}
+                            onChange={(e) => {
+                              const newItems = [...items];
+                              newItems[index].lessWeight = e.target.value;
+                              setItems(newItems);
+                              calculateItem(index);
+                            }}
+                            style={{ width: '80px' }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            step="0.001"
+                            className="input"
+                            value={item.netWeight}
+                            disabled
+                            style={{ width: '90px' }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="input"
+                            value={item.melting}
+                            onChange={(e) => {
+                              const newItems = [...items];
+                              newItems[index].melting = e.target.value;
+                              setItems(newItems);
+                              calculateItem(index);
+                            }}
+                            style={{ width: '80px' }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            step="0.001"
+                            className="input"
+                            value={item.wastage}
+                            onChange={(e) => {
+                              const newItems = [...items];
+                              newItems[index].wastage = e.target.value;
+                              setItems(newItems);
+                              calculateItem(index);
+                            }}
+                            style={{ width: '80px' }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            step="0.001"
+                            className="input"
+                            value={item.fineWeight}
+                            disabled
+                            style={{ width: '90px' }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="input"
+                            value={item.labourRate}
+                            onChange={(e) => {
+                              const newItems = [...items];
+                              newItems[index].labourRate = e.target.value;
+                              setItems(newItems);
+                              calculateItem(index);
+                            }}
+                            style={{ width: '90px' }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="input"
+                            value={item.amount}
+                            disabled
+                            style={{ width: '100px' }}
+                          />
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            onClick={() => deleteRow(index)}
+                            className="btn btn-sm btn-danger"
+                          >
+                            <FiX />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    <tr style={{ background: 'var(--bg-tertiary)', fontWeight: 600 }}>
+                      <td colSpan="2">Total</td>
+                      <td>{totals.pieces}</td>
+                      <td>{totals.grossWeight.toFixed(3)}</td>
+                      <td>{totals.lessWeight.toFixed(3)}</td>
+                      <td>{totals.netWeight.toFixed(3)}</td>
+                      <td>{totals.melting.toFixed(2)}</td>
+                      <td>{totals.wastage.toFixed(3)}</td>
+                      <td>{totals.fineWeight.toFixed(3)}</td>
+                      <td>{totals.labourRate.toFixed(2)}</td>
+                      <td>{totals.amount.toFixed(2)}</td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
 
-          <div className="action-buttons">
-            <button type="submit" className="btn-primary-action btn-save">
-              <FiSave /> Save
-            </button>
-            <button type="button" onClick={handlePrint} className="btn-primary-action btn-print">
-              <FiPrinter /> Print
-            </button>
-            <button type="button" onClick={handleShare} className="btn-primary-action btn-share">
-              <FiShare2 /> Share
-            </button>
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                <button type="button" onClick={() => addRow('gold')} className="btn btn-sm btn-primary">
+                  <FiPlus /> Add Gold Row
+                </button>
+                <button type="button" onClick={() => addRow('silver')} className="btn btn-sm btn-secondary">
+                  <FiPlus /> Add Silver Row
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="card">
+            <div className="grid grid-3" style={{ marginBottom: '1rem' }}>
+              <div className="input-group">
+                <label className="input-label">Stone Amount</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="input"
+                  value={formData.stoneAmount}
+                  onChange={(e) => setFormData({...formData, stoneAmount: e.target.value})}
+                />
+              </div>
+              
+              <div className="input-group">
+                <label className="input-label">Issue (Gross) - Auto Calculated</label>
+                <input
+                  type="number"
+                  step="0.001"
+                  className="input"
+                  value={formData.issueGross}
+                  disabled
+                  style={{ backgroundColor: '#f5f5f5' }}
+                />
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">Receipt (Gross)</label>
+                <input
+                  type="number"
+                  step="0.001"
+                  className="input"
+                  value={formData.receiptGross}
+                  onChange={(e) => setFormData({...formData, receiptGross: e.target.value})}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-2">
+              <div className="input-group">
+                <label className="input-label">Narration</label>
+                <textarea
+                  className="input"
+                  value={formData.narration}
+                  onChange={(e) => setFormData({...formData, narration: e.target.value})}
+                  rows="3"
+                ></textarea>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                <div style={{ fontWeight: 700, fontSize: '1.5rem' }}>
+                  Total: ₹{grandTotal.toFixed(2)}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+              <button type="submit" className="btn btn-primary">
+                <FiSave /> Save
+              </button>
+              <button type="button" onClick={handlePrint} className="btn btn-secondary">
+                <FiPrinter /> Print
+              </button>
+              <button type="button" onClick={handleShare} className="btn btn-secondary">
+                <FiShare2 /> Share
+              </button>
+            </div>
           </div>
         </form>
       </div>
