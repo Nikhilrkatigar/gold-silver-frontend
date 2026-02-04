@@ -1,164 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '../../components/Layout';
 import { ledgerAPI, voucherAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import { FiPlus, FiX, FiSave, FiPrinter, FiShare2 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
-
-// Voucher Print Template Component
-const VoucherTemplate = ({ formData, items, ledgers, user }) => {
-  const ledger = ledgers.find(l => l._id === formData.ledgerId);
-  const totals = {
-    pieces: items.reduce((sum, item) => sum + (parseInt(item.pieces) || 0), 0),
-    grossWeight: items.reduce((sum, item) => sum + (parseFloat(item.grossWeight) || 0), 0),
-    lessWeight: items.reduce((sum, item) => sum + (parseFloat(item.lessWeight) || 0), 0),
-    netWeight: items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0),
-    fineWeight: items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0),
-    labourRate: items.reduce((sum, item) => sum + (parseFloat(item.labourRate) || 0), 0),
-    amount: items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
-  };
-
-  const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0);
-
-  return (
-    <div style={{ fontFamily: 'Arial, sans-serif', padding: '40px', maxWidth: '900px', margin: '0 auto' }}>
-      <style>{`
-        @media print {
-          body { margin: 0; padding: 0; }
-          .voucher-container { page-break-inside: avoid; }
-        }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid #000; padding: 8px; text-align: left; }
-        th { background-color: #f5f5f5; font-weight: bold; }
-        .header { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 10px; }
-        .subheader { text-align: center; font-size: 14px; margin-bottom: 20px; }
-        .details-row { display: flex; justify-content: space-between; margin-bottom: 15px; }
-        .details-col { flex: 1; }
-        .total-row { font-weight: bold; background-color: #f5f5f5; }
-        .footer-section { margin-top: 20px; }
-        .amount-section { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
-        .section-label { font-weight: bold; margin-bottom: 5px; }
-        .line-height { height: 30px; border-bottom: 1px solid #000; }
-      `}</style>
-
-      <div className="voucher-container">
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '20px', borderBottom: '2px solid #000', paddingBottom: '10px' }}>
-          <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{user?.shopName || 'ESTIMATE/ON APPROVAL'}</div>
-          <div style={{ fontSize: '14px', marginTop: '5px' }}>ESTIMATE/ON APPROVAL - Issue</div>
-        </div>
-
-        {/* Top Info */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
-          <div>
-            <div>Name : <strong>{ledger?.name || 'N/A'}</strong></div>
-            <div>Voucher No : <strong>{formData.voucherNumber}</strong></div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div>Date : {new Date(formData.date).toLocaleDateString('en-IN')}</div>
-            <div>Page No : 1/1</div>
-          </div>
-        </div>
-
-        {/* Items Table */}
-        <table style={{ marginBottom: '20px' }}>
-          <thead>
-            <tr>
-              <th style={{ width: '5%' }}>Sr</th>
-              <th style={{ width: '15%' }}>Item Name</th>
-              <th style={{ width: '5%' }}>Pcs</th>
-              <th style={{ width: '10%' }}>Gross</th>
-              <th style={{ width: '10%' }}>Less</th>
-              <th style={{ width: '10%' }}>Net Wt</th>
-              <th style={{ width: '10%' }}>Melting</th>
-              <th style={{ width: '10%' }}>Wastage</th>
-              <th style={{ width: '10%' }}>Fine Wt</th>
-              <th style={{ width: '10%' }}>Lab Rt</th>
-              <th style={{ width: '10%' }}>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item, index) => (
-              <tr key={index}>
-                <td>{index + 1}</td>
-                <td>{item.itemName}</td>
-                <td>{item.pieces}</td>
-                <td>{parseFloat(item.grossWeight).toFixed(3)}</td>
-                <td>{parseFloat(item.lessWeight).toFixed(3)}</td>
-                <td>{parseFloat(item.netWeight).toFixed(3)}</td>
-                <td>{parseFloat(item.melting).toFixed(3)}</td>
-                <td>{parseFloat(item.wastage).toFixed(3)}</td>
-                <td>{parseFloat(item.fineWeight).toFixed(3)}</td>
-                <td>{parseFloat(item.labourRate).toFixed(2)}</td>
-                <td>{parseFloat(item.amount).toFixed(2)}</td>
-              </tr>
-            ))}
-            <tr className="total-row">
-              <td colSpan="2">Total</td>
-              <td>{totals.pieces}</td>
-              <td>{totals.grossWeight.toFixed(3)}</td>
-              <td>{totals.lessWeight.toFixed(3)}</td>
-              <td>{totals.netWeight.toFixed(3)}</td>
-              <td></td>
-              <td></td>
-              <td>{totals.fineWeight.toFixed(3)}</td>
-              <td>{totals.labourRate.toFixed(2)}</td>
-              <td>{totals.amount.toFixed(2)}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        {/* Amount Section */}
-        <div className="amount-section">
-          <div>
-            <div className="section-label">Stone Amount :</div>
-            <div>{parseFloat(formData.stoneAmount || 0).toFixed(2)}</div>
-            
-            <div className="section-label" style={{ marginTop: '10px' }}>Labour :</div>
-            <div>{totals.labourRate.toFixed(2)}</div>
-
-            <div className="section-label" style={{ marginTop: '20px' }}>Net Balance :</div>
-            <div className="line-height"></div>
-
-            <div className="section-label" style={{ marginTop: '20px' }}>Narration :</div>
-            <div className="line-height" style={{ height: '60px' }}></div>
-          </div>
-
-          <div>
-            <div className="section-label">Gold Rate :</div>
-            <div>{parseFloat(formData.goldRate || 0).toFixed(2)}</div>
-
-            <div className="section-label" style={{ marginTop: '10px' }}>Silver Rate :</div>
-            <div>{parseFloat(formData.silverRate || 0).toFixed(2)}</div>
-            
-            <div style={{ marginTop: '10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-              <div>
-                <div className="section-label">Issue</div>
-                <div>{parseFloat(formData.issueGross || 0).toFixed(3)}</div>
-              </div>
-              <div>
-                <div className="section-label">Recept</div>
-                <div>{parseFloat(formData.receiptGross || 0).toFixed(3)}</div>
-              </div>
-            </div>
-
-            <div className="section-label" style={{ marginTop: '15px' }}>Old Bal Amt :</div>
-            <div>{ledger?.balances?.amount?.toFixed(2) || '0.00'}</div>
-
-            <div className="section-label" style={{ marginTop: '10px' }}>Old Bal Fine Wt :</div>
-            <div>{((ledger?.balances?.goldFineWeight || 0) + (ledger?.balances?.silverFineWeight || 0)).toFixed(3)}</div>
-
-            <div className="section-label" style={{ marginTop: '15px' }}>Cur Bal Amt :</div>
-            <div>{(parseFloat(ledger?.balances?.amount || 0) - grandTotal).toFixed(2)}</div>
-
-            <div className="section-label" style={{ marginTop: '10px' }}>Cur Bal Net Wt :</div>
-            <div>{(((ledger?.balances?.goldFineWeight || 0) + (ledger?.balances?.silverFineWeight || 0)) - totals.netWeight).toFixed(3)}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 export default function Billing() {
   const { user } = useAuth();
@@ -166,7 +11,7 @@ export default function Billing() {
   const [formData, setFormData] = useState({
     ledgerId: '',
     date: new Date().toISOString().split('T')[0],
-    voucherNumber: user?.voucherSettings?.autoIncrement ? user.voucherSettings.currentVoucherNumber : '',
+    voucherNumber: '',
     paymentType: 'cash',
     goldRate: '',
     silverRate: '',
@@ -175,15 +20,27 @@ export default function Billing() {
     receiptGross: '',
     narration: ''
   });
-  const [items, setItems] = useState([]); // Start with empty array
+  const [items, setItems] = useState([]);
 
   useEffect(() => {
     fetchLedgers();
   }, []);
 
-  // Auto-calculate Issue (Gross) when items change
   useEffect(() => {
-    const totalGross = items.reduce((sum, item) => sum + (parseFloat(item.grossWeight) || 0), 0);
+    if (user?.voucherSettings?.autoIncrement) {
+      setFormData(prev => ({
+        ...prev,
+        voucherNumber: user.voucherSettings.currentVoucherNumber || ''
+      }));
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const totalGross = items.reduce((sum, item) => {
+      const gross = parseFloat(item.grossWeight);
+      return sum + (isNaN(gross) ? 0 : gross);
+    }, 0);
+    
     setFormData(prev => ({
       ...prev,
       issueGross: totalGross.toFixed(3)
@@ -193,31 +50,48 @@ export default function Billing() {
   const fetchLedgers = async () => {
     try {
       const response = await ledgerAPI.getAll();
-      setLedgers(response.data.ledgers);
+      if (response?.data?.ledgers) {
+        setLedgers(response.data.ledgers);
+      }
     } catch (error) {
+      console.error('Error fetching ledgers:', error);
       toast.error('Failed to load ledgers');
     }
   };
 
-  const calculateItem = (index) => {
-    const item = items[index];
-    const netWeight = (parseFloat(item.grossWeight) || 0) - (parseFloat(item.lessWeight) || 0);
-    const fineWeight = netWeight * ((parseFloat(item.melting) || 0) / 100) + (parseFloat(item.wastage) || 0);
-    const rate = item.metalType === 'gold' ? (parseFloat(formData.goldRate) || 0) : (parseFloat(formData.silverRate) || 0);
-    const amount = (fineWeight * rate) + (parseFloat(item.labourRate) || 0);
+  const calculateItem = useCallback((index) => {
+    setItems(prevItems => {
+      const newItems = [...prevItems];
+      const item = newItems[index];
+      
+      const grossWeight = parseFloat(item.grossWeight) || 0;
+      const lessWeight = parseFloat(item.lessWeight) || 0;
+      const melting = parseFloat(item.melting) || 0;
+      const wastage = parseFloat(item.wastage) || 0;
+      const labourRate = parseFloat(item.labourRate) || 0;
+      
+      const netWeight = grossWeight - lessWeight;
+      const fineWeight = (netWeight * (melting / 100)) + wastage;
+      
+      const rate = item.metalType === 'gold' 
+        ? (parseFloat(formData.goldRate) || 0) 
+        : (parseFloat(formData.silverRate) || 0);
+      
+      const amount = (fineWeight * rate) + labourRate;
 
-    const newItems = [...items];
-    newItems[index] = {
-      ...item,
-      netWeight: netWeight.toFixed(3),
-      fineWeight: fineWeight.toFixed(3),
-      amount: amount.toFixed(2)
-    };
-    setItems(newItems);
-  };
+      newItems[index] = {
+        ...item,
+        netWeight: netWeight.toFixed(3),
+        fineWeight: fineWeight.toFixed(3),
+        amount: amount.toFixed(2)
+      };
+      
+      return newItems;
+    });
+  }, [formData.goldRate, formData.silverRate]);
 
-  const addRow = (metalType) => {
-    setItems([...items, {
+  const addRow = useCallback((metalType) => {
+    setItems(prev => [...prev, {
       metalType,
       itemName: '',
       pieces: 1,
@@ -230,25 +104,55 @@ export default function Billing() {
       labourRate: '',
       amount: ''
     }]);
-  };
+  }, []);
 
-  const deleteRow = (index) => {
-    setItems(items.filter((_, i) => i !== index));
-  };
+  const deleteRow = useCallback((index) => {
+    setItems(prev => prev.filter((_, i) => i !== index));
+  }, []);
 
-  const calculateTotals = () => {
-    return items.reduce((acc, item) => ({
-      pieces: acc.pieces + (parseInt(item.pieces) || 0),
-      grossWeight: acc.grossWeight + (parseFloat(item.grossWeight) || 0),
-      lessWeight: acc.lessWeight + (parseFloat(item.lessWeight) || 0),
-      netWeight: acc.netWeight + (parseFloat(item.netWeight) || 0),
-      melting: acc.melting + (parseFloat(item.melting) || 0),
-      wastage: acc.wastage + (parseFloat(item.wastage) || 0),
-      fineWeight: acc.fineWeight + (parseFloat(item.fineWeight) || 0),
-      labourRate: acc.labourRate + (parseFloat(item.labourRate) || 0),
-      amount: acc.amount + (parseFloat(item.amount) || 0)
-    }), { pieces: 0, grossWeight: 0, lessWeight: 0, netWeight: 0, melting: 0, wastage: 0, fineWeight: 0, labourRate: 0, amount: 0 });
-  };
+  const updateItem = useCallback((index, field, value) => {
+    setItems(prev => {
+      const newItems = [...prev];
+      newItems[index] = { ...newItems[index], [field]: value };
+      return newItems;
+    });
+  }, []);
+
+  const calculateTotals = useCallback(() => {
+    return items.reduce((acc, item) => {
+      const pieces = parseInt(item.pieces) || 0;
+      const grossWeight = parseFloat(item.grossWeight) || 0;
+      const lessWeight = parseFloat(item.lessWeight) || 0;
+      const netWeight = parseFloat(item.netWeight) || 0;
+      const melting = parseFloat(item.melting) || 0;
+      const wastage = parseFloat(item.wastage) || 0;
+      const fineWeight = parseFloat(item.fineWeight) || 0;
+      const labourRate = parseFloat(item.labourRate) || 0;
+      const amount = parseFloat(item.amount) || 0;
+
+      return {
+        pieces: acc.pieces + pieces,
+        grossWeight: acc.grossWeight + grossWeight,
+        lessWeight: acc.lessWeight + lessWeight,
+        netWeight: acc.netWeight + netWeight,
+        melting: acc.melting + melting,
+        wastage: acc.wastage + wastage,
+        fineWeight: acc.fineWeight + fineWeight,
+        labourRate: acc.labourRate + labourRate,
+        amount: acc.amount + amount
+      };
+    }, { 
+      pieces: 0, 
+      grossWeight: 0, 
+      lessWeight: 0, 
+      netWeight: 0, 
+      melting: 0, 
+      wastage: 0, 
+      fineWeight: 0, 
+      labourRate: 0, 
+      amount: 0 
+    });
+  }, [items]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -263,10 +167,6 @@ export default function Billing() {
       return;
     }
 
-    const totals = calculateTotals();
-    const total = totals.amount + (parseFloat(formData.stoneAmount) || 0);
-
-    // Convert all numeric fields to proper numbers
     const cleanedItems = items.map(item => ({
       metalType: item.metalType,
       itemName: item.itemName,
@@ -298,23 +198,30 @@ export default function Billing() {
     try {
       await voucherAPI.create(voucherData);
       toast.success('Voucher created successfully!');
-      // Reset form
-      window.location.reload();
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
     } catch (error) {
+      console.error('Error creating voucher:', error);
       toast.error(error.response?.data?.message || 'Failed to create voucher');
     }
   };
 
-  const totals = calculateTotals();
-  const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0);
-
-  const handlePrint = () => {
+  const handlePrint = useCallback(() => {
     if (items.length === 0) {
       toast.error('Please add items before printing');
       return;
     }
 
+    const selectedLedger = ledgers.find(l => l._id === formData.ledgerId);
+    const totals = calculateTotals();
+
     const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      toast.error('Please allow pop-ups to print');
+      return;
+    }
+
     const voucherHTML = `
       <!DOCTYPE html>
       <html>
@@ -323,30 +230,26 @@ export default function Billing() {
         <style>
           body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
           table { width: 100%; border-collapse: collapse; }
-          th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+          th, td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 12px; }
           th { background-color: #f5f5f5; font-weight: bold; }
           .header { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 10px; border-bottom: 2px solid #000; padding-bottom: 10px; }
-          .subheader { text-align: center; font-size: 14px; margin-bottom: 20px; }
-          .details-row { display: flex; justify-content: space-between; margin-bottom: 15px; }
           .total-row { font-weight: bold; background-color: #f5f5f5; }
           .amount-section { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
           .section-label { font-weight: bold; margin-bottom: 5px; margin-top: 10px; }
-          .line-height { height: 30px; border-bottom: 1px solid #000; }
           .voucher-container { max-width: 900px; margin: 0 auto; }
-          .shop-name { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
-          @media print { body { margin: 0; padding: 0; } }
+          @media print { body { margin: 0; padding: 10px; } }
         </style>
       </head>
       <body>
         <div class="voucher-container">
           <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px;">
-            <div class="shop-name">${user?.shopName || 'ESTIMATE/ON APPROVAL'}</div>
+            <div style="font-size: 20px; font-weight: bold;">${user?.shopName || 'ESTIMATE/ON APPROVAL'}</div>
             <div style="font-size: 14px; margin-top: 5px;">ESTIMATE/ON APPROVAL - Issue</div>
           </div>
 
           <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
             <div>
-              <div>Name : <strong>${ledgers.find(l => l._id === formData.ledgerId)?.name || 'N/A'}</strong></div>
+              <div>Name : <strong>${selectedLedger?.name || 'N/A'}</strong></div>
               <div>Voucher No : <strong>${formData.voucherNumber}</strong></div>
             </div>
             <div style="text-align: right;">
@@ -377,97 +280,83 @@ export default function Billing() {
                   <td>${index + 1}</td>
                   <td>${item.itemName}</td>
                   <td>${item.pieces}</td>
-                  <td>${parseFloat(item.grossWeight).toFixed(3)}</td>
-                  <td>${parseFloat(item.lessWeight).toFixed(3)}</td>
-                  <td>${parseFloat(item.netWeight).toFixed(3)}</td>
-                  <td>${parseFloat(item.melting).toFixed(3)}</td>
-                  <td>${parseFloat(item.wastage).toFixed(3)}</td>
-                  <td>${parseFloat(item.fineWeight).toFixed(3)}</td>
-                  <td>${parseFloat(item.labourRate).toFixed(2)}</td>
-                  <td>${parseFloat(item.amount).toFixed(2)}</td>
+                  <td>${parseFloat(item.grossWeight || 0).toFixed(3)}</td>
+                  <td>${parseFloat(item.lessWeight || 0).toFixed(3)}</td>
+                  <td>${parseFloat(item.netWeight || 0).toFixed(3)}</td>
+                  <td>${parseFloat(item.melting || 0).toFixed(3)}</td>
+                  <td>${parseFloat(item.wastage || 0).toFixed(3)}</td>
+                  <td>${parseFloat(item.fineWeight || 0).toFixed(3)}</td>
+                  <td>${parseFloat(item.labourRate || 0).toFixed(2)}</td>
+                  <td>${parseFloat(item.amount || 0).toFixed(2)}</td>
                 </tr>
               `).join('')}
-              <tr style="font-weight: bold; background-color: #f5f5f5;">
+              <tr class="total-row">
                 <td colspan="2">Total</td>
-                <td>${items.reduce((sum, item) => sum + (parseInt(item.pieces) || 0), 0)}</td>
-                <td>${items.reduce((sum, item) => sum + (parseFloat(item.grossWeight) || 0), 0).toFixed(3)}</td>
-                <td>${items.reduce((sum, item) => sum + (parseFloat(item.lessWeight) || 0), 0).toFixed(3)}</td>
-                <td>${items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0).toFixed(3)}</td>
+                <td>${totals.pieces}</td>
+                <td>${totals.grossWeight.toFixed(3)}</td>
+                <td>${totals.lessWeight.toFixed(3)}</td>
+                <td>${totals.netWeight.toFixed(3)}</td>
                 <td></td>
                 <td></td>
-                <td>${items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0).toFixed(3)}</td>
-                <td>${items.reduce((sum, item) => sum + (parseFloat(item.labourRate) || 0), 0).toFixed(2)}</td>
-                <td>${items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)}</td>
+                <td>${totals.fineWeight.toFixed(3)}</td>
+                <td>${totals.labourRate.toFixed(2)}</td>
+                <td>${totals.amount.toFixed(2)}</td>
               </tr>
             </tbody>
           </table>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+          <div class="amount-section">
             <div>
-              <div style="font-weight: bold; margin-bottom: 5px;">Stone Amount :</div>
+              <div class="section-label">Stone Amount :</div>
               <div>${parseFloat(formData.stoneAmount || 0).toFixed(2)}</div>
               
-              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 10px;">Labour :</div>
-              <div>${items.reduce((sum, item) => sum + (parseFloat(item.labourRate) || 0), 0).toFixed(2)}</div>
-
-              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 20px;">Net Balance :</div>
-              <div style="height: 30px; border-bottom: 1px solid #000;"></div>
-
-              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 20px;">Narration :</div>
-              <div style="height: 60px; border-bottom: 1px solid #000;"></div>
+              <div class="section-label">Labour :</div>
+              <div>${totals.labourRate.toFixed(2)}</div>
             </div>
 
             <div>
-              <div style="font-weight: bold; margin-bottom: 5px;">Gold Rate :</div>
+              <div class="section-label">Gold Rate :</div>
               <div>${parseFloat(formData.goldRate || 0).toFixed(2)}</div>
 
-              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 10px;">Silver Rate :</div>
+              <div class="section-label">Silver Rate :</div>
               <div>${parseFloat(formData.silverRate || 0).toFixed(2)}</div>
               
               <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <div>
-                  <div style="font-weight: bold; margin-bottom: 5px;">Issue</div>
+                  <div class="section-label">Issue</div>
                   <div>${parseFloat(formData.issueGross || 0).toFixed(3)}</div>
                 </div>
                 <div>
-                  <div style="font-weight: bold; margin-bottom: 5px;">Recept</div>
+                  <div class="section-label">Receipt</div>
                   <div>${parseFloat(formData.receiptGross || 0).toFixed(3)}</div>
                 </div>
               </div>
-
-              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 15px;">Old Bal Amt :</div>
-              <div>${ledgers.find(l => l._id === formData.ledgerId)?.balances?.amount?.toFixed(2) || '0.00'}</div>
-
-              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 10px;">Old Bal Fine Wt :</div>
-              <div>${(((ledgers.find(l => l._id === formData.ledgerId)?.balances?.goldFineWeight || 0) + (ledgers.find(l => l._id === formData.ledgerId)?.balances?.silverFineWeight || 0))).toFixed(3)}</div>
-
-              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 15px;">Cur Bal Amt :</div>
-              <div>${((parseFloat(ledgers.find(l => l._id === formData.ledgerId)?.balances?.amount || 0)) - (items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0))).toFixed(2)}</div>
-
-              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 10px;">Cur Bal Net Wt :</div>
-              <div>${((((ledgers.find(l => l._id === formData.ledgerId)?.balances?.goldFineWeight || 0) + (ledgers.find(l => l._id === formData.ledgerId)?.balances?.silverFineWeight || 0))) - items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0)).toFixed(3)}</div>
             </div>
           </div>
         </div>
         <script>
-          window.print();
-          setTimeout(() => window.close(), 1000);
+          window.onload = function() {
+            window.print();
+            setTimeout(function() { window.close(); }, 1000);
+          };
         </script>
       </body>
       </html>
     `;
+    
     printWindow.document.write(voucherHTML);
     printWindow.document.close();
-  };
+  }, [items, ledgers, formData, user, calculateTotals]);
 
-  const handleShare = () => {
+  const handleShare = useCallback(() => {
     if (items.length === 0) {
       toast.error('Please add items before sharing');
       return;
     }
 
     const ledger = ledgers.find(l => l._id === formData.ledgerId);
-    const grandTot = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0);
+    const totals = calculateTotals();
+    const grandTot = totals.amount + (parseFloat(formData.stoneAmount) || 0);
     
     const voucherText = `ESTIMATE/ON APPROVAL - Issue
 
@@ -476,15 +365,16 @@ Voucher No: ${formData.voucherNumber}
 Date: ${new Date(formData.date).toLocaleDateString('en-IN')}
 
 Items Summary:
-- Total Pieces: ${items.reduce((sum, item) => sum + (parseInt(item.pieces) || 0), 0)}
-- Total Net Wt: ${items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0).toFixed(3)}
-- Total Fine Wt: ${items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0).toFixed(3)}
-- Total Amount: ₹${items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)}
+- Total Pieces: ${totals.pieces}
+- Total Net Wt: ${totals.netWeight.toFixed(3)}
+- Total Fine Wt: ${totals.fineWeight.toFixed(3)}
+- Total Amount: ₹${totals.amount.toFixed(2)}
 
 Stone Amount: ₹${parseFloat(formData.stoneAmount || 0).toFixed(2)}
 Grand Total: ₹${grandTot.toFixed(2)}
 
-Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
+Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}
+Silver Rate: ₹${parseFloat(formData.silverRate || 0).toFixed(2)}`;
 
     if (navigator.share) {
       navigator.share({
@@ -492,18 +382,21 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
         text: voucherText
       }).catch(err => {
         if (err.name !== 'AbortError') {
+          console.error('Share error:', err);
           toast.error('Error sharing voucher');
         }
       });
     } else {
-      // Fallback: Copy to clipboard
       navigator.clipboard.writeText(voucherText).then(() => {
         toast.success('Voucher details copied to clipboard!');
       }).catch(() => {
         toast.error('Failed to copy to clipboard');
       });
     }
-  };
+  }, [items, ledgers, formData, calculateTotals]);
+
+  const totals = calculateTotals();
+  const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0);
 
   return (
     <Layout>
@@ -589,10 +482,11 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
             </div>
           </div>
 
-          {/* Add Row Buttons - Show prominently when no items */}
           {items.length === 0 && (
             <div className="card" style={{ marginBottom: '1.5rem', textAlign: 'center', padding: '2rem' }}>
-              <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>No items added yet. Click below to add items:</p>
+              <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
+                No items added yet. Click below to add items:
+              </p>
               <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                 <button type="button" onClick={() => addRow('gold')} className="btn btn-primary">
                   <FiPlus /> Add Gold Row
@@ -604,7 +498,6 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
             </div>
           )}
 
-          {/* Items Table - Only show if items exist */}
           {items.length > 0 && (
             <div className="card" style={{ marginBottom: '1.5rem' }}>
               <div style={{ overflowX: 'auto' }}>
@@ -634,11 +527,7 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                             type="text"
                             className="input"
                             value={item.itemName}
-                            onChange={(e) => {
-                              const newItems = [...items];
-                              newItems[index].itemName = e.target.value;
-                              setItems(newItems);
-                            }}
+                            onChange={(e) => updateItem(index, 'itemName', e.target.value)}
                             style={{ minWidth: '140px' }}
                             required
                           />
@@ -648,11 +537,7 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                             type="number"
                             className="input"
                             value={item.pieces}
-                            onChange={(e) => {
-                              const newItems = [...items];
-                              newItems[index].pieces = e.target.value;
-                              setItems(newItems);
-                            }}
+                            onChange={(e) => updateItem(index, 'pieces', e.target.value)}
                             style={{ width: '70px' }}
                             required
                           />
@@ -664,10 +549,8 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                             className="input"
                             value={item.grossWeight}
                             onChange={(e) => {
-                              const newItems = [...items];
-                              newItems[index].grossWeight = e.target.value;
-                              setItems(newItems);
-                              calculateItem(index);
+                              updateItem(index, 'grossWeight', e.target.value);
+                              setTimeout(() => calculateItem(index), 0);
                             }}
                             style={{ width: '90px' }}
                             required
@@ -680,10 +563,8 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                             className="input"
                             value={item.lessWeight}
                             onChange={(e) => {
-                              const newItems = [...items];
-                              newItems[index].lessWeight = e.target.value;
-                              setItems(newItems);
-                              calculateItem(index);
+                              updateItem(index, 'lessWeight', e.target.value);
+                              setTimeout(() => calculateItem(index), 0);
                             }}
                             style={{ width: '80px' }}
                           />
@@ -695,7 +576,7 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                             className="input"
                             value={item.netWeight}
                             disabled
-                            style={{ width: '90px' }}
+                            style={{ width: '90px', backgroundColor: '#f5f5f5' }}
                           />
                         </td>
                         <td>
@@ -705,10 +586,8 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                             className="input"
                             value={item.melting}
                             onChange={(e) => {
-                              const newItems = [...items];
-                              newItems[index].melting = e.target.value;
-                              setItems(newItems);
-                              calculateItem(index);
+                              updateItem(index, 'melting', e.target.value);
+                              setTimeout(() => calculateItem(index), 0);
                             }}
                             style={{ width: '80px' }}
                           />
@@ -720,10 +599,8 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                             className="input"
                             value={item.wastage}
                             onChange={(e) => {
-                              const newItems = [...items];
-                              newItems[index].wastage = e.target.value;
-                              setItems(newItems);
-                              calculateItem(index);
+                              updateItem(index, 'wastage', e.target.value);
+                              setTimeout(() => calculateItem(index), 0);
                             }}
                             style={{ width: '80px' }}
                           />
@@ -735,7 +612,7 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                             className="input"
                             value={item.fineWeight}
                             disabled
-                            style={{ width: '90px' }}
+                            style={{ width: '90px', backgroundColor: '#f5f5f5' }}
                           />
                         </td>
                         <td>
@@ -745,10 +622,8 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                             className="input"
                             value={item.labourRate}
                             onChange={(e) => {
-                              const newItems = [...items];
-                              newItems[index].labourRate = e.target.value;
-                              setItems(newItems);
-                              calculateItem(index);
+                              updateItem(index, 'labourRate', e.target.value);
+                              setTimeout(() => calculateItem(index), 0);
                             }}
                             style={{ width: '90px' }}
                           />
@@ -760,7 +635,7 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
                             className="input"
                             value={item.amount}
                             disabled
-                            style={{ width: '100px' }}
+                            style={{ width: '100px', backgroundColor: '#f5f5f5' }}
                           />
                         </td>
                         <td>
@@ -857,7 +732,7 @@ Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}`;
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
               <button type="submit" className="btn btn-primary">
                 <FiSave /> Save
               </button>
