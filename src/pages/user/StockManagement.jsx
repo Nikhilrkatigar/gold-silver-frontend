@@ -86,8 +86,8 @@ const StockManagement = () => {
                 className="input"
                 value={goldInput}
                 onChange={e => setGoldInput(e.target.value)}
-                min="0"
                 step="0.01"
+                placeholder="Can be negative"
                 required={silverInput === ''}
                 style={{ width: '100%' }}
               />
@@ -99,8 +99,8 @@ const StockManagement = () => {
                 className="input"
                 value={silverInput}
                 onChange={e => setSilverInput(e.target.value)}
-                min="0"
                 step="0.01"
+                placeholder="Can be negative"
                 required={goldInput === ''}
                 style={{ width: '100%' }}
               />

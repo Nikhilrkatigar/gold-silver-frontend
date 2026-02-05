@@ -1,12 +1,16 @@
 import axios from 'axios';
 
-// ❌ NO fallback URL — force env correctness
+// ✅ Dynamic backend URL - supports both local and production
+const API_URL = import.meta.env.VITE_API_URL || 'https://gold-silver-backend-hrcq.onrender.com';
+
 const api = axios.create({
-  baseURL: 'https://gold-silver-backend-hrcq.onrender.com',
+  baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+console.log('API Base URL:', API_URL);
 
 // Request interceptor to add token
 api.interceptors.request.use(
@@ -63,6 +67,7 @@ export const ledgerAPI = {
   update: (id, updates) => api.patch(`/api/ledger/${id}`, updates),
   delete: (id) => api.delete(`/api/ledger/${id}`),
   deleteAllVouchers: (id) => api.delete(`/api/ledger/${id}/vouchers`),
+  recalculateBalance: (id) => api.post(`/api/ledger/${id}/recalculate-balance`),
 };
 
 // Voucher APIs

@@ -18,9 +18,10 @@ export default function Settlement() {
     metalType: 'gold',
     metalRate: '',
     fineGiven: '',
+    amount: '',
     narration: ''
   });
-  const [calculatedAmount, setCalculatedAmount] = useState(0);
+  const [calculationSource, setCalculationSource] = useState(null); // Track which field was edited
 
   useEffect(() => {
     fetchLedgers();
@@ -34,11 +35,22 @@ export default function Settlement() {
     }
   }, [formData.ledgerId, ledgers]);
 
+  // Bidirectional calculation: Fine ↔ Amount
   useEffect(() => {
     const rate = parseFloat(formData.metalRate) || 0;
     const fine = parseFloat(formData.fineGiven) || 0;
-    setCalculatedAmount(rate * fine);
-  }, [formData.metalRate, formData.fineGiven]);
+    const amount = parseFloat(formData.amount) || 0;
+
+    if (calculationSource === 'fine' || calculationSource === null) {
+      // Calculate amount from fine
+      const calculatedAmt = rate * fine;
+      setFormData(prev => ({ ...prev, amount: calculatedAmt > 0 ? calculatedAmt.toString() : '' }));
+    } else if (calculationSource === 'amount' && rate > 0) {
+      // Calculate fine from amount
+      const calculatedFine = amount / rate;
+      setFormData(prev => ({ ...prev, fineGiven: calculatedFine > 0 ? calculatedFine.toString() : '' }));
+    }
+  }, [formData.metalRate, formData.fineGiven, formData.amount, calculationSource]);
 
   const fetchLedgers = async () => {
     try {
@@ -79,6 +91,12 @@ export default function Settlement() {
     }
 
     try {
+      // Validate that we have either fine or amount
+      if (!formData.fineGiven && !formData.amount) {
+        toast.error('Please enter either Fine Given or Settlement Amount');
+        return;
+      }
+      
       await settlementAPI.create(formData);
       toast.success('Settlement created successfully!');
       setFormData({
@@ -86,8 +104,10 @@ export default function Settlement() {
         metalType: 'gold',
         metalRate: '',
         fineGiven: '',
+        amount: '',
         narration: ''
       });
+      setCalculationSource(null);
       setSelectedLedger(null);
       fetchLedgers();
       fetchSettlements();
@@ -275,19 +295,27 @@ export default function Settlement() {
                     step="0.001"
                     className="input"
                     value={formData.fineGiven}
-                    onChange={(e) => setFormData({...formData, fineGiven: e.target.value})}
+                    onChange={(e) => {
+                      setFormData({...formData, fineGiven: e.target.value});
+                      setCalculationSource('fine');
+                    }}
                     max={getBalance()}
                     required
                   />
                 </div>
 
                 <div className="input-group">
-                  <label className="input-label">Calculated Amount</label>
+                  <label className="input-label">Settlement Amount (₹)</label>
                   <input
-                    type="text"
+                    type="number"
+                    step="0.01"
                     className="input"
-                    value={`₹${calculatedAmount.toFixed(2)}`}
-                    disabled
+                    placeholder="Auto-calculates from Fine or enter manually"
+                    value={formData.amount}
+                    onChange={(e) => {
+                      setFormData({...formData, amount: e.target.value});
+                      setCalculationSource('amount');
+                    }}
                   />
                 </div>
 

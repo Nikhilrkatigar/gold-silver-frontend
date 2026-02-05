@@ -25,13 +25,37 @@ export default function LedgerDetail() {
 
   const fetchLedgerDetails = async () => {
     try {
-      const response = await ledgerAPI.getTransactions(id, filters);
+      // Only send filters if they have values
+      const queryFilters = {};
+      if (filters.startDate) queryFilters.startDate = filters.startDate;
+      if (filters.endDate) queryFilters.endDate = filters.endDate;
+      
+      const response = await ledgerAPI.getTransactions(id, queryFilters);
       setLedger(response.data.ledger);
       setTransactions(response.data.transactions);
     } catch (error) {
       toast.error('Failed to load ledger details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleClearFilters = () => {
+    setFilters({ startDate: '', endDate: '' });
+    setTransactions([]);
+    fetchLedgerDetails();
+  };
+
+  const handleRecalculateBalance = async () => {
+    if (!confirm('This will recalculate the balance from all transactions. Continue?')) return;
+
+    try {
+      const response = await ledgerAPI.recalculateBalance(id);
+      setLedger(response.data.ledger);
+      toast.success('Balance recalculated successfully');
+      fetchLedgerDetails();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to recalculate balance');
     }
   };
 
@@ -410,9 +434,14 @@ Settlement Amount: ₹${parseFloat(settlement.amount).toFixed(2)}`;
         <div className="card" style={{ marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <h3>Transactions</h3>
-            <button onClick={handleDeleteAllVouchers} className="btn btn-sm btn-danger">
-              <FiTrash2 /> Delete All Vouchers
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button onClick={handleRecalculateBalance} className="btn btn-sm btn-secondary">
+                🔄 Recalculate Balance
+              </button>
+              <button onClick={handleDeleteAllVouchers} className="btn btn-sm btn-danger">
+                <FiTrash2 /> Delete All Vouchers
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-2" style={{ marginBottom: '1rem' }}>
@@ -434,6 +463,16 @@ Settlement Amount: ₹${parseFloat(settlement.amount).toFixed(2)}`;
                 onChange={(e) => setFilters({...filters, endDate: e.target.value})}
               />
             </div>
+          </div>
+
+          <div style={{ marginBottom: '1rem' }}>
+            <button 
+              onClick={handleClearFilters}
+              className="btn btn-sm btn-secondary"
+              style={{ padding: '6px 16px' }}
+            >
+              Clear Filters
+            </button>
           </div>
 
           <div className="table-container">
