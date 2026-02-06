@@ -22,6 +22,8 @@ export default function Settlement() {
     narration: ''
   });
   const [calculationSource, setCalculationSource] = useState(null); // Track which field was edited
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
   useEffect(() => {
     fetchLedgers();
@@ -218,17 +220,81 @@ export default function Settlement() {
           <form onSubmit={handleSubmit}>
             <div className="input-group">
               <label className="input-label">Customer Name</label>
-              <select
-                className="input"
-                value={formData.ledgerId}
-                onChange={(e) => setFormData({...formData, ledgerId: e.target.value})}
-                required
-              >
-                <option value="">Select Customer</option>
-                {ledgers.map(ledger => (
-                  <option key={ledger._id} value={ledger._id}>{ledger.name}</option>
-                ))}
-              </select>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  placeholder="Search or select customer..."
+                  value={customerSearch || (formData.ledgerId ? ledgers.find(l => l._id === formData.ledgerId)?.name : '')}
+                  onChange={(e) => {
+                    setCustomerSearch(e.target.value);
+                    setShowCustomerDropdown(true);
+                  }}
+                  onFocus={() => setShowCustomerDropdown(true)}
+                  className="input"
+                  style={{ width: '100%' }}
+                  required
+                />
+                
+                {/* Customer Dropdown */}
+                {showCustomerDropdown && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    background: 'var(--bg-primary)',
+                    border: '1px solid var(--border-color)',
+                    borderTop: 'none',
+                    borderRadius: '0 0 8px 8px',
+                    maxHeight: '200px',
+                    overflowY: 'auto',
+                    zIndex: 10,
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+                  }}>
+                    {(() => {
+                      const filtered = ledgers.filter(ledger =>
+                        ledger.name.toLowerCase().includes(customerSearch.toLowerCase())
+                      );
+
+                      return filtered.length > 0 ? (
+                        filtered.map((ledger) => (
+                          <div
+                            key={ledger._id}
+                            onClick={() => {
+                              setFormData({...formData, ledgerId: ledger._id});
+                              setCustomerSearch('');
+                              setShowCustomerDropdown(false);
+                            }}
+                            style={{
+                              padding: '12px 16px',
+                              cursor: 'pointer',
+                              borderBottom: '1px solid var(--border-color)',
+                              transition: 'background-color 0.2s',
+                              color: 'var(--text-primary)'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <div style={{ fontWeight: 500 }}>{ledger.name}</div>
+                            <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                              Balance: {(ledger.balances.goldFineWeight + ledger.balances.silverFineWeight).toFixed(3)}g
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div style={{
+                          padding: '16px',
+                          color: 'var(--text-secondary)',
+                          textAlign: 'center',
+                          fontSize: '0.875rem'
+                        }}>
+                          No customers found
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+              </div>
             </div>
 
             {selectedLedger && (

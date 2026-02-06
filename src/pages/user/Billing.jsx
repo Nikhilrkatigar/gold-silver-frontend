@@ -162,6 +162,8 @@ export default function Billing() {
     narration: ''
   });
   const [items, setItems] = useState([]);
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
   useEffect(() => {
     fetchLedgers();
@@ -517,6 +519,11 @@ export default function Billing() {
       return;
     }
 
+    if (!formData.ledgerId) {
+      toast.error('Please select a customer');
+      return;
+    }
+
     try {
       const ledger = ledgers.find(l => l._id === formData.ledgerId);
       
@@ -525,164 +532,200 @@ export default function Billing() {
         return;
       }
 
-      const voucherHTML = `
-        <div style="font-family: Arial, sans-serif; padding: 20px;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <h2 style="margin: 0; font-size: 24px; font-weight: bold;">${user?.shopName || 'ESTIMATE/ON APPROVAL'}</h2>
-            <p style="margin: 5px 0; font-size: 16px;">ESTIMATE/ON APPROVAL - Issue</p>
-          </div>
-          
-          <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px;">
-            <div>Name : ${ledger?.name || 'N/A'}</div>
-            <div>Voucher No : ${formData.voucherNumber}</div>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 14px;">
-            <div>Date : ${new Date(formData.date).toLocaleDateString('en-IN')}</div>
-            <div>Page No : 1/1</div>
+      // Calculate grandTotal
+      const totals = calculateTotals();
+      const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0);
+
+      // Create professional voucher content
+      const voucherContent = document.createElement('div');
+      voucherContent.innerHTML = `
+        <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto;">
+          <!-- Header -->
+          <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #333; padding-bottom: 20px;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #333;">${user?.shopName || 'ESTIMATE/ON APPROVAL'}</h1>
+            <p style="margin: 8px 0 0 0; font-size: 16px; color: #666;">ESTIMATE/ON APPROVAL - ISSUE</p>
           </div>
 
-          <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+          <!-- Customer & Voucher Info -->
+          <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #333;">
+            <div>
+              <div style="font-weight: bold; margin-bottom: 5px;">Customer Name</div>
+              <div style="font-size: 16px; font-weight: 600;">${ledger?.name || 'N/A'}</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: bold; margin-bottom: 5px;">Voucher No</div>
+              <div style="font-size: 16px; font-weight: 600;">${formData.voucherNumber}</div>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #666; border-bottom: 1px solid #ccc; padding-bottom: 15px;">
+            <div>Date: <strong>${new Date(formData.date).toLocaleDateString('en-IN')}</strong></div>
+            <div>Time: <strong>${new Date().toLocaleTimeString('en-IN')}</strong></div>
+          </div>
+
+          <!-- Items Table -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px;">
             <thead>
-              <tr style="background-color: #f0f0f0;">
-                <th style="border: 1px solid #000; padding: 5px;">Sr</th>
-                <th style="border: 1px solid #000; padding: 5px;">Item Name</th>
-                <th style="border: 1px solid #000; padding: 5px;">Pcs</th>
-                <th style="border: 1px solid #000; padding: 5px;">Gross</th>
-                <th style="border: 1px solid #000; padding: 5px;">Less</th>
-                <th style="border: 1px solid #000; padding: 5px;">Net Wt</th>
-                <th style="border: 1px solid #000; padding: 5px;">Wastage</th>
-                <th style="border: 1px solid #000; padding: 5px;">Fine Wt</th>
-                <th style="border: 1px solid #000; padding: 5px;">Lab Rt</th>
-                <th style="border: 1px solid #000; padding: 5px;">Amount</th>
+              <tr style="background-color: #f5f5f5; border: 1px solid #ddd;">
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold;">Sr</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: left; font-weight: bold;">Item Name</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold;">Pcs</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Gross (g)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Less (g)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Net (g)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Fine (g)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Labour (₹)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Amount (₹)</th>
               </tr>
             </thead>
             <tbody>
               ${items.map((item, index) => `
-                <tr>
-                  <td style="border: 1px solid #000; padding: 5px; text-align: center;">${index + 1}</td>
-                  <td style="border: 1px solid #000; padding: 5px;">${item.itemName}</td>
-                  <td style="border: 1px solid #000; padding: 5px; text-align: center;">${item.pieces}</td>
-                  <td style="border: 1px solid #000; padding: 5px; text-align: right;">${parseFloat(item.grossWeight).toFixed(3)}</td>
-                  <td style="border: 1px solid #000; padding: 5px; text-align: right;">${parseFloat(item.lessWeight).toFixed(3)}</td>
-                  <td style="border: 1px solid #000; padding: 5px; text-align: right;">${parseFloat(item.netWeight).toFixed(3)}</td>
-                  <td style="border: 1px solid #000; padding: 5px; text-align: right;">${parseFloat(item.wastage).toFixed(3)}</td>
-                  <td style="border: 1px solid #000; padding: 5px; text-align: right;">${parseFloat(item.fineWeight).toFixed(3)}</td>
-                  <td style="border: 1px solid #000; padding: 5px; text-align: right;">${parseFloat(item.labourRate).toFixed(2)}</td>
-                  <td style="border: 1px solid #000; padding: 5px; text-align: right;">${parseFloat(item.amount).toFixed(2)}</td>
+                <tr style="border: 1px solid #ddd;">
+                  <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${index + 1}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px;">${item.itemName}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${item.pieces}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${parseFloat(item.grossWeight).toFixed(3)}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${parseFloat(item.lessWeight).toFixed(3)}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${parseFloat(item.netWeight).toFixed(3)}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${parseFloat(item.fineWeight).toFixed(3)}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${parseFloat(item.labourRate).toFixed(2)}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${parseFloat(item.amount).toFixed(2)}</td>
                 </tr>
               `).join('')}
-              <tr style="font-weight: bold; background-color: #f0f0f0;">
-                <td colspan="2" style="border: 1px solid #000; padding: 5px; text-align: center;">Total</td>
-                <td style="border: 1px solid #000; padding: 5px; text-align: center;">${items.reduce((sum, item) => sum + (parseInt(item.pieces) || 0), 0)}</td>
-                <td style="border: 1px solid #000; padding: 5px; text-align: right;">${items.reduce((sum, item) => sum + (parseFloat(item.grossWeight) || 0), 0).toFixed(3)}</td>
-                <td style="border: 1px solid #000; padding: 5px; text-align: right;">${items.reduce((sum, item) => sum + (parseFloat(item.lessWeight) || 0), 0).toFixed(3)}</td>
-                <td style="border: 1px solid #000; padding: 5px; text-align: right;">${items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0).toFixed(3)}</td>
-                <td style="border: 1px solid #000; padding: 5px; text-align: right;">${items.reduce((sum, item) => sum + (parseFloat(item.wastage) || 0), 0).toFixed(3)}</td>
-                <td style="border: 1px solid #000; padding: 5px; text-align: right;">${items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0).toFixed(3)}</td>
-                <td style="border: 1px solid #000; padding: 5px; text-align: right;">${items.reduce((sum, item) => sum + (parseFloat(item.labourRate) || 0), 0).toFixed(2)}</td>
-                <td style="border: 1px solid #000; padding: 5px; text-align: right;">${items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)}</td>
+              <tr style="background-color: #f5f5f5; border: 1px solid #ddd; font-weight: bold;">
+                <td colspan="2" style="border: 1px solid #ddd; padding: 10px; text-align: center;">TOTAL</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${items.reduce((sum, item) => sum + (parseInt(item.pieces) || 0), 0)}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${items.reduce((sum, item) => sum + (parseFloat(item.grossWeight) || 0), 0).toFixed(3)}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${items.reduce((sum, item) => sum + (parseFloat(item.lessWeight) || 0), 0).toFixed(3)}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0).toFixed(3)}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0).toFixed(3)}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${items.reduce((sum, item) => sum + (parseFloat(item.labourRate) || 0), 0).toFixed(2)}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)}</td>
               </tr>
             </tbody>
           </table>
 
-          <div style="margin-top: 20px; font-size: 14px;">
-            <div style="display: flex; justify-content: space-between;">
-              <div>Stone Amount :</div>
-              <div>${parseFloat(formData.stoneAmount || 0).toFixed(2)}</div>
+          <!-- Summary Section -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; font-size: 14px;">
+            <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0;">
+              <h3 style="margin: 0 0 15px 0; font-size: 14px; font-weight: bold; color: #333;">Amount Summary</h3>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span>Labour Amount:</span>
+                <strong>₹${items.reduce((sum, item) => sum + (parseFloat(item.labourRate) || 0), 0).toFixed(2)}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span>Stone Amount:</span>
+                <strong>₹${parseFloat(formData.stoneAmount || 0).toFixed(2)}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 2px solid #ddd; font-size: 16px; font-weight: bold;">
+                <span>Grand Total:</span>
+                <span style="color: #d32f2f;">₹${grandTotal.toFixed(2)}</span>
+              </div>
             </div>
-            <div style="display: flex; justify-content: space-between;">
-              <div>Labour :</div>
-              <div>${items.reduce((sum, item) => sum + (parseFloat(item.labourRate) || 0), 0).toFixed(2)}</div>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <div>Net Balance :</div>
-              <div></div>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <div>Narration :</div>
-              <div></div>
+
+            <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0;">
+              <h3 style="margin: 0 0 15px 0; font-size: 14px; font-weight: bold; color: #333;">Rates</h3>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span>Gold Rate:</span>
+                <strong>₹${parseFloat(formData.goldRate || 0).toFixed(2)}/g</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                <span>Silver Rate:</span>
+                <strong>₹${parseFloat(formData.silverRate || 0).toFixed(2)}/g</strong>
+              </div>
+              <div style="border-top: 2px solid #ddd; padding-top: 12px; margin-bottom: 8px;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                  <span>Issue Gross:</span>
+                  <strong>${parseFloat(formData.issueGross || 0).toFixed(3)} g</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                  <span>Receipt Gross:</span>
+                  <strong>${parseFloat(formData.receiptGross || 0).toFixed(3)} g</strong>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div style="margin-top: 20px; font-size: 14px;">
-            <div style="display: flex; justify-content: space-between;">
-              <div>Gold Rate :</div>
-              <div>${parseFloat(formData.goldRate || 0).toFixed(2)}</div>
+          <!-- Balance Section -->
+          <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; border: 2px solid #ffc107; margin-bottom: 20px; font-size: 14px;">
+            <h3 style="margin: 0 0 15px 0; font-size: 14px; font-weight: bold; color: #856404;">Account Balance</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+              <div>
+                <div style="color: #666; margin-bottom: 5px;">Old Balance (Amount)</div>
+                <div style="font-size: 16px; font-weight: bold; color: #333;">₹${ledger?.balances?.amount?.toFixed(2) || '0.00'}</div>
+              </div>
+              <div>
+                <div style="color: #666; margin-bottom: 5px;">Current Balance (Amount)</div>
+                <div style="font-size: 16px; font-weight: bold; color: #c41c3b;">₹${(parseFloat(ledger?.balances?.amount || 0) - grandTotal).toFixed(2)}</div>
+              </div>
+              <div>
+                <div style="color: #666; margin-bottom: 5px;">Old Balance (Fine Weight)</div>
+                <div style="font-size: 16px; font-weight: bold; color: #333;">${((ledger?.balances?.goldFineWeight || 0) + (ledger?.balances?.silverFineWeight || 0)).toFixed(3)} g</div>
+              </div>
+              <div>
+                <div style="color: #666; margin-bottom: 5px;">Current Balance (Fine Weight)</div>
+                <div style="font-size: 16px; font-weight: bold; color: #c41c3b;">${((((ledger?.balances?.goldFineWeight || 0) + (ledger?.balances?.silverFineWeight || 0))) - items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0)).toFixed(3)} g</div>
+              </div>
             </div>
-            <div style="display: flex; justify-content: space-between;">
-              <div>Silver Rate :</div>
-              <div>${parseFloat(formData.silverRate || 0).toFixed(2)}</div>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <div>Issue</div>
-              <div>${parseFloat(formData.issueGross || 0).toFixed(3)}</div>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <div>Recept</div>
-              <div>${parseFloat(formData.receiptGross || 0).toFixed(3)}</div>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <div>Old Bal Amt :</div>
-              <div>${ledger?.balances?.amount?.toFixed(2) || '0.00'}</div>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <div>Old Bal Fine Wt :</div>
-              <div>${(((ledger?.balances?.goldFineWeight || 0) + (ledger?.balances?.silverFineWeight || 0))).toFixed(3)}</div>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <div>Cur Bal Amt :</div>
-              <div>${((parseFloat(ledger?.balances?.amount || 0)) - (items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0))).toFixed(2)}</div>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <div>Cur Bal Net Wt :</div>
-              <div>${((((ledger?.balances?.goldFineWeight || 0) + (ledger?.balances?.silverFineWeight || 0))) - items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0)).toFixed(3)}</div>
-            </div>
+          </div>
+
+          <!-- Footer -->
+          <div style="text-align: center; border-top: 2px solid #ddd; padding-top: 20px; font-size: 12px; color: #999;">
+            <p style="margin: 0;">Generated on ${new Date().toLocaleString('en-IN')}</p>
+            <p style="margin: 0;">This is an electronically generated document</p>
           </div>
         </div>
       `;
 
-      // Create a temporary container
-      const tempContainer = document.createElement('div');
-      tempContainer.innerHTML = voucherHTML;
-
       // PDF options
       const options = {
-        margin: 10,
-        filename: `Voucher-${formData.voucherNumber}.pdf`,
+        margin: [10, 10, 10, 10],
+        filename: `Voucher-${formData.voucherNumber}-${Date.now()}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCors: true },
+        html2canvas: { scale: 2, useCors: true, allowTaint: true },
         jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
       };
 
-      // Generate PDF using html2pdf
+      // Generate PDF
       html2pdf()
         .set(options)
-        .from(tempContainer)
+        .from(voucherContent)
         .output('blob')
         .then((blob) => {
-          // Try to share the PDF file if supported
-          if (navigator.share && navigator.canShare) {
-            const file = new File([blob], `Voucher-${formData.voucherNumber}.pdf`, { type: 'application/pdf' });
-            
-            if (navigator.canShare({ files: [file] })) {
-              navigator.share({
-                files: [file],
-                title: `Voucher #${formData.voucherNumber}`,
-                text: `Voucher for ${ledger?.name || 'N/A'}`
-              }).then(() => {
-                toast.success('Voucher PDF shared successfully!');
-              }).catch(err => {
-                if (err.name !== 'AbortError') {
-                  // Fallback to download
-                  downloadPDF(blob);
-                }
-              });
-              return;
-            }
-          }
+          const fileName = `Voucher-${formData.voucherNumber}.pdf`;
+          const file = new File([blob], fileName, { type: 'application/pdf' });
 
-          // Fallback: Download the PDF
-          downloadPDF(blob);
+          // Check if Web Share API is available with file sharing support
+          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            navigator.share({
+              files: [file],
+              title: `Voucher #${formData.voucherNumber}`,
+              text: `Voucher for ${ledger?.name || 'N/A'}`
+            }).then(() => {
+              toast.success('Voucher PDF shared successfully!');
+            }).catch(err => {
+              if (err.name !== 'AbortError') {
+                downloadPDF(blob, fileName);
+              }
+            });
+          } else {
+            // Fallback: Generate shareable link option
+            downloadPDF(blob, fileName);
+            
+            // Show WhatsApp and other sharing options
+            const whatsappText = `Check out this voucher for ${ledger?.name}. Voucher #${formData.voucherNumber}. Amount: ₹${grandTotal.toFixed(2)}`;
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
+            
+            toast.info(
+              <div>
+                <p>PDF downloaded! Share it via:</p>
+                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{ marginRight: '10px', color: '#25D366', textDecoration: 'none', fontWeight: 'bold' }}>
+                  📱 WhatsApp
+                </a>
+              </div>,
+              { autoClose: 5000 }
+            );
+          }
         })
         .catch(error => {
           console.error('PDF generation error:', error);
@@ -694,657 +737,601 @@ export default function Billing() {
     }
   };
 
-  const downloadPDF = (blob) => {
+  const downloadPDF = (blob, fileName) => {
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `Voucher-${formData.voucherNumber}.pdf`;
+    link.download = fileName;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
-    toast.success('Voucher PDF downloaded successfully!');
+    toast.success(`${fileName} downloaded successfully!`);
   };
-
-  const totals = calculateTotals();
-  const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0);
 
   return (
     <Layout>
-      <style>
-        {`
-          .billing-container {
-            padding: 20px;
-            max-width: 100%;
-          }
+      <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+        <h1 style={{ color: 'var(--color-primary)', marginBottom: '30px' }}>Create Voucher</h1>
+
+        {/* Customer Selection */}
+        <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+            <h3 style={{ marginTop: 0 }}>Select Customer</h3>
+            <button
+              type="button"
+              onClick={() => setShowAddLedgerModal(true)}
+              style={{
+                padding: '8px 15px',
+                backgroundColor: 'var(--color-primary)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+            >
+              <FiPlus /> Add Customer
+            </button>
+          </div>
           
-          .billing-header {
-            margin-bottom: 25px;
-          }
-          
-          .billing-header h2 {
-            font-size: 24px;
-            font-weight: 600;
-            margin: 0;
-          }
-          
-          .form-row-custom {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-          }
-          
-          .form-group-custom {
-            display: flex;
-            flex-direction: column;
-          }
-          
-          .form-group-custom label {
-            font-size: 13px;
-            font-weight: 500;
-            margin-bottom: 6px;
-            color: #e0e0e0;
-          }
-          
-          .form-group-custom input,
-          .form-group-custom select,
-          .form-group-custom textarea {
-            padding: 8px 12px;
-            border: 1px solid #444;
-            border-radius: 4px;
-            font-size: 14px;
-            background-color: #2a2a2a;
-            color: #fff;
-          }
-          
-          .form-group-custom input:focus,
-          .form-group-custom select:focus,
-          .form-group-custom textarea:focus {
-            outline: none;
-            border-color: #007bff;
-            box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
-          }
-          
-          .table-responsive {
-            margin: 20px 0;
-            overflow-x: auto;
-          }
-          
-          .billing-table {
-            width: 100%;
-            border-collapse: collapse;
-            background-color: #1e1e1e;
-            border: 1px solid #444;
-          }
-          
-          .billing-table thead th {
-            background-color: #2d3748;
-            color: #fff;
-            padding: 12px 8px;
-            font-size: 13px;
-            font-weight: 600;
-            text-align: left;
-            border: 1px solid #444;
-            white-space: nowrap;
-          }
-          
-          .billing-table tbody td {
-            padding: 8px;
-            border: 1px solid #444;
-            background-color: #252525;
-          }
-          
-          .billing-table tbody tr.totals-row {
-            background-color: #2d3748;
-            font-weight: 600;
-          }
-          
-          .billing-table tbody tr.totals-row td {
-            background-color: #2d3748;
-            color: #fff;
-          }
-          
-          .billing-table input {
-            width: 100%;
-            padding: 6px 8px;
-            border: 1px solid #444;
-            border-radius: 3px;
-            font-size: 13px;
-            background-color: #1a1a1a;
-            color: #fff;
-          }
-          
-          .billing-table input:focus {
-            outline: none;
-            border-color: #007bff;
-          }
-          
-          .billing-table input:read-only {
-            background-color: #2a2a2a;
-            color: #aaa;
-          }
-          
-          .item-name-input {
-            min-width: 200px;
-          }
-          
-          .text-center {
-            text-align: center;
-          }
-          
-          .btn-action-delete {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            padding: 6px 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-          }
-          
-          .btn-action-delete:disabled {
-            background-color: #555;
-            cursor: not-allowed;
-            opacity: 0.5;
-          }
-          
-          .btn-action-delete:hover:not(:disabled) {
-            background-color: #c82333;
-          }
-          
-          .add-row-buttons {
-            display: flex;
-            gap: 10px;
-            margin: 15px 0;
-          }
-          
-          .btn-add-row {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 16px;
-            border: none;
-            border-radius: 4px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-          }
-          
-          .btn-gold {
-            background-color: #ffc107;
-            color: #000;
-          }
-          
-          .btn-gold:hover {
-            background-color: #e0a800;
-          }
-          
-          .btn-silver {
-            background-color: #6c757d;
-            color: #fff;
-          }
-          
-          .btn-silver:hover {
-            background-color: #5a6268;
-          }
-          
-          .bottom-section {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin: 20px 0;
-          }
-          
-          .grand-total {
-            font-size: 20px;
-            font-weight: 600;
-            margin: 20px 0;
-            color: #fff;
-          }
-          
-          .action-buttons {
-            display: flex;
-            gap: 10px;
-            margin: 20px 0;
-          }
-          
-          .btn-primary-action {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 4px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-          }
-          
-          .btn-save {
-            background-color: #28a745;
-            color: white;
-          }
-          
-          .btn-save:hover {
-            background-color: #218838;
-          }
-          
-          .btn-print {
-            background-color: #17a2b8;
-            color: white;
-          }
-          
-          .btn-print:hover {
-            background-color: #138496;
-          }
-          
-          .btn-share {
-            background-color: #6c757d;
-            color: white;
-          }
-          
-          .btn-share:hover {
-            background-color: #5a6268;
-          }
-          
-          @media (max-width: 768px) {
-            .billing-container {
-              padding: 10px;
-            }
-            
-            .form-row-custom {
-              grid-template-columns: 1fr;
-            }
-            
-            .billing-table {
-              font-size: 12px;
-            }
-            
-            .billing-table thead th,
-            .billing-table tbody td {
-              padding: 6px 4px;
-            }
-            
-            .item-name-input {
-              min-width: 150px;
-            }
-            
-            .action-buttons {
-              flex-direction: column;
-            }
-            
-            .btn-primary-action {
-              width: 100%;
-              justify-content: center;
-            }
-          }
-        `}
-      </style>
-      <div className="billing-container">
-        <div className="billing-header" style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: '2rem'
-        }}>
-          <h2 style={{ margin: 0 }}>Billing</h2>
-          <button
-            onClick={() => setShowAddLedgerModal(true)}
-            className="btn btn-primary"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '10px 16px'
-            }}
-          >
-            <FiPlus /> Add Ledger
-          </button>
+          <div style={{ position: 'relative', marginBottom: '10px' }}>
+            <input
+              type="text"
+              placeholder="Search customer..."
+              value={customerSearch}
+              onChange={(e) => {
+                setCustomerSearch(e.target.value);
+                setShowCustomerDropdown(true);
+              }}
+              onFocus={() => setShowCustomerDropdown(true)}
+              style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '4px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-primary)',
+                color: 'var(--color-text)',
+                boxSizing: 'border-box'
+              }}
+            />
+
+            {showCustomerDropdown && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                backgroundColor: 'var(--bg-primary)',
+                border: '1px solid var(--border-color)',
+                borderTop: 'none',
+                borderRadius: '0 0 4px 4px',
+                maxHeight: '200px',
+                overflowY: 'auto',
+                zIndex: 10
+              }}>
+                {ledgers
+                  .filter(ledger => ledger.name.toLowerCase().includes(customerSearch.toLowerCase()))
+                  .map(ledger => (
+                    <div
+                      key={ledger._id}
+                      onClick={() => {
+                        setFormData(prev => ({ ...prev, ledgerId: ledger._id }));
+                        setCustomerSearch(ledger.name);
+                        setShowCustomerDropdown(false);
+                      }}
+                      style={{
+                        padding: '10px',
+                        borderBottom: '1px solid var(--border-color)',
+                        cursor: 'pointer',
+                        backgroundColor: formData.ledgerId === ledger._id ? 'var(--bg-hover)' : 'transparent'
+                      }}
+                    >
+                      {ledger.name} {ledger.phoneNumber && `(${ledger.phoneNumber})`}
+                    </div>
+                  ))}
+              </div>
+            )}
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="form-row-custom">
-            <div className="form-group-custom">
-              <label>Customer Name</label>
-              <select
-                value={formData.ledgerId}
-                onChange={(e) => setFormData({...formData, ledgerId: e.target.value})}
-                required
-              >
-                <option value="">Select Customer</option>
-                {ledgers.map(ledger => (
-                  <option key={ledger._id} value={ledger._id}>{ledger.name}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group-custom">
-              <label>Date</label>
-              <input
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({...formData, date: e.target.value})}
-                required
-              />
-            </div>
-
-            <div className="form-group-custom">
-              <label>Voucher Number</label>
+        {/* Voucher Details */}
+        <form onSubmit={handleSubmit} style={{ marginBottom: '30px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '20px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Voucher Number</label>
               <input
                 type="text"
-                className="input"
-                value={formData.voucherNumber}
-                onChange={(e) => setFormData({...formData, voucherNumber: e.target.value})}
-                disabled={user?.voucherSettings?.autoIncrement}
                 required
+                value={formData.voucherNumber}
+                onChange={(e) => setFormData(prev => ({ ...prev, voucherNumber: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--color-text)',
+                  boxSizing: 'border-box'
+                }}
               />
             </div>
-          </div>
 
-          <div className="grid grid-3">
-            <div className="input-group">
-              <label className="input-label">Payment Type</label>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Date</label>
+              <input
+                type="date"
+                required
+                value={formData.date}
+                onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--color-text)',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Gold Rate (₹/g)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.goldRate}
+                onChange={(e) => setFormData(prev => ({ ...prev, goldRate: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--color-text)',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Silver Rate (₹/g)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.silverRate}
+                onChange={(e) => setFormData(prev => ({ ...prev, silverRate: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--color-text)',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Stone Amount (₹)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.stoneAmount}
+                onChange={(e) => setFormData(prev => ({ ...prev, stoneAmount: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--color-text)',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Issue Gross (g)</label>
+              <input
+                type="number"
+                step="0.001"
+                value={formData.issueGross}
+                onChange={(e) => setFormData(prev => ({ ...prev, issueGross: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--color-text)',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Receipt Gross (g)</label>
+              <input
+                type="number"
+                step="0.001"
+                value={formData.receiptGross}
+                onChange={(e) => setFormData(prev => ({ ...prev, receiptGross: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--color-text)',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Payment Type</label>
               <select
-                className="input"
                 value={formData.paymentType}
-                onChange={(e) => setFormData({...formData, paymentType: e.target.value})}
+                onChange={(e) => setFormData(prev => ({ ...prev, paymentType: e.target.value }))}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--color-text)',
+                  boxSizing: 'border-box'
+                }}
               >
                 <option value="cash">Cash</option>
-                <option value="credit">Credit</option>
+                <option value="bank">Bank</option>
+                <option value="cheque">Cheque</option>
               </select>
-            </div>
-            
-            <div className="input-group">
-              <label className="input-label">Gold Rate</label>
-              <input
-                type="number"
-                step="0.01"
-                className="input"
-                value={formData.goldRate}
-                onChange={(e) => setFormData({...formData, goldRate: e.target.value})}
-              />
-            </div>
-            
-            <div className="input-group">
-              <label className="input-label">Silver Rate</label>
-              <input
-                type="number"
-                step="0.01"
-                className="input"
-                value={formData.silverRate}
-                onChange={(e) => setFormData({...formData, silverRate: e.target.value})}
-              />
             </div>
           </div>
 
-          {items.length === 0 && (
-            <div className="card" style={{ marginBottom: '1.5rem', textAlign: 'center', padding: '2rem' }}>
-              <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
-                No items added yet. Click below to add items:
-              </p>
-              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                <button type="button" onClick={() => addRow('gold')} className="btn btn-primary">
-                  <FiPlus /> Add Gold Row
-                </button>
-                <button type="button" onClick={() => addRow('silver')} className="btn btn-secondary">
-                  <FiPlus /> Add Silver Row
-                </button>
-              </div>
+          {/* Items Section */}
+          <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
+            <h3>Items</h3>
+            
+            <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
+              <button type="button" onClick={() => addRow('gold')} style={{
+                padding: '10px 15px',
+                backgroundColor: '#FFD700',
+                color: '#000',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}>
+                <FiPlus /> Add Gold Item
+              </button>
+              <button type="button" onClick={() => addRow('silver')} style={{
+                padding: '10px 15px',
+                backgroundColor: '#C0C0C0',
+                color: '#000',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold'
+              }}>
+                <FiPlus /> Add Silver Item
+              </button>
             </div>
-          )}
 
-          {items.length > 0 && (
-            <div className="card" style={{ marginBottom: '1.5rem' }}>
-              <div style={{ overflowX: 'auto' }}>
-                <table className="table" style={{ minWidth: '1200px' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ width: '40px' }}>Sl</th>
-                      <th style={{ minWidth: '150px' }}>Item Name</th>
-                      <th style={{ width: '70px' }}>Pcs</th>
-                      <th style={{ width: '90px' }}>Gross Wt</th>
-                      <th style={{ width: '80px' }}>Less</th>
-                      <th style={{ width: '90px' }}>Net Wt</th>
-                      <th style={{ width: '80px' }}>Melting %</th>
-                      <th style={{ width: '80px' }}>Wastage</th>
-                      <th style={{ width: '90px' }}>Fine Wt</th>
-                      <th style={{ width: '90px' }}>Lab Rate</th>
-                      <th style={{ width: '100px' }}>Amount</th>
-                      <th style={{ width: '80px' }}>Action</th>
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{
+                width: '100%',
+                borderCollapse: 'collapse',
+                fontSize: '14px'
+              }}>
+                <thead>
+                  <tr style={{ backgroundColor: 'var(--bg-primary)', borderBottom: '2px solid var(--border-color)' }}>
+                    <th style={{ padding: '10px', textAlign: 'left', borderRight: '1px solid var(--border-color)' }}>Item Name</th>
+                    <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Metal</th>
+                    <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Pcs</th>
+                    <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Gross (g)</th>
+                    <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Less (g)</th>
+                    <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Melting %</th>
+                    <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Wastage (g)</th>
+                    <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Labour (₹)</th>
+                    <th style={{ padding: '10px', textAlign: 'center' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((item, index) => (
+                    <tr key={index} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
+                        <input
+                          type="text"
+                          value={item.itemName}
+                          onChange={(e) => updateItem(index, 'itemName', e.target.value)}
+                          placeholder="Item name"
+                          style={{
+                            width: '100%',
+                            padding: '5px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--color-text)',
+                            boxSizing: 'border-box'
+                          }}
+                        />
+                      </td>
+                      <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)', textAlign: 'center' }}>
+                        <span style={{
+                          padding: '5px 10px',
+                          borderRadius: '4px',
+                          backgroundColor: item.metalType === 'gold' ? '#FFD700' : '#C0C0C0',
+                          color: '#000',
+                          fontWeight: 'bold'
+                        }}>{item.metalType === 'gold' ? 'GOLD' : 'SILVER'}</span>
+                      </td>
+                      <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.pieces}
+                          onChange={(e) => updateItem(index, 'pieces', e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '5px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--color-text)',
+                            boxSizing: 'border-box',
+                            textAlign: 'center'
+                          }}
+                        />
+                      </td>
+                      <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
+                        <input
+                          type="number"
+                          step="0.001"
+                          value={item.grossWeight}
+                          onChange={(e) => {
+                            updateItem(index, 'grossWeight', e.target.value);
+                            calculateItem(index);
+                          }}
+                          placeholder="0.000"
+                          style={{
+                            width: '100%',
+                            padding: '5px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--color-text)',
+                            boxSizing: 'border-box',
+                            textAlign: 'right'
+                          }}
+                        />
+                      </td>
+                      <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
+                        <input
+                          type="number"
+                          step="0.001"
+                          value={item.lessWeight}
+                          onChange={(e) => {
+                            updateItem(index, 'lessWeight', e.target.value);
+                            calculateItem(index);
+                          }}
+                          placeholder="0.000"
+                          style={{
+                            width: '100%',
+                            padding: '5px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--color-text)',
+                            boxSizing: 'border-box',
+                            textAlign: 'right'
+                          }}
+                        />
+                      </td>
+                      <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          max="100"
+                          value={item.melting}
+                          onChange={(e) => {
+                            updateItem(index, 'melting', e.target.value);
+                            calculateItem(index);
+                          }}
+                          placeholder="0.0"
+                          style={{
+                            width: '100%',
+                            padding: '5px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--color-text)',
+                            boxSizing: 'border-box',
+                            textAlign: 'right'
+                          }}
+                        />
+                      </td>
+                      <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
+                        <input
+                          type="number"
+                          step="0.001"
+                          value={item.wastage}
+                          onChange={(e) => {
+                            updateItem(index, 'wastage', e.target.value);
+                            calculateItem(index);
+                          }}
+                          placeholder="0.000"
+                          style={{
+                            width: '100%',
+                            padding: '5px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--color-text)',
+                            boxSizing: 'border-box',
+                            textAlign: 'right'
+                          }}
+                        />
+                      </td>
+                      <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={item.labourRate}
+                          onChange={(e) => {
+                            updateItem(index, 'labourRate', e.target.value);
+                            calculateItem(index);
+                          }}
+                          placeholder="0.00"
+                          style={{
+                            width: '100%',
+                            padding: '5px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--color-text)',
+                            boxSizing: 'border-box',
+                            textAlign: 'right'
+                          }}
+                        />
+                      </td>
+                      <td style={{ padding: '10px', textAlign: 'center' }}>
+                        <button
+                          type="button"
+                          onClick={() => deleteRow(index)}
+                          style={{
+                            padding: '5px 10px',
+                            backgroundColor: '#ff4757',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <FiX /> Delete
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item, index) => (
-                      <tr key={index}>
-                        <td>{index + 1}</td>
-                        <td>
-                          <input
-                            type="text"
-                            className="input"
-                            value={item.itemName}
-                            onChange={(e) => updateItem(index, 'itemName', e.target.value)}
-                            style={{ minWidth: '140px' }}
-                            required
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            className="input"
-                            value={item.pieces}
-                            onChange={(e) => updateItem(index, 'pieces', e.target.value)}
-                            style={{ width: '70px' }}
-                            required
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            step="0.001"
-                            className="input"
-                            value={item.grossWeight}
-                            onChange={(e) => {
-                              updateItem(index, 'grossWeight', e.target.value);
-                              setTimeout(() => calculateItem(index), 0);
-                            }}
-                            style={{ width: '90px' }}
-                            required
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            step="0.001"
-                            className="input"
-                            value={item.lessWeight}
-                            onChange={(e) => {
-                              updateItem(index, 'lessWeight', e.target.value);
-                              setTimeout(() => calculateItem(index), 0);
-                            }}
-                            style={{ width: '80px' }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            step="0.001"
-                            className="input"
-                            value={item.netWeight}
-                            disabled
-                            style={{ width: '90px', backgroundColor: '#f5f5f5' }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            step="0.01"
-                            className="input"
-                            value={item.melting}
-                            onChange={(e) => {
-                              updateItem(index, 'melting', e.target.value);
-                              setTimeout(() => calculateItem(index), 0);
-                            }}
-                            style={{ width: '80px' }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            step="0.001"
-                            className="input"
-                            value={item.wastage}
-                            onChange={(e) => {
-                              updateItem(index, 'wastage', e.target.value);
-                              setTimeout(() => calculateItem(index), 0);
-                            }}
-                            style={{ width: '80px' }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            step="0.001"
-                            className="input"
-                            value={item.fineWeight}
-                            disabled
-                            style={{ width: '90px', backgroundColor: '#f5f5f5' }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            step="0.01"
-                            className="input"
-                            value={item.labourRate}
-                            onChange={(e) => {
-                              updateItem(index, 'labourRate', e.target.value);
-                              setTimeout(() => calculateItem(index), 0);
-                            }}
-                            style={{ width: '90px' }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            step="0.01"
-                            className="input"
-                            value={item.amount}
-                            disabled
-                            style={{ width: '100px', backgroundColor: '#f5f5f5' }}
-                          />
-                        </td>
-                        <td>
-                          <button
-                            type="button"
-                            onClick={() => deleteRow(index)}
-                            className="btn btn-sm btn-danger"
-                          >
-                            <FiX />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    <tr style={{ background: 'var(--bg-tertiary)', fontWeight: 600 }}>
-                      <td colSpan="2">Total</td>
-                      <td>{totals.pieces}</td>
-                      <td>{totals.grossWeight.toFixed(3)}</td>
-                      <td>{totals.lessWeight.toFixed(3)}</td>
-                      <td>{totals.netWeight.toFixed(3)}</td>
-                      <td>{totals.melting.toFixed(2)}</td>
-                      <td>{totals.wastage.toFixed(3)}</td>
-                      <td>{totals.fineWeight.toFixed(3)}</td>
-                      <td>{totals.labourRate.toFixed(2)}</td>
-                      <td>{totals.amount.toFixed(2)}</td>
-                      <td></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                <button type="button" onClick={() => addRow('gold')} className="btn btn-sm btn-primary">
-                  <FiPlus /> Add Gold Row
-                </button>
-                <button type="button" onClick={() => addRow('silver')} className="btn btn-sm btn-secondary">
-                  <FiPlus /> Add Silver Row
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="card">
-            <div className="grid grid-3" style={{ marginBottom: '1rem' }}>
-              <div className="input-group">
-                <label className="input-label">Stone Amount</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="input"
-                  value={formData.stoneAmount}
-                  onChange={(e) => setFormData({...formData, stoneAmount: e.target.value})}
-                />
-              </div>
-              
-              <div className="input-group">
-                <label className="input-label">Issue (Gross) - Auto Calculated</label>
-                <input
-                  type="number"
-                  step="0.001"
-                  className="input"
-                  value={formData.issueGross}
-                  disabled
-                  style={{ backgroundColor: '#f5f5f5' }}
-                />
-              </div>
-
-              <div className="input-group">
-                <label className="input-label">Receipt (Gross)</label>
-                <input
-                  type="number"
-                  step="0.001"
-                  className="input"
-                  value={formData.receiptGross}
-                  onChange={(e) => setFormData({...formData, receiptGross: e.target.value})}
-                />
-              </div>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
-            <div className="grid grid-2">
-              <div className="input-group">
-                <label className="input-label">Narration</label>
-                <textarea
-                  className="input"
-                  value={formData.narration}
-                  onChange={(e) => setFormData({...formData, narration: e.target.value})}
-                  rows="3"
-                ></textarea>
-              </div>
-              
-              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                <div style={{ fontWeight: 700, fontSize: '1.5rem' }}>
-                  Total: ₹{grandTotal.toFixed(2)}
+            {items.length > 0 && (
+              <div style={{ marginTop: '20px', padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
+                <h4 style={{ marginTop: 0 }}>Summary</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', fontSize: '14px' }}>
+                  <div>
+                    <strong>Total Pieces:</strong> {calculateTotals().pieces}
+                  </div>
+                  <div>
+                    <strong>Total Gross:</strong> {calculateTotals().grossWeight.toFixed(3)}g
+                  </div>
+                  <div>
+                    <strong>Total Net:</strong> {calculateTotals().netWeight.toFixed(3)}g
+                  </div>
+                  <div>
+                    <strong>Total Fine:</strong> {calculateTotals().fineWeight.toFixed(3)}g
+                  </div>
+                  <div>
+                    <strong>Total Labour:</strong> ₹{calculateTotals().labourRate.toFixed(2)}
+                  </div>
+                  <div style={{ fontWeight: 'bold', color: 'var(--color-primary)', fontSize: '16px' }}>
+                    <strong>Total Amount:</strong> ₹{(calculateTotals().amount + (parseFloat(formData.stoneAmount) || 0)).toFixed(2)}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
+          </div>
 
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-              <button type="submit" className="btn btn-primary">
-                <FiSave /> Save
-              </button>
-              <button type="button" onClick={handlePrint} className="btn btn-secondary">
-                <FiPrinter /> Print
-              </button>
-              <button type="button" onClick={handleShare} className="btn btn-secondary">
-                <FiShare2 /> Share
-              </button>
-            </div>
+          {/* Narration */}
+          <div style={{ marginBottom: '20px' }}>
+            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Narration</label>
+            <textarea
+              value={formData.narration}
+              onChange={(e) => setFormData(prev => ({ ...prev, narration: e.target.value }))}
+              placeholder="Any additional notes..."
+              rows="3"
+              style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '4px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-primary)',
+                color: 'var(--color-text)',
+                boxSizing: 'border-box'
+              }}
+            />
+          </div>
+
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              onClick={handlePrint}
+              style={{
+                padding: '12px 20px',
+                backgroundColor: '#3498db',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '16px'
+              }}
+            >
+              <FiPrinter /> Print
+            </button>
+
+            <button
+              type="button"
+              onClick={handleShare}
+              style={{
+                padding: '12px 20px',
+                backgroundColor: '#27ae60',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '16px'
+              }}
+            >
+              <FiShare2 /> Share PDF
+            </button>
+
+            <button
+              type="submit"
+              style={{
+                padding: '12px 20px',
+                backgroundColor: 'var(--color-primary)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '16px'
+              }}
+            >
+              <FiSave /> Save Voucher
+            </button>
           </div>
         </form>
 
-        {/* Add Ledger Modal */}
+        {/* Add Customer Modal */}
         {showAddLedgerModal && (
           <div style={{
             position: 'fixed',
@@ -1356,33 +1343,25 @@ export default function Billing() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 1000
-          }} onClick={() => !addingLedger && setShowAddLedgerModal(false)}>
+            zIndex: 100
+          }}>
             <div style={{
-              backgroundColor: '#1e1e1e',
+              backgroundColor: 'var(--bg-secondary)',
+              padding: '30px',
               borderRadius: '8px',
-              padding: '2rem',
-              maxWidth: '500px',
+              maxWidth: '400px',
               width: '90%',
-              boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
-              border: '1px solid #444'
-            }} onClick={(e) => e.stopPropagation()}>
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '1.5rem'
-              }}>
-                <h3 style={{ margin: 0, fontSize: '1.5rem' }}>Add New Ledger</h3>
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2 style={{ marginTop: 0 }}>Create New Customer</h2>
                 <button
                   onClick={() => setShowAddLedgerModal(false)}
-                  disabled={addingLedger}
                   style={{
                     background: 'none',
                     border: 'none',
-                    fontSize: '1.5rem',
-                    cursor: 'pointer',
-                    color: '#999'
+                    fontSize: '24px',
+                    cursor: 'pointer'
                   }}
                 >
                   <FiX />
@@ -1390,53 +1369,60 @@ export default function Billing() {
               </div>
 
               <form onSubmit={handleAddLedgerSubmit}>
-                <div className="form-group-custom" style={{ marginBottom: '1.5rem' }}>
-                  <label className="input-label">Customer Name</label>
+                <div style={{ marginBottom: '15px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Customer Name</label>
                   <input
                     type="text"
-                    className="input"
-                    placeholder="Enter customer name"
-                    value={ledgerFormData.name}
-                    onChange={(e) => setLedgerFormData({ ...ledgerFormData, name: e.target.value })}
-                    disabled={addingLedger}
                     required
+                    value={ledgerFormData.name}
+                    onChange={(e) => setLedgerFormData(prev => ({ ...prev, name: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--color-text)',
+                      boxSizing: 'border-box'
+                    }}
                   />
                 </div>
 
-                <div className="form-group-custom" style={{ marginBottom: '1.5rem' }}>
-                  <label className="input-label">Phone Number</label>
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Phone Number</label>
                   <input
                     type="tel"
-                    className="input"
-                    placeholder="Enter phone number"
-                    value={ledgerFormData.phoneNumber}
-                    onChange={(e) => setLedgerFormData({ ...ledgerFormData, phoneNumber: e.target.value })}
-                    disabled={addingLedger}
                     required
+                    value={ledgerFormData.phoneNumber}
+                    onChange={(e) => setLedgerFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--color-text)',
+                      boxSizing: 'border-box'
+                    }}
                   />
                 </div>
 
-                <div style={{
-                  display: 'flex',
-                  gap: '10px',
-                  justifyContent: 'flex-end'
-                }}>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddLedgerModal(false)}
-                    disabled={addingLedger}
-                    className="btn btn-secondary"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={addingLedger}
-                    className="btn btn-primary"
-                  >
-                    {addingLedger ? 'Adding...' : 'Add Ledger'}
-                  </button>
-                </div>
+                <button
+                  type="submit"
+                  disabled={addingLedger}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    backgroundColor: addingLedger ? '#95a5a6' : 'var(--color-primary)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: addingLedger ? 'not-allowed' : 'pointer',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {addingLedger ? 'Creating...' : 'Create Customer'}
+                </button>
               </form>
             </div>
           </div>

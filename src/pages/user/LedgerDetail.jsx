@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import { format } from 'date-fns';
 import { FiTrash2, FiArrowLeft, FiEye, FiX, FiPrinter, FiShare2 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
+import html2pdf from 'html2pdf.js';
 
 export default function LedgerDetail() {
   const { user } = useAuth();
@@ -326,69 +327,298 @@ export default function LedgerDetail() {
     }
   };
 
-  const handleShareVoucher = (voucher) => {
-    const voucherText = `ESTIMATE/ON APPROVAL - Issue
+  const downloadPDF = (blob, fileName) => {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    toast.success(`${fileName} downloaded successfully!`);
+  };
 
-Customer: ${ledger?.name || 'N/A'}
-Voucher No: ${voucher.voucherNumber}
-Date: ${new Date(voucher.date).toLocaleDateString('en-IN')}
-Payment Type: ${voucher.paymentType}
+  const handleShareVoucher = async (voucher) => {
+    try {
+      const voucherTotal = voucher.items 
+        ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(voucher.stoneAmount) || 0)
+        : 0;
 
-Items Summary:
-- Total Pieces: ${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseInt(item.pieces) || 0), 0) : 0}
-- Total Net Wt: ${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0).toFixed(3) : '0.000'} g
-- Total Fine Wt: ${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0).toFixed(3) : '0.000'} g
+      const voucherContent = document.createElement('div');
+      voucherContent.innerHTML = `
+        <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto;">
+          <!-- Header -->
+          <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #333; padding-bottom: 20px;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #333;">${user?.shopName || 'ESTIMATE/ON APPROVAL'}</h1>
+            <p style="margin: 8px 0 0 0; font-size: 16px; color: #666;">ESTIMATE/ON APPROVAL - ISSUE</p>
+          </div>
 
-Stone Amount: ₹${parseFloat(voucher.stoneAmount || 0).toFixed(2)}
-Total Amount: ₹${voucher.total?.toFixed(2) || ((voucher.items?.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) || 0) + (parseFloat(voucher.stoneAmount) || 0)).toFixed(2)}
+          <!-- Customer & Voucher Info -->
+          <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #333;">
+            <div>
+              <div style="font-weight: bold; margin-bottom: 5px;">Customer Name</div>
+              <div style="font-size: 16px; font-weight: 600;">${ledger?.name || 'N/A'}</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: bold; margin-bottom: 5px;">Voucher No</div>
+              <div style="font-size: 16px; font-weight: 600;">${voucher.voucherNumber}</div>
+            </div>
+          </div>
 
-Gold Rate: ₹${parseFloat(voucher.goldRate || 0).toFixed(2)}
-Silver Rate: ₹${parseFloat(voucher.silverRate || 0).toFixed(2)}`;
+          <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #666; border-bottom: 1px solid #ccc; padding-bottom: 15px;">
+            <div>Date: <strong>${new Date(voucher.date).toLocaleDateString('en-IN')}</strong></div>
+            <div>Time: <strong>${new Date().toLocaleTimeString('en-IN')}</strong></div>
+          </div>
 
-    if (navigator.share) {
-      navigator.share({
-        title: `Voucher #${voucher.voucherNumber}`,
-        text: voucherText
-      }).catch(err => {
-        if (err.name !== 'AbortError') {
-          toast.error('Error sharing voucher');
-        }
-      });
-    } else {
-      navigator.clipboard.writeText(voucherText).then(() => {
-        toast.success('Voucher details copied to clipboard!');
-      }).catch(() => {
-        toast.error('Failed to copy to clipboard');
-      });
+          <!-- Items Table -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px;">
+            <thead>
+              <tr style="background-color: #f5f5f5; border: 1px solid #ddd;">
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold;">Sr</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: left; font-weight: bold;">Item Name</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold;">Pcs</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Gross (g)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Less (g)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Net (g)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Fine (g)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Labour (₹)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Amount (₹)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${voucher.items ? voucher.items.map((item, index) => `
+                <tr style="border: 1px solid #ddd;">
+                  <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${index + 1}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px;">${item.itemName}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${item.pieces}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${parseFloat(item.grossWeight).toFixed(3)}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${parseFloat(item.lessWeight).toFixed(3)}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${parseFloat(item.netWeight).toFixed(3)}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${parseFloat(item.fineWeight).toFixed(3)}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${parseFloat(item.labourRate).toFixed(2)}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${parseFloat(item.amount).toFixed(2)}</td>
+                </tr>
+              `).join('') : ''}
+              <tr style="background-color: #f5f5f5; border: 1px solid #ddd; font-weight: bold;">
+                <td colspan="2" style="border: 1px solid #ddd; padding: 10px; text-align: center;">TOTAL</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseInt(item.pieces) || 0), 0) : 0}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.grossWeight) || 0), 0).toFixed(3) : '0.000'}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.lessWeight) || 0), 0).toFixed(3) : '0.000'}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0).toFixed(3) : '0.000'}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0).toFixed(3) : '0.000'}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.labourRate) || 0), 0).toFixed(2) : '0.00'}</td>
+                <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2) : '0.00'}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Summary Section -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; font-size: 14px;">
+            <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0;">
+              <h3 style="margin: 0 0 15px 0; font-size: 14px; font-weight: bold; color: #333;">Amount Summary</h3>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span>Labour Amount:</span>
+                <strong>₹${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.labourRate) || 0), 0).toFixed(2) : '0.00'}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span>Stone Amount:</span>
+                <strong>₹${parseFloat(voucher.stoneAmount || 0).toFixed(2)}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 2px solid #ddd; font-size: 16px; font-weight: bold;">
+                <span>Grand Total:</span>
+                <span style="color: #d32f2f;">₹${voucherTotal.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0;">
+              <h3 style="margin: 0 0 15px 0; font-size: 14px; font-weight: bold; color: #333;">Rates</h3>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span>Gold Rate:</span>
+                <strong>₹${parseFloat(voucher.goldRate || 0).toFixed(2)}/g</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                <span>Silver Rate:</span>
+                <strong>₹${parseFloat(voucher.silverRate || 0).toFixed(2)}/g</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div style="text-align: center; border-top: 2px solid #ddd; padding-top: 20px; font-size: 12px; color: #999;">
+            <p style="margin: 0;">Generated on ${new Date().toLocaleString('en-IN')}</p>
+            <p style="margin: 0;">This is an electronically generated document</p>
+          </div>
+        </div>
+      `;
+
+      const options = {
+        margin: [10, 10, 10, 10],
+        filename: `Voucher-${voucher.voucherNumber}-${Date.now()}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCors: true, allowTaint: true },
+        jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+      };
+
+      html2pdf()
+        .set(options)
+        .from(voucherContent)
+        .output('blob')
+        .then((blob) => {
+          const fileName = `Voucher-${voucher.voucherNumber}.pdf`;
+          const file = new File([blob], fileName, { type: 'application/pdf' });
+
+          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            navigator.share({
+              files: [file],
+              title: `Voucher #${voucher.voucherNumber}`,
+              text: `Voucher for ${ledger?.name || 'N/A'}`
+            }).then(() => {
+              toast.success('Voucher PDF shared successfully!');
+            }).catch(err => {
+              if (err.name !== 'AbortError') {
+                downloadPDF(blob, fileName);
+              }
+            });
+          } else {
+            downloadPDF(blob, fileName);
+            const whatsappText = `Check out this voucher for ${ledger?.name}. Voucher #${voucher.voucherNumber}. Amount: ₹${voucherTotal.toFixed(2)}`;
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
+            
+            toast.info(
+              <div>
+                <p>PDF downloaded! Share it via:</p>
+                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{ marginRight: '10px', color: '#25D366', textDecoration: 'none', fontWeight: 'bold' }}>
+                  📱 WhatsApp
+                </a>
+              </div>,
+              { autoClose: 5000 }
+            );
+          }
+        })
+        .catch(error => {
+          console.error('PDF generation error:', error);
+          toast.error('Failed to generate PDF');
+        });
+    } catch (error) {
+      console.error('Share error:', error);
+      toast.error('Failed to generate or share PDF');
     }
   };
 
-  const handleShareSettlement = (settlement) => {
-    const settlementText = `Settlement
+  const handleShareSettlement = async (settlement) => {
+    try {
+      const settlementContent = document.createElement('div');
+      settlementContent.innerHTML = `
+        <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto;">
+          <!-- Header -->
+          <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #333; padding-bottom: 20px;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #333;">${user?.shopName || 'SETTLEMENT'}</h1>
+            <p style="margin: 8px 0 0 0; font-size: 16px; color: #666;">SETTLEMENT RECEIPT</p>
+          </div>
 
-Customer: ${ledger?.name || 'N/A'}
-Date: ${new Date(settlement.date).toLocaleDateString('en-IN')}
-Metal Type: ${settlement.metalType}
-Fine Given: ${parseFloat(settlement.fineGiven).toFixed(3)} g
-Metal Rate: ₹${parseFloat(settlement.metalRate).toFixed(2)}
+          <!-- Customer & Settlement Info -->
+          <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #333;">
+            <div>
+              <div style="font-weight: bold; margin-bottom: 5px;">Customer Name</div>
+              <div style="font-size: 16px; font-weight: 600;">${ledger?.name || 'N/A'}</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: bold; margin-bottom: 5px;">Settlement Date</div>
+              <div style="font-size: 16px; font-weight: 600;">${new Date(settlement.date).toLocaleDateString('en-IN')}</div>
+            </div>
+          </div>
 
-Settlement Amount: ₹${parseFloat(settlement.amount).toFixed(2)}`;
+          <!-- Settlement Details -->
+          <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 30px;">
+            <h3 style="margin: 0 0 20px 0; font-size: 14px; font-weight: bold; color: #333;">Settlement Details</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+              <div>
+                <div style="color: #666; margin-bottom: 5px; font-size: 12px;">Metal Type</div>
+                <div style="font-size: 16px; font-weight: 600;">${settlement.metalType === 'gold' ? '🟡 Gold' : '⚪ Silver'}</div>
+              </div>
+              <div>
+                <div style="color: #666; margin-bottom: 5px; font-size: 12px;">Metal Rate</div>
+                <div style="font-size: 16px; font-weight: 600;">₹${parseFloat(settlement.metalRate).toFixed(2)}/g</div>
+              </div>
+              <div>
+                <div style="color: #666; margin-bottom: 5px; font-size: 12px;">Fine Given</div>
+                <div style="font-size: 16px; font-weight: 600;">${parseFloat(settlement.fineGiven).toFixed(3)} g</div>
+              </div>
+              <div>
+                <div style="color: #666; margin-bottom: 5px; font-size: 12px;">Settlement Amount</div>
+                <div style="font-size: 16px; font-weight: 600; color: #d32f2f;">₹${parseFloat(settlement.amount).toFixed(2)}</div>
+              </div>
+            </div>
 
-    if (navigator.share) {
-      navigator.share({
-        title: 'Settlement',
-        text: settlementText
-      }).catch(err => {
-        if (err.name !== 'AbortError') {
-          toast.error('Error sharing settlement');
-        }
-      });
-    } else {
-      navigator.clipboard.writeText(settlementText).then(() => {
-        toast.success('Settlement details copied to clipboard!');
-      }).catch(() => {
-        toast.error('Failed to copy to clipboard');
-      });
+            ${settlement.narration ? `
+              <div style="border-top: 1px solid #ddd; padding-top: 15px;">
+                <div style="color: #666; margin-bottom: 5px; font-size: 12px;">Remarks</div>
+                <div>${settlement.narration}</div>
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- Footer -->
+          <div style="text-align: center; border-top: 2px solid #ddd; padding-top: 20px; font-size: 12px; color: #999;">
+            <p style="margin: 0;">Generated on ${new Date().toLocaleString('en-IN')}</p>
+            <p style="margin: 0;">This is an electronically generated document</p>
+          </div>
+        </div>
+      `;
+
+      const options = {
+        margin: [10, 10, 10, 10],
+        filename: `Settlement-${Date.now()}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCors: true, allowTaint: true },
+        jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+      };
+
+      html2pdf()
+        .set(options)
+        .from(settlementContent)
+        .output('blob')
+        .then((blob) => {
+          const fileName = `Settlement-${new Date().toISOString().split('T')[0]}.pdf`;
+          const file = new File([blob], fileName, { type: 'application/pdf' });
+
+          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+            navigator.share({
+              files: [file],
+              title: 'Settlement Receipt',
+              text: `Settlement for ${ledger?.name || 'N/A'}`
+            }).then(() => {
+              toast.success('Settlement PDF shared successfully!');
+            }).catch(err => {
+              if (err.name !== 'AbortError') {
+                downloadPDF(blob, fileName);
+              }
+            });
+          } else {
+            downloadPDF(blob, fileName);
+            const whatsappText = `Settlement Receipt for ${ledger?.name}. Amount: ₹${parseFloat(settlement.amount).toFixed(2)}`;
+            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
+            
+            toast.info(
+              <div>
+                <p>PDF downloaded! Share it via:</p>
+                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{ marginRight: '10px', color: '#25D366', textDecoration: 'none', fontWeight: 'bold' }}>
+                  📱 WhatsApp
+                </a>
+              </div>,
+              { autoClose: 5000 }
+            );
+          }
+        })
+        .catch(error => {
+          console.error('PDF generation error:', error);
+          toast.error('Failed to generate PDF');
+        });
+    } catch (error) {
+      console.error('Share error:', error);
+      toast.error('Failed to generate or share PDF');
     }
   };
 
