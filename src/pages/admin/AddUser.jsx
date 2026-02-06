@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import Layout from '../../components/Layout';
 import { adminAPI } from '../../services/api';
 import { toast } from 'react-toastify';
-import { FiSave, FiUser, FiPhone, FiLock, FiClock } from 'react-icons/fi';
+import { FiSave, FiUser, FiPhone, FiLock, FiClock, FiEye, FiEyeOff } from 'react-icons/fi';
 
 export default function AddUser() {
   const [formData, setFormData] = useState({
@@ -11,6 +11,7 @@ export default function AddUser() {
     password: '',
     licenseDays: '30'
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -25,6 +26,7 @@ export default function AddUser() {
       await adminAPI.createUser(formData);
       toast.success('User created successfully!');
       setFormData({ shopName: '', phoneNumber: '', password: '', licenseDays: '30' });
+      setShowPassword(false);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to create user');
     } finally {
@@ -74,14 +76,36 @@ export default function AddUser() {
                 <FiLock style={{ display: 'inline', marginRight: '0.5rem' }} />
                 Password
               </label>
-              <input
-                type="password"
-                name="password"
-                className="input"
-                value={formData.password}
-                onChange={handleChange}
-                required
-              />
+              <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  className="input"
+                  value={formData.password}
+                  onChange={handleChange}
+                  required
+                  style={{ paddingRight: '40px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={loading}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-secondary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '0',
+                    fontSize: '1rem'
+                  }}
+                >
+                  {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                </button>
+              </div>
             </div>
 
             <div className="input-group">
