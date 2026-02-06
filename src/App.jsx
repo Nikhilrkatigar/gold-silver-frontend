@@ -18,6 +18,7 @@ import LedgerDetail from './pages/user/LedgerDetail';
 import Settlement from './pages/user/Settlement';
 import AccountInfo from './pages/user/AccountInfo';
 import StockManagement from './pages/user/StockManagement';
+import Karigar from './pages/user/Karigar';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, adminOnly = false }) => {
@@ -75,6 +76,7 @@ function AppRoutes() {
       <Route path="/settlement" element={<ProtectedRoute><Settlement /></ProtectedRoute>} />
       <Route path="/stock" element={<ProtectedRoute><StockManagement /></ProtectedRoute>} />
       <Route path="/account" element={<ProtectedRoute><AccountInfo /></ProtectedRoute>} />
+      <Route path="/karigar" element={<ProtectedRoute><Karigar /></ProtectedRoute>} />
       
       {/* Default redirect */}
       <Route path="/" element={<Navigate to={user ? (user.role === 'admin' ? '/admin' : '/dashboard') : '/login'} replace />} />

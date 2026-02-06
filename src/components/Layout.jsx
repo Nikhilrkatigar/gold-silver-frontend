@@ -25,6 +25,7 @@ export default function Layout({ children }) {
     { path: '/billing', icon: FiFileText, label: 'Billing' },
     { path: '/ledgers', icon: FiBook, label: 'Ledgers' },
     { path: '/settlement', icon: FiTrendingUp, label: 'Settlement' },
+    { path: '/karigar', icon: FiDollarSign, label: 'Karigar' },
     { path: '/stock', icon: FiDollarSign, label: 'Stock Management' },
     { path: '/account', icon: FiSettings, label: 'Account' },
   ];

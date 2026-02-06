@@ -95,4 +95,12 @@ export const stockAPI = {
   undoStock: () => api.post('/api/stock/undo'),
 };
 
+// Karigar APIs
+export const karigarAPI = {
+  create: (data) => api.post('/api/karigar', data),
+  getAll: (params) => api.get('/api/karigar', { params }),
+  getOne: (id) => api.get(`/api/karigar/${id}`),
+  delete: (id) => api.delete(`/api/karigar/${id}`),
+};
+
 export default api;

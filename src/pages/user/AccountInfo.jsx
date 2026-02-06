@@ -1,13 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import Layout from '../../components/Layout';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
-import { format } from 'date-fns';
-import { FiSun, FiMoon, FiMonitor } from 'react-icons/fi';
+import { format, differenceInDays, parse } from 'date-fns';
+import { FiSun, FiMoon, FiMonitor, FiLock } from 'react-icons/fi';
 
 export default function AccountInfo() {
   const { user, updateTheme, updateVoucherSettings, logout, theme } = useAuth();
   const [voucherMode, setVoucherMode] = useState(user?.voucherSettings?.autoIncrement || true);
+
+  // Calculate days remaining properly
+  const daysRemaining = useMemo(() => {
+    if (!user?.licenseExpiryDate) return 0;
+    const expiryDate = new Date(user.licenseExpiryDate);
+    const today = new Date();
+    // Reset time to midnight for accurate day calculation
+    today.setHours(0, 0, 0, 0);
+    expiryDate.setHours(0, 0, 0, 0);
+    const days = differenceInDays(expiryDate, today);
+    return Math.max(0, days);
+  }, [user?.licenseExpiryDate]);
 
   const handleThemeChange = async (newTheme) => {
     try {
@@ -37,7 +49,10 @@ export default function AccountInfo() {
   return (
     <Layout>
       <div style={{ maxWidth: '800px' }}>
-        <h1 style={{ marginBottom: '2rem' }}>Account Information</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+          <h1 style={{ margin: 0 }}>Account Information</h1>
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>v3.1</span>
+        </div>
 
         <div className="card" style={{ marginBottom: '1.5rem' }}>
           <h3 style={{ marginBottom: '1.5rem' }}>Shop Details</h3>
@@ -56,11 +71,45 @@ export default function AccountInfo() {
             </div>
             <div>
               <div className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Days Remaining</div>
-              <div style={{ fontWeight: 600, color: user?.daysUntilExpiry <= 7 ? 'var(--color-warning)' : 'inherit' }}>
-                {user?.daysUntilExpiry} days
+              <div style={{ fontWeight: 600, color: daysRemaining <= 7 ? 'var(--color-warning)' : 'inherit' }}>
+                {daysRemaining} days
               </div>
             </div>
           </div>
+        </div>
+
+        <div className="card" style={{ marginBottom: '1.5rem', position: 'relative', opacity: 0.7 }}>
+          <div style={{
+            position: 'absolute',
+            top: '1.5rem',
+            right: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.4rem 0.8rem',
+            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+            borderRadius: '4px',
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            color: 'var(--color-warning)'
+          }}>
+            <FiLock size={14} />
+            Coming Soon
+          </div>
+          <h3 style={{ marginBottom: '1.5rem' }}>GST Settings</h3>
+          <div className="grid grid-2">
+            <div>
+              <div className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>GST Number</div>
+              <div style={{ fontWeight: 600, opacity: 0.5 }}>-</div>
+            </div>
+            <div>
+              <div className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>GST Rate (%)</div>
+              <div style={{ fontWeight: 600, opacity: 0.5 }}>-</div>
+            </div>
+          </div>
+          <p className="text-muted" style={{ marginTop: '1rem', fontSize: '0.875rem', fontStyle: 'italic' }}>
+            GST configuration and invoice generation features will be available soon.
+          </p>
         </div>
 
         <div className="card" style={{ marginBottom: '1.5rem' }}>

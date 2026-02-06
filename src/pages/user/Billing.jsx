@@ -6,8 +6,6 @@ import { FiPlus, FiX, FiSave, FiPrinter, FiShare2 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import html2pdf from 'html2pdf.js';
 
-<<<<<<< HEAD
-=======
 // Voucher Print Template Component
 const VoucherTemplate = ({ formData, items, ledgers, user }) => {
   const ledger = ledgers.find(l => l._id === formData.ledgerId);
@@ -145,7 +143,6 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
   );
 };
 
->>>>>>> a7182a4 (Fixed and added some button)
 export default function Billing() {
   const { user } = useAuth();
   const [ledgers, setLedgers] = useState([]);
@@ -203,27 +200,6 @@ export default function Billing() {
     }
   };
 
-<<<<<<< HEAD
-  const calculateItem = useCallback((index) => {
-    setItems(prevItems => {
-      const newItems = [...prevItems];
-      const item = newItems[index];
-      
-      const grossWeight = parseFloat(item.grossWeight) || 0;
-      const lessWeight = parseFloat(item.lessWeight) || 0;
-      const melting = parseFloat(item.melting) || 0;
-      const wastage = parseFloat(item.wastage) || 0;
-      const labourRate = parseFloat(item.labourRate) || 0;
-      
-      const netWeight = grossWeight - lessWeight;
-      const fineWeight = (netWeight * (melting / 100)) + wastage;
-      
-      const rate = item.metalType === 'gold' 
-        ? (parseFloat(formData.goldRate) || 0) 
-        : (parseFloat(formData.silverRate) || 0);
-      
-      const amount = (fineWeight * rate) + labourRate;
-=======
   const handleAddLedgerSubmit = async (e) => {
     e.preventDefault();
     
@@ -246,13 +222,25 @@ export default function Billing() {
     }
   };
 
-  const calculateItem = (index) => {
-    const item = items[index];
-    const netWeight = (parseFloat(item.grossWeight) || 0) - (parseFloat(item.lessWeight) || 0);
-    const fineWeight = netWeight * ((parseFloat(item.melting) || 0) / 100) + (parseFloat(item.wastage) || 0);
-    const rate = item.metalType === 'gold' ? (parseFloat(formData.goldRate) || 0) : (parseFloat(formData.silverRate) || 0);
-    const amount = (fineWeight * rate) + (parseFloat(item.labourRate) || 0);
->>>>>>> a7182a4 (Fixed and added some button)
+  const calculateItem = useCallback((index) => {
+    setItems(prevItems => {
+      const newItems = [...prevItems];
+      const item = newItems[index];
+      
+      const grossWeight = parseFloat(item.grossWeight) || 0;
+      const lessWeight = parseFloat(item.lessWeight) || 0;
+      const melting = parseFloat(item.melting) || 0;
+      const wastage = parseFloat(item.wastage) || 0;
+      const labourRate = parseFloat(item.labourRate) || 0;
+      
+      const netWeight = grossWeight - lessWeight;
+      const fineWeight = (netWeight * (melting / 100)) + wastage;
+      
+      const rate = item.metalType === 'gold' 
+        ? (parseFloat(formData.goldRate) || 0) 
+        : (parseFloat(formData.silverRate) || 0);
+      
+      const amount = (fineWeight * rate) + labourRate;
 
       newItems[index] = {
         ...item,
@@ -523,20 +511,12 @@ export default function Billing() {
     printWindow.document.close();
   }, [items, ledgers, formData, user, calculateTotals]);
 
-  const handleShare = useCallback(() => {
+  const handleShare = async () => {
     if (items.length === 0) {
       toast.error('Please add items before sharing');
       return;
     }
 
-<<<<<<< HEAD
-    const ledger = ledgers.find(l => l._id === formData.ledgerId);
-    const totals = calculateTotals();
-    const grandTot = totals.amount + (parseFloat(formData.stoneAmount) || 0);
-    
-    const voucherText = `ESTIMATE/ON APPROVAL - Issue
-=======
-  const handleShare = async () => {
     try {
       const ledger = ledgers.find(l => l._id === formData.ledgerId);
       
@@ -560,7 +540,6 @@ export default function Billing() {
             <div>Date : ${new Date(formData.date).toLocaleDateString('en-IN')}</div>
             <div>Page No : 1/1</div>
           </div>
->>>>>>> a7182a4 (Fixed and added some button)
 
           <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
             <thead>
@@ -606,36 +585,6 @@ export default function Billing() {
             </tbody>
           </table>
 
-<<<<<<< HEAD
-Items Summary:
-- Total Pieces: ${totals.pieces}
-- Total Net Wt: ${totals.netWeight.toFixed(3)}
-- Total Fine Wt: ${totals.fineWeight.toFixed(3)}
-- Total Amount: ₹${totals.amount.toFixed(2)}
-
-Stone Amount: ₹${parseFloat(formData.stoneAmount || 0).toFixed(2)}
-Grand Total: ₹${grandTot.toFixed(2)}
-
-Gold Rate: ₹${parseFloat(formData.goldRate || 0).toFixed(2)}
-Silver Rate: ₹${parseFloat(formData.silverRate || 0).toFixed(2)}`;
-
-    if (navigator.share) {
-      navigator.share({
-        title: `Voucher #${formData.voucherNumber}`,
-        text: voucherText
-      }).catch(err => {
-        if (err.name !== 'AbortError') {
-          console.error('Share error:', err);
-          toast.error('Error sharing voucher');
-        }
-      });
-    } else {
-      navigator.clipboard.writeText(voucherText).then(() => {
-        toast.success('Voucher details copied to clipboard!');
-      }).catch(() => {
-        toast.error('Failed to copy to clipboard');
-      });
-=======
           <div style="margin-top: 20px; font-size: 14px;">
             <div style="display: flex; justify-content: space-between;">
               <div>Stone Amount :</div>
@@ -742,12 +691,8 @@ Silver Rate: ₹${parseFloat(formData.silverRate || 0).toFixed(2)}`;
     } catch (error) {
       console.error('Share error:', error);
       toast.error('Failed to generate or share PDF');
->>>>>>> a7182a4 (Fixed and added some button)
     }
-  }, [items, ledgers, formData, calculateTotals]);
-
-  const totals = calculateTotals();
-  const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0);
+  };
 
   const downloadPDF = (blob) => {
     const url = window.URL.createObjectURL(blob);
@@ -761,354 +706,11 @@ Silver Rate: ₹${parseFloat(formData.silverRate || 0).toFixed(2)}`;
     toast.success('Voucher PDF downloaded successfully!');
   };
 
+  const totals = calculateTotals();
+  const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0);
+
   return (
     <Layout>
-<<<<<<< HEAD
-      <div>
-        <h1 style={{ marginBottom: '2rem' }}>Billing</h1>
-
-        <form onSubmit={handleSubmit}>
-          <div className="card" style={{ marginBottom: '1.5rem' }}>
-            <div className="grid grid-3" style={{ marginBottom: '1rem' }}>
-              <div className="input-group">
-                <label className="input-label">Customer Name</label>
-                <select
-                  className="input"
-                  value={formData.ledgerId}
-                  onChange={(e) => setFormData({...formData, ledgerId: e.target.value})}
-                  required
-                >
-                  <option value="">Select Customer</option>
-                  {ledgers.map(ledger => (
-                    <option key={ledger._id} value={ledger._id}>{ledger.name}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div className="input-group">
-                <label className="input-label">Date</label>
-                <input
-                  type="date"
-                  className="input"
-                  value={formData.date}
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
-                  required
-                />
-              </div>
-              
-              <div className="input-group">
-                <label className="input-label">Voucher Number</label>
-                <input
-                  type="text"
-                  className="input"
-                  value={formData.voucherNumber}
-                  onChange={(e) => setFormData({...formData, voucherNumber: e.target.value})}
-                  disabled={user?.voucherSettings?.autoIncrement}
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-3">
-              <div className="input-group">
-                <label className="input-label">Payment Type</label>
-                <select
-                  className="input"
-                  value={formData.paymentType}
-                  onChange={(e) => setFormData({...formData, paymentType: e.target.value})}
-                >
-                  <option value="cash">Cash</option>
-                  <option value="credit">Credit</option>
-                </select>
-              </div>
-              
-              <div className="input-group">
-                <label className="input-label">Gold Rate</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="input"
-                  value={formData.goldRate}
-                  onChange={(e) => setFormData({...formData, goldRate: e.target.value})}
-                />
-              </div>
-              
-              <div className="input-group">
-                <label className="input-label">Silver Rate</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="input"
-                  value={formData.silverRate}
-                  onChange={(e) => setFormData({...formData, silverRate: e.target.value})}
-                />
-              </div>
-            </div>
-          </div>
-
-          {items.length === 0 && (
-            <div className="card" style={{ marginBottom: '1.5rem', textAlign: 'center', padding: '2rem' }}>
-              <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
-                No items added yet. Click below to add items:
-              </p>
-              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                <button type="button" onClick={() => addRow('gold')} className="btn btn-primary">
-                  <FiPlus /> Add Gold Row
-                </button>
-                <button type="button" onClick={() => addRow('silver')} className="btn btn-secondary">
-                  <FiPlus /> Add Silver Row
-                </button>
-              </div>
-            </div>
-          )}
-
-          {items.length > 0 && (
-            <div className="card" style={{ marginBottom: '1.5rem' }}>
-              <div style={{ overflowX: 'auto' }}>
-                <table className="table" style={{ minWidth: '1200px' }}>
-                  <thead>
-                    <tr>
-                      <th style={{ width: '40px' }}>Sl</th>
-                      <th style={{ minWidth: '150px' }}>Item Name</th>
-                      <th style={{ width: '70px' }}>Pcs</th>
-                      <th style={{ width: '90px' }}>Gross Wt</th>
-                      <th style={{ width: '80px' }}>Less</th>
-                      <th style={{ width: '90px' }}>Net Wt</th>
-                      <th style={{ width: '80px' }}>Melting %</th>
-                      <th style={{ width: '80px' }}>Wastage</th>
-                      <th style={{ width: '90px' }}>Fine Wt</th>
-                      <th style={{ width: '90px' }}>Lab Rate</th>
-                      <th style={{ width: '100px' }}>Amount</th>
-                      <th style={{ width: '80px' }}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item, index) => (
-                      <tr key={index}>
-                        <td>{index + 1}</td>
-                        <td>
-                          <input
-                            type="text"
-                            className="input"
-                            value={item.itemName}
-                            onChange={(e) => updateItem(index, 'itemName', e.target.value)}
-                            style={{ minWidth: '140px' }}
-                            required
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            className="input"
-                            value={item.pieces}
-                            onChange={(e) => updateItem(index, 'pieces', e.target.value)}
-                            style={{ width: '70px' }}
-                            required
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            step="0.001"
-                            className="input"
-                            value={item.grossWeight}
-                            onChange={(e) => {
-                              updateItem(index, 'grossWeight', e.target.value);
-                              setTimeout(() => calculateItem(index), 0);
-                            }}
-                            style={{ width: '90px' }}
-                            required
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            step="0.001"
-                            className="input"
-                            value={item.lessWeight}
-                            onChange={(e) => {
-                              updateItem(index, 'lessWeight', e.target.value);
-                              setTimeout(() => calculateItem(index), 0);
-                            }}
-                            style={{ width: '80px' }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            step="0.001"
-                            className="input"
-                            value={item.netWeight}
-                            disabled
-                            style={{ width: '90px', backgroundColor: '#f5f5f5' }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            step="0.01"
-                            className="input"
-                            value={item.melting}
-                            onChange={(e) => {
-                              updateItem(index, 'melting', e.target.value);
-                              setTimeout(() => calculateItem(index), 0);
-                            }}
-                            style={{ width: '80px' }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            step="0.001"
-                            className="input"
-                            value={item.wastage}
-                            onChange={(e) => {
-                              updateItem(index, 'wastage', e.target.value);
-                              setTimeout(() => calculateItem(index), 0);
-                            }}
-                            style={{ width: '80px' }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            step="0.001"
-                            className="input"
-                            value={item.fineWeight}
-                            disabled
-                            style={{ width: '90px', backgroundColor: '#f5f5f5' }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            step="0.01"
-                            className="input"
-                            value={item.labourRate}
-                            onChange={(e) => {
-                              updateItem(index, 'labourRate', e.target.value);
-                              setTimeout(() => calculateItem(index), 0);
-                            }}
-                            style={{ width: '90px' }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="number"
-                            step="0.01"
-                            className="input"
-                            value={item.amount}
-                            disabled
-                            style={{ width: '100px', backgroundColor: '#f5f5f5' }}
-                          />
-                        </td>
-                        <td>
-                          <button
-                            type="button"
-                            onClick={() => deleteRow(index)}
-                            className="btn btn-sm btn-danger"
-                          >
-                            <FiX />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                    <tr style={{ background: 'var(--bg-tertiary)', fontWeight: 600 }}>
-                      <td colSpan="2">Total</td>
-                      <td>{totals.pieces}</td>
-                      <td>{totals.grossWeight.toFixed(3)}</td>
-                      <td>{totals.lessWeight.toFixed(3)}</td>
-                      <td>{totals.netWeight.toFixed(3)}</td>
-                      <td>{totals.melting.toFixed(2)}</td>
-                      <td>{totals.wastage.toFixed(3)}</td>
-                      <td>{totals.fineWeight.toFixed(3)}</td>
-                      <td>{totals.labourRate.toFixed(2)}</td>
-                      <td>{totals.amount.toFixed(2)}</td>
-                      <td></td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                <button type="button" onClick={() => addRow('gold')} className="btn btn-sm btn-primary">
-                  <FiPlus /> Add Gold Row
-                </button>
-                <button type="button" onClick={() => addRow('silver')} className="btn btn-sm btn-secondary">
-                  <FiPlus /> Add Silver Row
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div className="card">
-            <div className="grid grid-3" style={{ marginBottom: '1rem' }}>
-              <div className="input-group">
-                <label className="input-label">Stone Amount</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="input"
-                  value={formData.stoneAmount}
-                  onChange={(e) => setFormData({...formData, stoneAmount: e.target.value})}
-                />
-              </div>
-              
-              <div className="input-group">
-                <label className="input-label">Issue (Gross) - Auto Calculated</label>
-                <input
-                  type="number"
-                  step="0.001"
-                  className="input"
-                  value={formData.issueGross}
-                  disabled
-                  style={{ backgroundColor: '#f5f5f5' }}
-                />
-              </div>
-
-              <div className="input-group">
-                <label className="input-label">Receipt (Gross)</label>
-                <input
-                  type="number"
-                  step="0.001"
-                  className="input"
-                  value={formData.receiptGross}
-                  onChange={(e) => setFormData({...formData, receiptGross: e.target.value})}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-2">
-              <div className="input-group">
-                <label className="input-label">Narration</label>
-                <textarea
-                  className="input"
-                  value={formData.narration}
-                  onChange={(e) => setFormData({...formData, narration: e.target.value})}
-                  rows="3"
-                ></textarea>
-              </div>
-              
-              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-                <div style={{ fontWeight: 700, fontSize: '1.5rem' }}>
-                  Total: ₹{grandTotal.toFixed(2)}
-                </div>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
-              <button type="submit" className="btn btn-primary">
-                <FiSave /> Save
-              </button>
-              <button type="button" onClick={handlePrint} className="btn btn-secondary">
-                <FiPrinter /> Print
-              </button>
-              <button type="button" onClick={handleShare} className="btn btn-secondary">
-                <FiShare2 /> Share
-              </button>
-            </div>
-          </div>
-=======
       <style>
         {`
           .billing-container {
@@ -1433,16 +1035,20 @@ Silver Rate: ₹${parseFloat(formData.silverRate || 0).toFixed(2)}`;
               <label>Voucher Number</label>
               <input
                 type="text"
+                className="input"
                 value={formData.voucherNumber}
                 onChange={(e) => setFormData({...formData, voucherNumber: e.target.value})}
                 disabled={user?.voucherSettings?.autoIncrement}
                 required
               />
             </div>
+          </div>
 
-            <div className="form-group-custom">
-              <label>Payment Type</label>
+          <div className="grid grid-3">
+            <div className="input-group">
+              <label className="input-label">Payment Type</label>
               <select
+                className="input"
                 value={formData.paymentType}
                 onChange={(e) => setFormData({...formData, paymentType: e.target.value})}
               >
@@ -1450,262 +1056,292 @@ Silver Rate: ₹${parseFloat(formData.silverRate || 0).toFixed(2)}`;
                 <option value="credit">Credit</option>
               </select>
             </div>
-
-            <div className="form-group-custom">
-              <label>Gold Rate</label>
+            
+            <div className="input-group">
+              <label className="input-label">Gold Rate</label>
               <input
                 type="number"
                 step="0.01"
+                className="input"
                 value={formData.goldRate}
                 onChange={(e) => setFormData({...formData, goldRate: e.target.value})}
               />
             </div>
-
-            <div className="form-group-custom">
-              <label>Silver Rate</label>
+            
+            <div className="input-group">
+              <label className="input-label">Silver Rate</label>
               <input
                 type="number"
                 step="0.01"
+                className="input"
                 value={formData.silverRate}
                 onChange={(e) => setFormData({...formData, silverRate: e.target.value})}
               />
             </div>
           </div>
 
-          <div className="table-responsive">
-            <table className="billing-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '40px', minWidth: '40px' }}>SL</th>
-                  <th style={{ minWidth: '200px' }}>ITEM NAME</th>
-                  <th style={{ width: '70px', minWidth: '70px' }}>PCS</th>
-                  <th style={{ width: '90px', minWidth: '90px' }}>GROSS WT</th>
-                  <th style={{ width: '80px', minWidth: '80px' }}>LESS</th>
-                  <th style={{ width: '90px', minWidth: '90px' }}>NET WT</th>
-                  <th style={{ width: '80px', minWidth: '80px' }}>MELTING %</th>
-                  <th style={{ width: '80px', minWidth: '80px' }}>WASTAGE</th>
-                  <th style={{ width: '90px', minWidth: '90px' }}>FINE WT</th>
-                  <th style={{ width: '90px', minWidth: '90px' }}>LAB RATE</th>
-                  <th style={{ width: '100px', minWidth: '100px' }}>AMOUNT</th>
-                  <th style={{ width: '80px', minWidth: '80px' }}>ACTION</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, index) => (
-                  <tr key={index}>
-                    <td className="text-center">{index + 1}</td>
-                    <td>
-                      <input
-                        type="text"
-                        className="item-name-input"
-                        value={item.itemName}
-                        onChange={(e) => {
-                          const newItems = [...items];
-                          newItems[index].itemName = e.target.value;
-                          setItems(newItems);
-                        }}
-                        placeholder="Item name"
-                        required
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        value={item.pieces}
-                        onChange={(e) => {
-                          const newItems = [...items];
-                          newItems[index].pieces = e.target.value;
-                          setItems(newItems);
-                        }}
-                        required
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={item.grossWeight}
-                        onChange={(e) => {
-                          const newItems = [...items];
-                          newItems[index].grossWeight = e.target.value;
-                          setItems(newItems);
-                          calculateItem(index);
-                        }}
-                        required
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={item.lessWeight}
-                        onChange={(e) => {
-                          const newItems = [...items];
-                          newItems[index].lessWeight = e.target.value;
-                          setItems(newItems);
-                          calculateItem(index);
-                        }}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={item.netWeight}
-                        readOnly
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={item.melting}
-                        onChange={(e) => {
-                          const newItems = [...items];
-                          newItems[index].melting = e.target.value;
-                          setItems(newItems);
-                          calculateItem(index);
-                        }}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={item.wastage}
-                        onChange={(e) => {
-                          const newItems = [...items];
-                          newItems[index].wastage = e.target.value;
-                          setItems(newItems);
-                          calculateItem(index);
-                        }}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.001"
-                        value={item.fineWeight}
-                        readOnly
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={item.labourRate}
-                        onChange={(e) => {
-                          const newItems = [...items];
-                          newItems[index].labourRate = e.target.value;
-                          setItems(newItems);
-                          calculateItem(index);
-                        }}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={item.amount}
-                        readOnly
-                      />
-                    </td>
-                    <td className="text-center">
-                      <button
-                        type="button"
-                        onClick={() => deleteRow(index)}
-                        className="btn-action-delete"
-                        disabled={items.length === 1}
-                      >
-                        <FiX />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-                <tr className="totals-row">
-                  <td className="text-center">Total</td>
-                  <td></td>
-                  <td className="text-center">{totals.pieces}</td>
-                  <td>{totals.grossWeight.toFixed(3)}</td>
-                  <td>{totals.lessWeight.toFixed(3)}</td>
-                  <td>{totals.netWeight.toFixed(3)}</td>
-                  <td>{totals.melting.toFixed(2)}</td>
-                  <td>{totals.wastage.toFixed(3)}</td>
-                  <td>{totals.fineWeight.toFixed(3)}</td>
-                  <td>{totals.labourRate.toFixed(2)}</td>
-                  <td>{totals.amount.toFixed(2)}</td>
-                  <td></td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          {items.length === 0 && (
+            <div className="card" style={{ marginBottom: '1.5rem', textAlign: 'center', padding: '2rem' }}>
+              <p style={{ marginBottom: '1rem', color: 'var(--text-secondary)' }}>
+                No items added yet. Click below to add items:
+              </p>
+              <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                <button type="button" onClick={() => addRow('gold')} className="btn btn-primary">
+                  <FiPlus /> Add Gold Row
+                </button>
+                <button type="button" onClick={() => addRow('silver')} className="btn btn-secondary">
+                  <FiPlus /> Add Silver Row
+                </button>
+              </div>
+            </div>
+          )}
 
-          <div className="add-row-buttons">
-            <button type="button" onClick={() => addRow('gold')} className="btn-add-row btn-gold">
-              <FiPlus /> Add Gold Row
-            </button>
-            <button type="button" onClick={() => addRow('silver')} className="btn-add-row btn-silver">
-              <FiPlus /> Add Silver Row
-            </button>
-          </div>
+          {items.length > 0 && (
+            <div className="card" style={{ marginBottom: '1.5rem' }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table className="table" style={{ minWidth: '1200px' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ width: '40px' }}>Sl</th>
+                      <th style={{ minWidth: '150px' }}>Item Name</th>
+                      <th style={{ width: '70px' }}>Pcs</th>
+                      <th style={{ width: '90px' }}>Gross Wt</th>
+                      <th style={{ width: '80px' }}>Less</th>
+                      <th style={{ width: '90px' }}>Net Wt</th>
+                      <th style={{ width: '80px' }}>Melting %</th>
+                      <th style={{ width: '80px' }}>Wastage</th>
+                      <th style={{ width: '90px' }}>Fine Wt</th>
+                      <th style={{ width: '90px' }}>Lab Rate</th>
+                      <th style={{ width: '100px' }}>Amount</th>
+                      <th style={{ width: '80px' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item, index) => (
+                      <tr key={index}>
+                        <td>{index + 1}</td>
+                        <td>
+                          <input
+                            type="text"
+                            className="input"
+                            value={item.itemName}
+                            onChange={(e) => updateItem(index, 'itemName', e.target.value)}
+                            style={{ minWidth: '140px' }}
+                            required
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            className="input"
+                            value={item.pieces}
+                            onChange={(e) => updateItem(index, 'pieces', e.target.value)}
+                            style={{ width: '70px' }}
+                            required
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            step="0.001"
+                            className="input"
+                            value={item.grossWeight}
+                            onChange={(e) => {
+                              updateItem(index, 'grossWeight', e.target.value);
+                              setTimeout(() => calculateItem(index), 0);
+                            }}
+                            style={{ width: '90px' }}
+                            required
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            step="0.001"
+                            className="input"
+                            value={item.lessWeight}
+                            onChange={(e) => {
+                              updateItem(index, 'lessWeight', e.target.value);
+                              setTimeout(() => calculateItem(index), 0);
+                            }}
+                            style={{ width: '80px' }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            step="0.001"
+                            className="input"
+                            value={item.netWeight}
+                            disabled
+                            style={{ width: '90px', backgroundColor: '#f5f5f5' }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="input"
+                            value={item.melting}
+                            onChange={(e) => {
+                              updateItem(index, 'melting', e.target.value);
+                              setTimeout(() => calculateItem(index), 0);
+                            }}
+                            style={{ width: '80px' }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            step="0.001"
+                            className="input"
+                            value={item.wastage}
+                            onChange={(e) => {
+                              updateItem(index, 'wastage', e.target.value);
+                              setTimeout(() => calculateItem(index), 0);
+                            }}
+                            style={{ width: '80px' }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            step="0.001"
+                            className="input"
+                            value={item.fineWeight}
+                            disabled
+                            style={{ width: '90px', backgroundColor: '#f5f5f5' }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="input"
+                            value={item.labourRate}
+                            onChange={(e) => {
+                              updateItem(index, 'labourRate', e.target.value);
+                              setTimeout(() => calculateItem(index), 0);
+                            }}
+                            style={{ width: '90px' }}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            type="number"
+                            step="0.01"
+                            className="input"
+                            value={item.amount}
+                            disabled
+                            style={{ width: '100px', backgroundColor: '#f5f5f5' }}
+                          />
+                        </td>
+                        <td>
+                          <button
+                            type="button"
+                            onClick={() => deleteRow(index)}
+                            className="btn btn-sm btn-danger"
+                          >
+                            <FiX />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    <tr style={{ background: 'var(--bg-tertiary)', fontWeight: 600 }}>
+                      <td colSpan="2">Total</td>
+                      <td>{totals.pieces}</td>
+                      <td>{totals.grossWeight.toFixed(3)}</td>
+                      <td>{totals.lessWeight.toFixed(3)}</td>
+                      <td>{totals.netWeight.toFixed(3)}</td>
+                      <td>{totals.melting.toFixed(2)}</td>
+                      <td>{totals.wastage.toFixed(3)}</td>
+                      <td>{totals.fineWeight.toFixed(3)}</td>
+                      <td>{totals.labourRate.toFixed(2)}</td>
+                      <td>{totals.amount.toFixed(2)}</td>
+                      <td></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
 
-          <div className="bottom-section">
-            <div className="form-group-custom">
-              <label>Stone Amount</label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.stoneAmount}
-                onChange={(e) => setFormData({...formData, stoneAmount: e.target.value})}
-              />
+              <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+                <button type="button" onClick={() => addRow('gold')} className="btn btn-sm btn-primary">
+                  <FiPlus /> Add Gold Row
+                </button>
+                <button type="button" onClick={() => addRow('silver')} className="btn btn-sm btn-secondary">
+                  <FiPlus /> Add Silver Row
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="card">
+            <div className="grid grid-3" style={{ marginBottom: '1rem' }}>
+              <div className="input-group">
+                <label className="input-label">Stone Amount</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  className="input"
+                  value={formData.stoneAmount}
+                  onChange={(e) => setFormData({...formData, stoneAmount: e.target.value})}
+                />
+              </div>
+              
+              <div className="input-group">
+                <label className="input-label">Issue (Gross) - Auto Calculated</label>
+                <input
+                  type="number"
+                  step="0.001"
+                  className="input"
+                  value={formData.issueGross}
+                  disabled
+                  style={{ backgroundColor: '#f5f5f5' }}
+                />
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">Receipt (Gross)</label>
+                <input
+                  type="number"
+                  step="0.001"
+                  className="input"
+                  value={formData.receiptGross}
+                  onChange={(e) => setFormData({...formData, receiptGross: e.target.value})}
+                />
+              </div>
             </div>
 
-            <div className="form-group-custom">
-              <label>Issue (Gross)</label>
-              <input
-                type="number"
-                step="0.001"
-                value={formData.issueGross}
-                onChange={(e) => setFormData({...formData, issueGross: e.target.value})}
-              />
+            <div className="grid grid-2">
+              <div className="input-group">
+                <label className="input-label">Narration</label>
+                <textarea
+                  className="input"
+                  value={formData.narration}
+                  onChange={(e) => setFormData({...formData, narration: e.target.value})}
+                  rows="3"
+                ></textarea>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+                <div style={{ fontWeight: 700, fontSize: '1.5rem' }}>
+                  Total: ₹{grandTotal.toFixed(2)}
+                </div>
+              </div>
             </div>
 
-            <div className="form-group-custom">
-              <label>Receipt (Gross)</label>
-              <input
-                type="number"
-                step="0.001"
-                value={formData.receiptGross}
-                onChange={(e) => setFormData({...formData, receiptGross: e.target.value})}
-              />
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', flexWrap: 'wrap' }}>
+              <button type="submit" className="btn btn-primary">
+                <FiSave /> Save
+              </button>
+              <button type="button" onClick={handlePrint} className="btn btn-secondary">
+                <FiPrinter /> Print
+              </button>
+              <button type="button" onClick={handleShare} className="btn btn-secondary">
+                <FiShare2 /> Share
+              </button>
             </div>
           </div>
-
-          <div className="form-group-custom" style={{ maxWidth: '500px' }}>
-            <label>Narration</label>
-            <textarea
-              value={formData.narration}
-              onChange={(e) => setFormData({...formData, narration: e.target.value})}
-              rows="3"
-            />
-          </div>
-
-          <div className="grand-total">
-            Total: ₹{grandTotal.toFixed(2)}
-          </div>
-
-          <div className="action-buttons">
-            <button type="submit" className="btn-primary-action btn-save">
-              <FiSave /> Save
-            </button>
-            <button type="button" onClick={handlePrint} className="btn-primary-action btn-print">
-              <FiPrinter /> Print
-            </button>
-            <button type="button" onClick={handleShare} className="btn-primary-action btn-share">
-              <FiShare2 /> Share
-            </button>
-          </div>
->>>>>>> a7182a4 (Fixed and added some button)
         </form>
 
         {/* Add Ledger Modal */}
