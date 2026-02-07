@@ -347,52 +347,52 @@ export default function LedgerDetail() {
 
       const voucherContent = document.createElement('div');
       voucherContent.innerHTML = `
-        <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto;">
+        <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; background-color: #ffffff; color: #333333;">
           <!-- Header -->
           <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #333; padding-bottom: 20px;">
-            <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #333;">${user?.shopName || 'ESTIMATE/ON APPROVAL'}</h1>
-            <p style="margin: 8px 0 0 0; font-size: 16px; color: #666;">ESTIMATE/ON APPROVAL - ISSUE</p>
+            <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #000000;">${user?.shopName || 'ESTIMATE/ON APPROVAL'}</h1>
+            <p style="margin: 8px 0 0 0; font-size: 16px; color: #333333;">ESTIMATE/ON APPROVAL - ISSUE</p>
           </div>
 
           <!-- Customer & Voucher Info -->
-          <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #333;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #333333;">
             <div>
-              <div style="font-weight: bold; margin-bottom: 5px;">Customer Name</div>
-              <div style="font-size: 16px; font-weight: 600;">${ledger?.name || 'N/A'}</div>
+              <div style="font-weight: bold; margin-bottom: 5px; color: #000000;">Customer Name</div>
+              <div style="font-size: 16px; font-weight: 600; color: #000000;">${ledger?.name || 'N/A'}</div>
             </div>
             <div style="text-align: right;">
-              <div style="font-weight: bold; margin-bottom: 5px;">Voucher No</div>
-              <div style="font-size: 16px; font-weight: 600;">${voucher.voucherNumber}</div>
+              <div style="font-weight: bold; margin-bottom: 5px; color: #000000;">Voucher No</div>
+              <div style="font-size: 16px; font-weight: 600; color: #000000;">${voucher.voucherNumber}</div>
             </div>
           </div>
 
-          <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #666; border-bottom: 1px solid #ccc; padding-bottom: 15px;">
-            <div>Date: <strong>${new Date(voucher.date).toLocaleDateString('en-IN')}</strong></div>
-            <div>Time: <strong>${new Date().toLocaleTimeString('en-IN')}</strong></div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #444444; border-bottom: 1px solid #ccc; padding-bottom: 15px;">
+            <div>Date: <strong style="color: #000000;">${new Date(voucher.date).toLocaleDateString('en-IN')}</strong></div>
+            <div>Time: <strong style="color: #000000;">${new Date().toLocaleTimeString('en-IN')}</strong></div>
           </div>
 
           <!-- Items Table -->
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px;">
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px; color: #333333;">
             <thead>
               <tr style="background-color: #f5f5f5; border: 1px solid #ddd;">
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold;">Sr</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: left; font-weight: bold;">Item Name</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold;">Metal</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold;">Pcs</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Gross (g)</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Less (g)</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Net (g)</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Fine (g)</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Labour (₹)</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Amount (₹)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold; color: #000000;">Sr</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: left; font-weight: bold; color: #000000;">Item Name</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold; color: #000000;">Metal</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold; color: #000000;">Pcs</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold; color: #000000;">Gross (g)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold; color: #000000;">Less (g)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold; color: #000000;">Net (g)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold; color: #000000;">Fine (g)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold; color: #000000;">Labour (₹)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold; color: #000000;">Amount (₹)</th>
               </tr>
             </thead>
             <tbody>
               ${voucher.items ? voucher.items.map((item, index) => `
-                <tr style="border: 1px solid #ddd;">
+                <tr style="border: 1px solid #ddd; color: #333333;">
                   <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${index + 1}</td>
                   <td style="border: 1px solid #ddd; padding: 10px;">${item.itemName}</td>
-                  <td style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold; background-color: ${item.metalType === 'gold' ? '#fff9e6' : '#f0f0f0'};">${item.metalType === 'gold' ? '🟡 GOLD' : '⚪ SILVER'}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold; background-color: ${item.metalType === 'gold' ? '#fff9e6' : '#f0f0f0'}; color: #000000;">${item.metalType === 'gold' ? '🟡 GOLD' : '⚪ SILVER'}</td>
                   <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${item.pieces}</td>
                   <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${parseFloat(item.grossWeight).toFixed(3)}</td>
                   <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${parseFloat(item.lessWeight).toFixed(3)}</td>
@@ -427,81 +427,99 @@ export default function LedgerDetail() {
                 <span>Stone Amount:</span>
                 <strong>₹${parseFloat(voucher.stoneAmount || 0).toFixed(2)}</strong>
               </div>
-              <div style="display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 2px solid #ddd; font-size: 16px; font-weight: bold;">
+              <div style="display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 2px solid #ddd; font-size: 16px; font-weight: bold; color: #000000;">
                 <span>Grand Total:</span>
                 <span style="color: #d32f2f;">₹${voucherTotal.toFixed(2)}</span>
               </div>
             </div>
 
             <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0;">
-              <h3 style="margin: 0 0 15px 0; font-size: 14px; font-weight: bold; color: #333;">Rates</h3>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <h3 style="margin: 0 0 15px 0; font-size: 14px; font-weight: bold; color: #000000;">Rates</h3>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #333333;">
                 <span>Gold Rate:</span>
-                <strong>₹${parseFloat(voucher.goldRate || 0).toFixed(2)}/g</strong>
+                <strong style="color: #000000;">₹${parseFloat(voucher.goldRate || 0).toFixed(2)}/g</strong>
               </div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 12px; color: #333333;">
                 <span>Silver Rate:</span>
-                <strong>₹${parseFloat(voucher.silverRate || 0).toFixed(2)}/g</strong>
+                <strong style="color: #000000;">₹${parseFloat(voucher.silverRate || 0).toFixed(2)}/g</strong>
               </div>
             </div>
           </div>
 
           <!-- Footer -->
-          <div style="text-align: center; border-top: 2px solid #ddd; padding-top: 20px; font-size: 12px; color: #999;">
-            <p style="margin: 0;">Generated on ${new Date().toLocaleString('en-IN')}</p>
-            <p style="margin: 0;">This is an electronically generated document</p>
+          <div style="text-align: center; border-top: 2px solid #ddd; padding-top: 20px; font-size: 12px; color: #666666;">
+            <p style="margin: 0; color: #666666;">Generated on ${new Date().toLocaleString('en-IN')}</p>
+            <p style="margin: 0; color: #666666;">This is an electronically generated document</p>
           </div>
         </div>
       `;
 
-      const options = {
-        margin: [10, 10, 10, 10],
-        filename: `Voucher-${voucher.voucherNumber}-${Date.now()}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCors: true, allowTaint: true },
-        jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
-      };
+      // CRITICAL: Append to DOM so html2pdf can properly render the element
+      document.body.appendChild(voucherContent);
 
-      html2pdf()
-        .set(options)
-        .from(voucherContent)
-        .output('blob')
-        .then((blob) => {
-          const fileName = `Voucher-${voucher.voucherNumber}.pdf`;
-          const file = new File([blob], fileName, { type: 'application/pdf' });
+      // Add delay for browser rendering
+      setTimeout(() => {
+        const options = {
+          margin: [10, 10, 10, 10],
+          filename: `Voucher-${voucher.voucherNumber}-${Date.now()}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { 
+            scale: 2, 
+            useCors: true, 
+            allowTaint: true,
+            backgroundColor: '#ffffff'
+          },
+          jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+        };
 
-          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-            navigator.share({
-              files: [file],
-              title: `Voucher #${voucher.voucherNumber}`,
-              text: `Voucher for ${ledger?.name || 'N/A'}`
-            }).then(() => {
-              toast.success('Voucher PDF shared successfully!');
-            }).catch(err => {
-              if (err.name !== 'AbortError') {
-                downloadPDF(blob, fileName);
-              }
-            });
-          } else {
-            downloadPDF(blob, fileName);
-            const whatsappText = `Check out this voucher for ${ledger?.name}. Voucher #${voucher.voucherNumber}. Amount: ₹${voucherTotal.toFixed(2)}`;
-            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
-            
-            toast.info(
-              <div>
-                <p>PDF downloaded! Share it via:</p>
-                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{ marginRight: '10px', color: '#25D366', textDecoration: 'none', fontWeight: 'bold' }}>
-                  📱 WhatsApp
-                </a>
-              </div>,
-              { autoClose: 5000 }
-            );
-          }
-        })
-        .catch(error => {
-          console.error('PDF generation error:', error);
-          toast.error('Failed to generate PDF');
-        });
+        html2pdf()
+          .set(options)
+          .from(voucherContent)
+          .output('blob')
+          .then((blob) => {
+            // Remove from DOM after PDF generation
+            document.body.removeChild(voucherContent);
+
+            const fileName = `Voucher-${voucher.voucherNumber}.pdf`;
+            const file = new File([blob], fileName, { type: 'application/pdf' });
+
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+              navigator.share({
+                files: [file],
+                title: `Voucher #${voucher.voucherNumber}`,
+                text: `Voucher for ${ledger?.name || 'N/A'}`
+              }).then(() => {
+                toast.success('Voucher PDF shared successfully!');
+              }).catch(err => {
+                if (err.name !== 'AbortError') {
+                  downloadPDF(blob, fileName);
+                }
+              });
+            } else {
+              downloadPDF(blob, fileName);
+              const whatsappText = `Check out this voucher for ${ledger?.name}. Voucher #${voucher.voucherNumber}. Amount: ₹${voucherTotal.toFixed(2)}`;
+              const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
+              
+              toast.info(
+                <div>
+                  <p>PDF downloaded! Share it via:</p>
+                  <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{ marginRight: '10px', color: '#25D366', textDecoration: 'none', fontWeight: 'bold' }}>
+                    📱 WhatsApp
+                  </a>
+                </div>,
+                { autoClose: 5000 }
+              );
+            }
+          })
+          .catch(error => {
+            console.error('PDF generation error:', error);
+            // Clean up DOM on error
+            if (document.body.contains(voucherContent)) {
+              document.body.removeChild(voucherContent);
+            }
+            toast.error('Failed to generate PDF. Please try again.');
+          });
+      }, 500);
     } catch (error) {
       console.error('Share error:', error);
       toast.error('Failed to generate or share PDF');
@@ -512,15 +530,15 @@ export default function LedgerDetail() {
     try {
       const settlementContent = document.createElement('div');
       settlementContent.innerHTML = `
-        <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto;">
+        <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; background-color: #ffffff; color: #333333;">
           <!-- Header -->
-          <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #333; padding-bottom: 20px;">
-            <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #333;">${user?.shopName || 'SETTLEMENT'}</h1>
-            <p style="margin: 8px 0 0 0; font-size: 16px; color: #666;">SETTLEMENT RECEIPT</p>
+          <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #000000; padding-bottom: 20px;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #000000;">${user?.shopName || 'SETTLEMENT'}</h1>
+            <p style="margin: 8px 0 0 0; font-size: 16px; color: #333333;">SETTLEMENT RECEIPT</p>
           </div>
 
           <!-- Customer & Settlement Info -->
-          <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #333;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #333333;">
             <div>
               <div style="font-weight: bold; margin-bottom: 5px;">Customer Name</div>
               <div style="font-size: 16px; font-weight: 600;">${ledger?.name || 'N/A'}</div>
@@ -533,37 +551,37 @@ export default function LedgerDetail() {
 
           <!-- Settlement Details -->
           <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 30px;">
-            <h3 style="margin: 0 0 20px 0; font-size: 14px; font-weight: bold; color: #333;">Settlement Details</h3>
+            <h3 style="margin: 0 0 20px 0; font-size: 14px; font-weight: bold; color: #000000;">Settlement Details</h3>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
               <div>
-                <div style="color: #666; margin-bottom: 5px; font-size: 12px;">Metal Type</div>
-                <div style="font-size: 16px; font-weight: 600;">${settlement.metalType === 'gold' ? '🟡 Gold' : '⚪ Silver'}</div>
+                <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Metal Type</div>
+                <div style="font-size: 16px; font-weight: 600; color: #000000;">${settlement.metalType === 'gold' ? '🟡 Gold' : '⚪ Silver'}</div>
               </div>
               <div>
-                <div style="color: #666; margin-bottom: 5px; font-size: 12px;">Metal Rate</div>
-                <div style="font-size: 16px; font-weight: 600;">₹${parseFloat(settlement.metalRate).toFixed(2)}/g</div>
+                <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Metal Rate</div>
+                <div style="font-size: 16px; font-weight: 600; color: #000000;">₹${parseFloat(settlement.metalRate).toFixed(2)}/g</div>
               </div>
               <div>
-                <div style="color: #666; margin-bottom: 5px; font-size: 12px;">Fine Given</div>
-                <div style="font-size: 16px; font-weight: 600;">${parseFloat(settlement.fineGiven).toFixed(3)} g</div>
+                <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Fine Given</div>
+                <div style="font-size: 16px; font-weight: 600; color: #000000;">${parseFloat(settlement.fineGiven).toFixed(3)} g</div>
               </div>
               <div>
-                <div style="color: #666; margin-bottom: 5px; font-size: 12px;">Settlement Amount</div>
+                <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Settlement Amount</div>
                 <div style="font-size: 16px; font-weight: 600; color: #d32f2f;">₹${parseFloat(settlement.amount).toFixed(2)}</div>
               </div>
             </div>
 
             ${settlement.narration ? `
               <div style="border-top: 1px solid #ddd; padding-top: 15px;">
-                <div style="color: #666; margin-bottom: 5px; font-size: 12px;">Remarks</div>
-                <div>${settlement.narration}</div>
+                <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Remarks</div>
+                <div style="color: #000000;">${settlement.narration}</div>
               </div>
             ` : ''}
           </div>
 
           <!-- Footer -->
-          <div style="text-align: center; border-top: 2px solid #ddd; padding-top: 20px; font-size: 12px; color: #999;">
+          <div style="text-align: center; border-top: 2px solid #ddd; padding-top: 20px; font-size: 12px; color: #666666;">
             <p style="margin: 0;">Generated on ${new Date().toLocaleString('en-IN')}</p>
             <p style="margin: 0;">This is an electronically generated document</p>
           </div>
@@ -578,46 +596,72 @@ export default function LedgerDetail() {
         jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
       };
 
-      html2pdf()
-        .set(options)
-        .from(settlementContent)
-        .output('blob')
-        .then((blob) => {
-          const fileName = `Settlement-${new Date().toISOString().split('T')[0]}.pdf`;
-          const file = new File([blob], fileName, { type: 'application/pdf' });
+      // CRITICAL: Append to DOM so html2pdf can properly render the element
+      document.body.appendChild(settlementContent);
 
-          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-            navigator.share({
-              files: [file],
-              title: 'Settlement Receipt',
-              text: `Settlement for ${ledger?.name || 'N/A'}`
-            }).then(() => {
-              toast.success('Settlement PDF shared successfully!');
-            }).catch(err => {
-              if (err.name !== 'AbortError') {
-                downloadPDF(blob, fileName);
-              }
-            });
-          } else {
-            downloadPDF(blob, fileName);
-            const whatsappText = `Settlement Receipt for ${ledger?.name}. Amount: ₹${parseFloat(settlement.amount).toFixed(2)}`;
-            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
-            
-            toast.info(
-              <div>
-                <p>PDF downloaded! Share it via:</p>
-                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{ marginRight: '10px', color: '#25D366', textDecoration: 'none', fontWeight: 'bold' }}>
-                  📱 WhatsApp
-                </a>
-              </div>,
-              { autoClose: 5000 }
-            );
-          }
-        })
-        .catch(error => {
-          console.error('PDF generation error:', error);
-          toast.error('Failed to generate PDF');
-        });
+      // Add delay for browser rendering
+      setTimeout(() => {
+        const options = {
+          margin: [10, 10, 10, 10],
+          filename: `Settlement-${Date.now()}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { 
+            scale: 2, 
+            useCors: true, 
+            allowTaint: true,
+            backgroundColor: '#ffffff'
+          },
+          jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+        };
+
+        html2pdf()
+          .set(options)
+          .from(settlementContent)
+          .output('blob')
+          .then((blob) => {
+            // Remove from DOM after PDF generation
+            document.body.removeChild(settlementContent);
+
+            const fileName = `Settlement-${new Date().toISOString().split('T')[0]}.pdf`;
+            const file = new File([blob], fileName, { type: 'application/pdf' });
+
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+              navigator.share({
+                files: [file],
+                title: 'Settlement Receipt',
+                text: `Settlement for ${ledger?.name || 'N/A'}`
+              }).then(() => {
+                toast.success('Settlement PDF shared successfully!');
+              }).catch(err => {
+                if (err.name !== 'AbortError') {
+                  downloadPDF(blob, fileName);
+                }
+              });
+            } else {
+              downloadPDF(blob, fileName);
+              const whatsappText = `Settlement Receipt for ${ledger?.name}. Amount: ₹${parseFloat(settlement.amount).toFixed(2)}`;
+              const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
+              
+              toast.info(
+                <div>
+                  <p>PDF downloaded! Share it via:</p>
+                  <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{ marginRight: '10px', color: '#25D366', textDecoration: 'none', fontWeight: 'bold' }}>
+                    📱 WhatsApp
+                  </a>
+                </div>,
+                { autoClose: 5000 }
+              );
+            }
+          })
+          .catch(error => {
+            console.error('PDF generation error:', error);
+            // Clean up DOM on error
+            if (document.body.contains(settlementContent)) {
+              document.body.removeChild(settlementContent);
+            }
+            toast.error('Failed to generate PDF. Please try again.');
+          });
+      }, 500);
     } catch (error) {
       console.error('Share error:', error);
       toast.error('Failed to generate or share PDF');
