@@ -4,7 +4,7 @@ import Layout from '../../components/Layout';
 import { ledgerAPI, voucherAPI, settlementAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
-import { FiTrash2, FiArrowLeft, FiEye, FiX, FiPrinter, FiShare2 } from 'react-icons/fi';
+import { FiTrash2, FiArrowLeft, FiEye, FiX, FiPrinter, FiShare2, FiEdit2 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import html2pdf from 'html2pdf.js';
 
@@ -85,19 +85,20 @@ export default function LedgerDetail() {
       <html>
       <head>
         <title>Voucher Print</title>
+        <meta name="color-scheme" content="light dark">
         <style>
-          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #fff; color: #000; }
           table { width: 100%; border-collapse: collapse; }
           th, td { border: 1px solid #000; padding: 8px; text-align: left; }
           th { background-color: #f5f5f5; font-weight: bold; }
           .header { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 10px; border-bottom: 2px solid #000; padding-bottom: 10px; }
           .shop-name { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
-          .total-row { font-weight: bold; background-color: #f5f5f5; }
+          .total-row { font-weight: bold; background-color: #d0d0d0; color: #000; border-top: 2px solid #000; border-bottom: 2px solid #000; }
           .amount-section { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
           .section-label { font-weight: bold; margin-bottom: 5px; margin-top: 10px; }
           .line-height { height: 30px; border-bottom: 1px solid #000; }
           .voucher-container { max-width: 900px; margin: 0 auto; }
-          @media print { body { margin: 0; padding: 0; } }
+          @media print { body { margin: 0; padding: 0; background-color: #fff; } }
         </style>
       </head>
       <body>
@@ -150,7 +151,7 @@ export default function LedgerDetail() {
                   <td>${parseFloat(item.amount).toFixed(2)}</td>
                 </tr>
               `).join('') || ''}
-              <tr style="font-weight: bold; background-color: #f5f5f5;">
+              <tr class="total-row">
                 <td colspan="2">Total</td>
                 <td>${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseInt(item.pieces) || 0), 0) : 0}</td>
                 <td>${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.grossWeight) || 0), 0).toFixed(3) : '0.000'}</td>
@@ -728,6 +729,8 @@ export default function LedgerDetail() {
       return sum + silverFine;
     }, 0);
 
+  const amountBalance = (ledger?.balances?.creditBalance || 0) + (ledger?.balances?.cashBalance || 0);
+
   return (
     <Layout>
       <div>
@@ -821,6 +824,15 @@ export default function LedgerDetail() {
                     <td>₹{txn.total?.toFixed(2) || txn.amount?.toFixed(2) || '0.00'}</td>
                     <td style={{ textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                        {txn.type === 'voucher' && (
+                          <button 
+                            onClick={() => navigate(`/billing?voucherid=${txn._id}`)}
+                            className="btn btn-sm btn-secondary"
+                            title="Edit"
+                          >
+                            <FiEdit2 />
+                          </button>
+                        )}
                         <button 
                           onClick={() => txn.type === 'voucher' ? handlePreviewVoucher(txn) : handlePreviewSettlement(txn)} 
                           className="btn btn-sm btn-secondary"
@@ -873,6 +885,11 @@ export default function LedgerDetail() {
                 <tr style={{ fontWeight: 700, background: 'var(--bg-tertiary)' }}>
                   <td colSpan="3">Silver Credit</td>
                   <td>₹{silverCreditAmount.toFixed(2)} | {silverCreditFineWeight.toFixed(3)} g fine</td>
+                  <td></td>
+                </tr>
+                <tr style={{ fontWeight: 700, background: 'var(--bg-secondary)' }}>
+                  <td colSpan="3">Amount Balance</td>
+                  <td>₹{amountBalance.toFixed(2)}</td>
                   <td></td>
                 </tr>
               </tfoot>
@@ -947,6 +964,12 @@ export default function LedgerDetail() {
                                   <td>₹{parseFloat(item.amount).toFixed(2)}</td>
                                 </tr>
                               ))}
+                              <tr style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>
+                                <td colSpan="3">Total</td>
+                                <td>{selectedItem.items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0).toFixed(3)}</td>
+                                <td>{selectedItem.items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0).toFixed(3)}</td>
+                                <td>₹{selectedItem.items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)}</td>
+                              </tr>
                             </tbody>
                           </table>
                         </div>

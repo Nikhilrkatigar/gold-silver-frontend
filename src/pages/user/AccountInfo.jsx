@@ -51,7 +51,7 @@ export default function AccountInfo() {
       <div style={{ maxWidth: '800px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <h1 style={{ margin: 0 }}>Account Information</h1>
-          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>v3.3</span>
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>v1.4</span>
         </div>
 
         <div className="card" style={{ marginBottom: '1.5rem' }}>
@@ -168,6 +168,14 @@ export default function AccountInfo() {
               : 'You can manually enter voucher numbers'
             }
           </p>
+        </div>
+
+        <div className="card" style={{ marginBottom: '1.5rem', textAlign: 'center', padding: '1.5rem', backgroundColor: 'var(--bg-secondary)', borderTop: '2px solid var(--color-primary)' }}>
+          <p style={{ margin: '0.5rem 0', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Built and Developed by</p>
+          <h4 style={{ margin: '0.5rem 0', fontWeight: 600 }}>Katigar Softwares</h4>
+          <a href="tel:8904286980" style={{ color: 'var(--color-primary)', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 500 }}>
+            📞 8904286980
+          </a>
         </div>
 
         <button onClick={logout} className="btn btn-danger" style={{ width: '100%' }}>
