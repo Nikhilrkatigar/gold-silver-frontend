@@ -377,6 +377,7 @@ export default function LedgerDetail() {
               <tr style="background-color: #f5f5f5; border: 1px solid #ddd;">
                 <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold;">Sr</th>
                 <th style="border: 1px solid #ddd; padding: 10px; text-align: left; font-weight: bold;">Item Name</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold;">Metal</th>
                 <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold;">Pcs</th>
                 <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Gross (g)</th>
                 <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Less (g)</th>
@@ -391,6 +392,7 @@ export default function LedgerDetail() {
                 <tr style="border: 1px solid #ddd;">
                   <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${index + 1}</td>
                   <td style="border: 1px solid #ddd; padding: 10px;">${item.itemName}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold; background-color: ${item.metalType === 'gold' ? '#fff9e6' : '#f0f0f0'};">${item.metalType === 'gold' ? '🟡 GOLD' : '⚪ SILVER'}</td>
                   <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${item.pieces}</td>
                   <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${parseFloat(item.grossWeight).toFixed(3)}</td>
                   <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${parseFloat(item.lessWeight).toFixed(3)}</td>
@@ -401,7 +403,7 @@ export default function LedgerDetail() {
                 </tr>
               `).join('') : ''}
               <tr style="background-color: #f5f5f5; border: 1px solid #ddd; font-weight: bold;">
-                <td colspan="2" style="border: 1px solid #ddd; padding: 10px; text-align: center;">TOTAL</td>
+                <td colspan="3" style="border: 1px solid #ddd; padding: 10px; text-align: center;">TOTAL</td>
                 <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseInt(item.pieces) || 0), 0) : 0}</td>
                 <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.grossWeight) || 0), 0).toFixed(3) : '0.000'}</td>
                 <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.lessWeight) || 0), 0).toFixed(3) : '0.000'}</td>
@@ -636,6 +638,52 @@ export default function LedgerDetail() {
     .filter(t => t.type === 'voucher' && t.paymentType === 'credit')
     .reduce((sum, t) => sum + (t.total || 0), 0);
 
+  const totalCash = transactions
+    .filter(t => t.type === 'voucher' && t.paymentType === 'cash')
+    .reduce((sum, t) => sum + (t.total || 0), 0);
+
+  const totalAmount = totalCash + totalCredit;
+
+  const goldCreditAmount = transactions
+    .filter(t => t.type === 'voucher' && t.paymentType === 'credit')
+    .reduce((sum, t) => {
+      const items = t.items || [];
+      const goldAmount = items
+        .filter(item => item.metalType === 'gold')
+        .reduce((itemSum, item) => itemSum + (item.amount || 0), 0);
+      return sum + goldAmount;
+    }, 0);
+
+  const silverCreditAmount = transactions
+    .filter(t => t.type === 'voucher' && t.paymentType === 'credit')
+    .reduce((sum, t) => {
+      const items = t.items || [];
+      const silverAmount = items
+        .filter(item => item.metalType === 'silver')
+        .reduce((itemSum, item) => itemSum + (item.amount || 0), 0);
+      return sum + silverAmount;
+    }, 0);
+
+  const goldCreditFineWeight = transactions
+    .filter(t => t.type === 'voucher' && t.paymentType === 'credit')
+    .reduce((sum, t) => {
+      const items = t.items || [];
+      const goldFine = items
+        .filter(item => item.metalType === 'gold')
+        .reduce((itemSum, item) => itemSum + (item.fineWeight || 0), 0);
+      return sum + goldFine;
+    }, 0);
+
+  const silverCreditFineWeight = transactions
+    .filter(t => t.type === 'voucher' && t.paymentType === 'credit')
+    .reduce((sum, t) => {
+      const items = t.items || [];
+      const silverFine = items
+        .filter(item => item.metalType === 'silver')
+        .reduce((itemSum, item) => itemSum + (item.fineWeight || 0), 0);
+      return sum + silverFine;
+    }, 0);
+
   return (
     <Layout>
       <div>
@@ -768,6 +816,21 @@ export default function LedgerDetail() {
                   <td>₹{totalCredit.toFixed(2)}</td>
                   <td></td>
                 </tr>
+                <tr style={{ fontWeight: 700, background: 'var(--bg-secondary)', fontSize: '1.05rem' }}>
+                  <td colSpan="3">🔹 Total</td>
+                  <td style={{ color: 'var(--color-primary)' }}>₹{totalAmount.toFixed(2)}</td>
+                  <td></td>
+                </tr>
+                <tr style={{ fontWeight: 700, background: 'var(--bg-secondary)' }}>
+                  <td colSpan="3">Gold Credit</td>
+                  <td>₹{goldCreditAmount.toFixed(2)} | {goldCreditFineWeight.toFixed(3)} g fine</td>
+                  <td></td>
+                </tr>
+                <tr style={{ fontWeight: 700, background: 'var(--bg-tertiary)' }}>
+                  <td colSpan="3">Silver Credit</td>
+                  <td>₹{silverCreditAmount.toFixed(2)} | {silverCreditFineWeight.toFixed(3)} g fine</td>
+                  <td></td>
+                </tr>
               </tfoot>
             </table>
           </div>
@@ -820,6 +883,7 @@ export default function LedgerDetail() {
                             <thead>
                               <tr>
                                 <th>Item</th>
+                                <th>Metal</th>
                                 <th>Pcs</th>
                                 <th>Net Wt</th>
                                 <th>Fine Wt</th>
@@ -830,6 +894,9 @@ export default function LedgerDetail() {
                               {selectedItem.items.map((item, idx) => (
                                 <tr key={idx}>
                                   <td>{item.itemName}</td>
+                                  <td style={{ fontWeight: 'bold', color: item.metalType === 'gold' ? '#ffa500' : '#c0c0c0' }}>
+                                    {item.metalType === 'gold' ? '🟡 GOLD' : '⚪ SILVER'}
+                                  </td>
                                   <td>{item.pieces}</td>
                                   <td>{parseFloat(item.netWeight).toFixed(3)}</td>
                                   <td>{parseFloat(item.fineWeight).toFixed(3)}</td>

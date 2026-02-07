@@ -989,9 +989,13 @@ export default function Billing() {
                 }}
               >
                 <option value="cash">Cash</option>
-                <option value="bank">Bank</option>
-                <option value="cheque">Cheque</option>
+                <option value="credit">Credit (On Balance)</option>
               </select>
+              <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '12px' }}>
+                {formData.paymentType === 'credit' 
+                  ? '📋 Credit: Amount will be added to customer balance. Bill issued every 5 days.' 
+                  : '💰 Cash: Immediate payment settlement'}
+              </small>
             </div>
           </div>
 
