@@ -2,20 +2,26 @@ import React, { useState } from 'react';
 import Layout from '../../components/Layout';
 import { adminAPI } from '../../services/api';
 import { toast } from 'react-toastify';
-import { FiSave, FiUser, FiPhone, FiLock, FiClock, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiSave, FiUser, FiPhone, FiLock, FiClock, FiEye, FiEyeOff, FiCheck } from 'react-icons/fi';
 
 export default function AddUser() {
   const [formData, setFormData] = useState({
     shopName: '',
     phoneNumber: '',
     password: '',
-    licenseDays: '30'
+    licenseDays: '30',
+    gstEnabled: false,
+    gstEditPermission: 'user'
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value, type, checked } = e.target;
+    setFormData({
+      ...formData,
+      [name]: type === 'checkbox' ? checked : value
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -25,7 +31,14 @@ export default function AddUser() {
     try {
       await adminAPI.createUser(formData);
       toast.success('User created successfully!');
-      setFormData({ shopName: '', phoneNumber: '', password: '', licenseDays: '30' });
+      setFormData({
+        shopName: '',
+        phoneNumber: '',
+        password: '',
+        licenseDays: '30',
+        gstEnabled: false,
+        gstEditPermission: 'user'
+      });
       setShowPassword(false);
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to create user');
@@ -122,6 +135,48 @@ export default function AddUser() {
                 min="1"
                 required
               />
+            </div>
+
+            <div style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <h3 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1rem' }}>GST Settings</h3>
+              
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontWeight: 500 }}>
+                  <input
+                    type="checkbox"
+                    name="gstEnabled"
+                    checked={formData.gstEnabled}
+                    onChange={handleChange}
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  <span>Enable GST for this user?</span>
+                </label>
+                <small style={{ display: 'block', marginTop: '0.25rem', color: 'var(--text-secondary)' }}>
+                  If enabled, user can create GST invoices
+                </small>
+              </div>
+
+              {formData.gstEnabled && (
+                <div>
+                  <label className="input-label">GST Edit Permission</label>
+                  <select
+                    name="gstEditPermission"
+                    className="input"
+                    value={formData.gstEditPermission}
+                    onChange={handleChange}
+                    style={{ marginBottom: '0.5rem' }}
+                  >
+                    <option value="user">👤 User can edit their GST settings</option>
+                    <option value="admin">🔐 Admin only (user cannot edit)</option>
+                  </select>
+                  <small style={{ display: 'block', color: 'var(--text-secondary)' }}>
+                    {formData.gstEditPermission === 'user'
+                      ? 'User can update their GST number, state, and rate'
+                      : 'Only you (admin) can modify this user\'s GST settings'
+                    }
+                  </small>
+                </div>
+              )}
             </div>
 
             <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%' }} disabled={loading}>

@@ -3,18 +3,61 @@ import Layout from '../../components/Layout';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
 import { format, differenceInDays, parse } from 'date-fns';
-import { FiSun, FiMoon, FiMonitor, FiLock } from 'react-icons/fi';
+import { FiSun, FiMoon, FiMonitor, FiLock, FiEdit2, FiSave, FiX } from 'react-icons/fi';
 
 export default function AccountInfo() {
-  const { user, updateTheme, updateVoucherSettings, logout, theme } = useAuth();
+  const { user, updateTheme, updateVoucherSettings, logout, theme, updateGSTSettings } = useAuth();
   const [voucherMode, setVoucherMode] = useState(user?.voucherSettings?.autoIncrement || true);
+  const [editingGST, setEditingGST] = useState(false);
+  const [gstFormData, setGstFormData] = useState({
+    gstNumber: user?.gstSettings?.gstNumber || '',
+    businessState: user?.gstSettings?.businessState || '',
+    defaultGSTRate: user?.gstSettings?.defaultGSTRate || 18
+  });
+  const [savingGST, setSavingGST] = useState(false);
+
+  const indianStates = [
+    { code: 'AN', name: 'Andaman and Nicobar Islands' },
+    { code: 'AP', name: 'Andhra Pradesh' },
+    { code: 'AR', name: 'Arunachal Pradesh' },
+    { code: 'AS', name: 'Assam' },
+    { code: 'BR', name: 'Bihar' },
+    { code: 'CG', name: 'Chhattisgarh' },
+    { code: 'CH', name: 'Chandigarh' },
+    { code: 'DN', name: 'Dadra and Nagar Haveli' },
+    { code: 'DL', name: 'Delhi' },
+    { code: 'GA', name: 'Goa' },
+    { code: 'GJ', name: 'Gujarat' },
+    { code: 'HR', name: 'Haryana' },
+    { code: 'HP', name: 'Himachal Pradesh' },
+    { code: 'JK', name: 'Jammu and Kashmir' },
+    { code: 'JH', name: 'Jharkhand' },
+    { code: 'KA', name: 'Karnataka' },
+    { code: 'KL', name: 'Kerala' },
+    { code: 'LD', name: 'Lakshadweep' },
+    { code: 'MP', name: 'Madhya Pradesh' },
+    { code: 'MH', name: 'Maharashtra' },
+    { code: 'MN', name: 'Manipur' },
+    { code: 'ML', name: 'Meghalaya' },
+    { code: 'MZ', name: 'Mizoram' },
+    { code: 'NL', name: 'Nagaland' },
+    { code: 'OR', name: 'Odisha' },
+    { code: 'PB', name: 'Punjab' },
+    { code: 'PY', name: 'Puducherry' },
+    { code: 'RJ', name: 'Rajasthan' },
+    { code: 'SK', name: 'Sikkim' },
+    { code: 'TN', name: 'Tamil Nadu' },
+    { code: 'TR', name: 'Telangana' },
+    { code: 'UP', name: 'Uttar Pradesh' },
+    { code: 'UT', name: 'Uttarakhand' },
+    { code: 'WB', name: 'West Bengal' }
+  ];
 
   // Calculate days remaining properly
   const daysRemaining = useMemo(() => {
     if (!user?.licenseExpiryDate) return 0;
     const expiryDate = new Date(user.licenseExpiryDate);
     const today = new Date();
-    // Reset time to midnight for accurate day calculation
     today.setHours(0, 0, 0, 0);
     expiryDate.setHours(0, 0, 0, 0);
     const days = differenceInDays(expiryDate, today);
@@ -40,6 +83,37 @@ export default function AccountInfo() {
     }
   };
 
+  const handleSaveGST = async () => {
+    if (!gstFormData.gstNumber || !gstFormData.businessState) {
+      toast.error('GST Number and Business State are required');
+      return;
+    }
+
+    // Validate GST format (15 characters)
+    if (!/^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}Z\d{1}$/.test(gstFormData.gstNumber)) {
+      toast.error('Invalid GST number format (must be 15 characters)');
+      return;
+    }
+
+    setSavingGST(true);
+    try {
+      await updateGSTSettings({
+        gstSettings: {
+          gstNumber: gstFormData.gstNumber,
+          businessState: gstFormData.businessState,
+          defaultGSTRate: gstFormData.defaultGSTRate
+        }
+      });
+
+      setEditingGST(false);
+      toast.success('GST settings saved successfully');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to save GST settings');
+    } finally {
+      setSavingGST(false);
+    }
+  };
+
   const themeOptions = [
     { value: 'light', label: 'Light', icon: FiSun },
     { value: 'dark', label: 'Dark', icon: FiMoon },
@@ -51,7 +125,7 @@ export default function AccountInfo() {
       <div style={{ maxWidth: '800px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <h1 style={{ margin: 0 }}>Account Information</h1>
-          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>v1.6</span>
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>v1.7</span>
         </div>
 
         <div className="card" style={{ marginBottom: '1.5rem' }}>
@@ -78,39 +152,145 @@ export default function AccountInfo() {
           </div>
         </div>
 
-        <div className="card" style={{ marginBottom: '1.5rem', position: 'relative', opacity: 0.7 }}>
-          <div style={{
-            position: 'absolute',
-            top: '1.5rem',
-            right: '1.5rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.4rem 0.8rem',
-            backgroundColor: 'rgba(245, 158, 11, 0.1)',
-            borderRadius: '4px',
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            color: 'var(--color-warning)'
-          }}>
-            <FiLock size={14} />
-            Coming Soon
-          </div>
-          <h3 style={{ marginBottom: '1.5rem' }}>GST Settings</h3>
-          <div className="grid grid-2">
-            <div>
-              <div className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>GST Number</div>
-              <div style={{ fontWeight: 600, opacity: 0.5 }}>-</div>
+        {user?.gstEnabled && (
+          <div className="card" style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+              <h3 style={{ margin: 0 }}>GST Settings ✅</h3>
+              {!editingGST && (
+                <button
+                  onClick={() => setEditingGST(true)}
+                  className="btn btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}
+                >
+                  <FiEdit2 size={16} /> Edit
+                </button>
+              )}
             </div>
-            <div>
-              <div className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>GST Rate (%)</div>
-              <div style={{ fontWeight: 600, opacity: 0.5 }}>-</div>
-            </div>
+
+            {editingGST ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>
+                    GST Number (15 characters) *
+                  </label>
+                  <input
+                    type="text"
+                    value={gstFormData.gstNumber}
+                    onChange={(e) => setGstFormData(prev => ({ ...prev, gstNumber: e.target.value.toUpperCase() }))}
+                    placeholder="e.g., 27AABCS1234H1Z0"
+                    maxLength={15}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--color-text)',
+                      boxSizing: 'border-box',
+                      fontFamily: 'monospace'
+                    }}
+                  />
+                  <small style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
+                    Format: 2 digits + 5 letters + 4 digits + 1 letter + 1 letter/digit + Z + 1 digit
+                  </small>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>
+                    Business State *
+                  </label>
+                  <select
+                    value={gstFormData.businessState}
+                    onChange={(e) => setGstFormData(prev => ({ ...prev, businessState: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--color-text)',
+                      boxSizing: 'border-box'
+                    }}
+                  >
+                    <option value="">Select a state</option>
+                    {indianStates.map(state => (
+                      <option key={state.code} value={state.code}>
+                        {state.name} ({state.code})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>
+                    Default GST Rate (%) *
+                  </label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem' }}>
+                    {[0, 3, 5, 12, 18].map(rate => (
+                      <button
+                        key={rate}
+                        onClick={() => setGstFormData(prev => ({ ...prev, defaultGSTRate: rate }))}
+                        style={{
+                          padding: '0.75rem',
+                          borderRadius: '4px',
+                          border: gstFormData.defaultGSTRate === rate ? '2px solid var(--color-primary)' : '1px solid var(--border-color)',
+                          backgroundColor: gstFormData.defaultGSTRate === rate ? 'rgba(245, 158, 11, 0.1)' : 'transparent',
+                          color: 'var(--color-text)',
+                          cursor: 'pointer',
+                          fontWeight: gstFormData.defaultGSTRate === rate ? 600 : 400,
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        {rate}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button
+                    onClick={handleSaveGST}
+                    disabled={savingGST}
+                    className="btn btn-primary"
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                  >
+                    <FiSave size={16} /> {savingGST ? 'Saving...' : 'Save'}
+                  </button>
+                  <button
+                    onClick={() => setEditingGST(false)}
+                    className="btn btn-secondary"
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                  >
+                    <FiX size={16} /> Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-2">
+                <div>
+                  <div className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>GST Number</div>
+                  <div style={{ fontWeight: 600, fontFamily: 'monospace' }}>
+                    {user?.gstSettings?.gstNumber || 'Not set'}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Business State</div>
+                  <div style={{ fontWeight: 600 }}>
+                    {user?.gstSettings?.businessState ? (
+                      indianStates.find(s => s.code === user.gstSettings.businessState)?.name || user.gstSettings.businessState
+                    ) : (
+                      'Not set'
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Default GST Rate</div>
+                  <div style={{ fontWeight: 600 }}>{user?.gstSettings?.defaultGSTRate || 'Not set'}%</div>
+                </div>
+              </div>
+            )}
           </div>
-          <p className="text-muted" style={{ marginTop: '1rem', fontSize: '0.875rem', fontStyle: 'italic' }}>
-            GST configuration and invoice generation features will be available soon.
-          </p>
-        </div>
+        )}
 
         <div className="card" style={{ marginBottom: '1.5rem' }}>
           <h3 style={{ marginBottom: '1.5rem' }}>Theme Preference</h3>

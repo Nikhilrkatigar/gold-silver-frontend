@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import { FiPlus, FiX, FiSave, FiPrinter, FiShare2 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import html2pdf from 'html2pdf.js';
+import { isValidGSTFormat, extractStateFromGST, calculateGST } from '../../utils/gstCalculations';
 
 // Voucher Print Template Component
 const VoucherTemplate = ({ formData, items, ledgers, user }) => {
@@ -97,6 +98,49 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
           <div>Labour :</div>
           <div>{totals.labourRate.toFixed(2)}</div>
         </div>
+        
+        {/* GST Details Section */}
+        {formData.invoiceType === 'gst' && formData.gstRate && (
+          <div style={{ marginTop: '10px', borderTop: '1px solid #000', paddingTop: '10px' }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>GST Details</div>
+            {(() => {
+              const taxableAmount = totals.amount + (parseFloat(formData.stoneAmount) || 0);
+              const gstType = extractStateFromGST(user?.gstSettings?.businessState) === extractStateFromGST(formData.customerGSTNumber) ? 'CGST_SGST' : 'IGST';
+              const gstCalc = calculateGST(taxableAmount, parseFloat(formData.gstRate), gstType);
+              
+              return (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                    <div>Taxable Amount :</div>
+                    <div>₹{taxableAmount.toFixed(2)}</div>
+                  </div>
+                  {gstType === 'IGST' ? (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                      <div>IGST ({formData.gstRate}%) :</div>
+                      <div>₹{gstCalc.igst.toFixed(2)}</div>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                        <div>CGST ({formData.gstRate / 2}%) :</div>
+                        <div>₹{gstCalc.cgst.toFixed(2)}</div>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                        <div>SGST ({formData.gstRate / 2}%) :</div>
+                        <div>₹{gstCalc.sgst.toFixed(2)}</div>
+                      </div>
+                    </>
+                  )}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 'bold' }}>
+                    <div>Total GST :</div>
+                    <div>₹{gstCalc.totalGST.toFixed(2)}</div>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        )}
+        
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <div>Net Balance :</div>
           <div></div>
@@ -200,7 +244,10 @@ export default function Billing() {
     issueGross: '',
     receiptGross: '',
     narration: '',
-    cashReceived: ''
+    cashReceived: '',
+    invoiceType: 'normal',
+    customerGSTNumber: '',
+    gstRate: ''
   });
   const [items, setItems] = useState([]);
   const [customerSearch, setCustomerSearch] = useState('');
@@ -235,7 +282,10 @@ export default function Billing() {
         issueGross: voucher.issue?.gross || '',
         receiptGross: voucher.receipt?.gross || '',
         narration: voucher.narration || '',
-        cashReceived: voucher.cashReceived || ''
+        cashReceived: voucher.cashReceived || '',
+        invoiceType: voucher.invoiceType || 'normal',
+        customerGSTNumber: voucher.gstDetails?.customerGSTNumber || '',
+        gstRate: voucher.gstDetails?.gstRate || ''
       });
       
       setItems(voucher.items || []);
@@ -492,7 +542,17 @@ export default function Billing() {
       issue: { gross: parseFloat(formData.issueGross) || 0 },
       receipt: { gross: parseFloat(formData.receiptGross) || 0 },
       narration: formData.narration,
-      cashReceived: parseFloat(formData.cashReceived) || 0
+      cashReceived: parseFloat(formData.cashReceived) || 0,
+      invoiceType: formData.invoiceType,
+      ...(formData.invoiceType === 'gst' && {
+        gstDetails: {
+          customerGSTNumber: formData.customerGSTNumber,
+          gstRate: parseFloat(formData.gstRate) || 0,
+          gstType: user?.gstSettings?.businessState && formData.customerGSTNumber 
+            ? (extractStateFromGST(user.gstSettings.businessState) === extractStateFromGST(formData.customerGSTNumber) ? 'CGST_SGST' : 'IGST')
+            : null
+        }
+      })
     };
 
     try {
@@ -1276,6 +1336,114 @@ export default function Billing() {
                 {formData.paymentType === 'credit' ? 'On Balance' : 'Immediate'}
               </small>
             </div>
+          </div>
+
+          {/* GST Invoice Section */}
+          <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+            <div style={{ marginBottom: '15px' }}>
+              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '13px' }}>📄 Invoice Type</label>
+              <div style={{ display: 'flex', gap: '20px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '13px' }}>
+                  <input
+                    type="radio"
+                    name="invoiceType"
+                    value="normal"
+                    checked={formData.invoiceType === 'normal'}
+                    onChange={(e) => setFormData(prev => ({ ...prev, invoiceType: e.target.value, customerGSTNumber: '', gstRate: '' }))}
+                    style={{ marginRight: '8px', cursor: 'pointer' }}
+                  />
+                  Normal Invoice
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '13px' }}>
+                  <input
+                    type="radio"
+                    name="invoiceType"
+                    value="gst"
+                    checked={formData.invoiceType === 'gst'}
+                    onChange={(e) => setFormData(prev => ({ ...prev, invoiceType: e.target.value }))}
+                    style={{ marginRight: '8px', cursor: 'pointer' }}
+                  />
+                  GST Invoice
+                </label>
+              </div>
+            </div>
+
+            {formData.invoiceType === 'gst' && (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Customer GST Number *</label>
+                  <input
+                    type="text"
+                    value={formData.customerGSTNumber}
+                    onChange={(e) => setFormData(prev => ({ ...prev, customerGSTNumber: e.target.value.toUpperCase() }))}
+                    placeholder="15-digit GST format"
+                    maxLength="15"
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: formData.customerGSTNumber && !isValidGSTFormat(formData.customerGSTNumber) ? '2px solid #ff4757' : '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--color-text)',
+                      boxSizing: 'border-box',
+                      fontSize: '13px'
+                    }}
+                  />
+                  {formData.customerGSTNumber && !isValidGSTFormat(formData.customerGSTNumber) && (
+                    <small style={{ display: 'block', marginTop: '2px', color: '#ff4757', fontSize: '10px' }}>
+                      Invalid GST format. Expected: 15 characters (2 digits + 5 letters + 4 digits + 1 letter + 1 alphanumeric + Z + 1 digit)
+                    </small>
+                  )}
+                  {formData.customerGSTNumber && isValidGSTFormat(formData.customerGSTNumber) && (
+                    <small style={{ display: 'block', marginTop: '2px', color: 'var(--color-success)', fontSize: '10px' }}>
+                      ✓ Valid GST format
+                    </small>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>GST Rate (%)</label>
+                  <select
+                    value={formData.gstRate}
+                    onChange={(e) => setFormData(prev => ({ ...prev, gstRate: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--color-text)',
+                      boxSizing: 'border-box',
+                      fontSize: '13px'
+                    }}
+                  >
+                    <option value="">Select GST Rate</option>
+                    <option value="0">0% - Exempted</option>
+                    <option value="3">3% - Supplies</option>
+                    <option value="5">5% - Supplies</option>
+                    <option value="12">12% - Supplies</option>
+                    <option value="18">18% - Standard Rate</option>
+                  </select>
+                </div>
+
+                {formData.customerGSTNumber && isValidGSTFormat(formData.customerGSTNumber) && user?.gstSettings?.businessState && (
+                  <div>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>GST Type</label>
+                    <div style={{
+                      padding: '8px',
+                      backgroundColor: 'var(--bg-primary)',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      fontSize: '13px'
+                    }}>
+                      {extractStateFromGST(user.gstSettings.businessState) === extractStateFromGST(formData.customerGSTNumber) 
+                        ? '🟡 CGST + SGST (Same State)' 
+                        : '🟣 IGST (Different State)'}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Items Section */}

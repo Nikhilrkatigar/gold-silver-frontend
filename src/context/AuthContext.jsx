@@ -100,6 +100,19 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateGSTSettings = async (data) => {
+    try {
+      await authAPI.updateSettings(data);
+      setUser(prev => ({ 
+        ...prev, 
+        gstSettings: { ...prev.gstSettings, ...data.gstSettings }
+      }));
+    } catch (error) {
+      console.error('Failed to update GST settings:', error);
+      throw error;
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -108,6 +121,7 @@ export const AuthProvider = ({ children }) => {
     logout,
     updateTheme,
     updateVoucherSettings,
+    updateGSTSettings,
     isAdmin: user?.role === 'admin',
     isLicenseExpired: user?.isLicenseExpired
   };
