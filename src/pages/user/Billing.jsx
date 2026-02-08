@@ -29,6 +29,11 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
       <div style={{ textAlign: 'center', marginBottom: '20px' }}>
         <h2 style={{ margin: '0', fontSize: '24px', fontWeight: 'bold' }}>{user?.shopName || 'ESTIMATE/ON APPROVAL'}</h2>
         <p style={{ margin: '5px 0', fontSize: '16px' }}>ESTIMATE/ON APPROVAL - Issue</p>
+        {formData.invoiceType === 'gst' && (
+          <div style={{ margin: '10px 0', padding: '5px 10px', backgroundColor: '#e8f5e9', border: '2px solid #4caf50', borderRadius: '4px', display: 'inline-block', fontSize: '14px', fontWeight: 'bold', color: '#2e7d32' }}>
+            📄 GST INVOICE
+          </div>
+        )}
       </div>
 
       {/* Top Info */}
@@ -40,6 +45,18 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
         <div>Date : {new Date(formData.date).toLocaleDateString('en-IN')}</div>
         <div>Page No : 1/1</div>
       </div>
+
+      {/* GST Customer Info */}
+      {formData.invoiceType === 'gst' && formData.customerGSTNumber && (
+        <div style={{ marginBottom: '20px', padding: '10px', backgroundColor: '#f5f5f5', border: '1px solid #ddd', borderRadius: '4px', fontSize: '13px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+            <div><strong>Customer GST Number :</strong> {formData.customerGSTNumber}</div>
+          </div>
+          <div style={{ color: '#666' }}>
+            <strong>Invoice Type :</strong> {user?.gstSettings?.businessState && extractStateFromGST(user.gstSettings.businessState) === extractStateFromGST(formData.customerGSTNumber) ? 'CGST + SGST (Same State)' : 'IGST (Different State)'}
+          </div>
+        </div>
+      )}
 
       {/* Items Table */}
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
@@ -516,6 +533,18 @@ export default function Billing() {
       }
     }
 
+    // Validate GST fields if GST invoice is selected
+    if (formData.invoiceType === 'gst') {
+      if (!formData.customerGSTNumber || !isValidGSTFormat(formData.customerGSTNumber)) {
+        toast.error('Please enter a valid customer GST number');
+        return;
+      }
+      if (!formData.gstRate || parseFloat(formData.gstRate) < 0) {
+        toast.error('Please select a valid GST rate');
+        return;
+      }
+    }
+
     const cleanedItems = items.map(item => ({
       metalType: item.metalType,
       itemName: item.itemName,
@@ -938,6 +967,36 @@ export default function Billing() {
               </div>
             </div>
           </div>
+
+          <!-- GST Section -->
+          ${formData.invoiceType === 'gst' && formData.gstRate ? (() => {
+            const taxableAmount = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0);
+            const gstType = user?.gstSettings?.businessState && formData.customerGSTNumber && formData.customerGSTNumber.substr(0, 2) === user.gstSettings.businessState.substr(0, 2) ? 'CGST_SGST' : 'IGST';
+            const rate = parseFloat(formData.gstRate) || 0;
+            let igst = 0, cgst = 0, sgst = 0, totalGST = 0;
+            
+            if (gstType === 'IGST') {
+              igst = (taxableAmount * rate) / 100;
+              totalGST = igst;
+            } else {
+              cgst = (taxableAmount * (rate / 2)) / 100;
+              sgst = (taxableAmount * (rate / 2)) / 100;
+              totalGST = cgst + sgst;
+            }
+
+            let html = '<div style="background-color: #e3f2fd; padding: 20px; border-radius: 8px; border: 2px solid #2196f3; margin-bottom: 20px; font-size: 14px; color: #333333;"><h3 style="margin: 0 0 15px 0; font-size: 14px; font-weight: bold; color: #1565c0;">📄 GST Details (Tax Invoice)</h3>';
+            if (formData.customerGSTNumber) {
+              html += '<div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(0,0,0,0.1);"><div><div style="color: #666; font-size: 12px; margin-bottom: 3px;">Customer GST Number</div><div style="font-weight: bold; color: #000000;">' + formData.customerGSTNumber + '</div></div><div style="text-align: right;"><div style="color: #666; font-size: 12px; margin-bottom: 3px;">GST Type</div><div style="font-weight: bold; color: #000000;">' + (gstType === 'CGST_SGST' ? 'CGST + SGST' : 'IGST') + '</div></div></div>';
+            }
+            html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;"><div style="background-color: rgba(255,255,255,0.6); padding: 12px; border-radius: 4px;"><div style="color: #666; font-size: 12px; margin-bottom: 3px;">Taxable Amount</div><div style="font-size: 14px; font-weight: bold; color: #000000;">₹' + taxableAmount.toFixed(2) + '</div></div><div style="background-color: rgba(255,255,255,0.6); padding: 12px; border-radius: 4px;"><div style="color: #666; font-size: 12px; margin-bottom: 3px;">GST Rate</div><div style="font-size: 14px; font-weight: bold; color: #000000;">' + rate + '%</div></div>';
+            if (gstType === 'IGST') {
+              html += '<div style="background-color: rgba(255,255,255,0.6); padding: 12px; border-radius: 4px;"><div style="color: #666; font-size: 12px; margin-bottom: 3px;">IGST (' + rate + '%)</div><div style="font-size: 14px; font-weight: bold; color: #1565c0;">₹' + igst.toFixed(2) + '</div></div>';
+            } else {
+              html += '<div style="background-color: rgba(255,255,255,0.6); padding: 12px; border-radius: 4px;"><div style="color: #666; font-size: 12px; margin-bottom: 3px;">CGST (' + (rate/2) + '%)</div><div style="font-size: 14px; font-weight: bold; color: #1565c0;">₹' + cgst.toFixed(2) + '</div></div><div style="background-color: rgba(255,255,255,0.6); padding: 12px; border-radius: 4px;"><div style="color: #666; font-size: 12px; margin-bottom: 3px;">SGST (' + (rate/2) + '%)</div><div style="font-size: 14px; font-weight: bold; color: #1565c0;">₹' + sgst.toFixed(2) + '</div></div>';
+            }
+            html += '</div><div style="margin-top: 12px; padding: 12px; background-color: rgba(33, 150, 243, 0.1); border-radius: 4px; border-left: 4px solid #2196f3;"><div style="color: #666; font-size: 12px; margin-bottom: 3px;">Total GST Amount</div><div style="font-size: 16px; font-weight: bold; color: #1565c0;">₹' + totalGST.toFixed(2) + '</div></div></div>';
+            return html;
+          })() : ''}
 
           <!-- Footer -->
           <div style="text-align: center; border-top: 2px solid #ddd; padding-top: 20px; font-size: 12px; color: #666666;">

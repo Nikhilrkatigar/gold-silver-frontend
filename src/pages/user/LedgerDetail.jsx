@@ -794,6 +794,40 @@ export default function LedgerDetail() {
           <h2>{ledger?.name}</h2>
           <p className="text-muted">{ledger?.phoneNumber}</p>
           
+          {ledger?.gstDetails?.hasGST && (
+            <div style={{ 
+              display: 'flex', 
+              gap: '15px', 
+              marginTop: '1rem', 
+              paddingTop: '1rem', 
+              borderTop: '1px solid var(--border-color)',
+              fontSize: '13px'
+            }}>
+              <div>
+                <span style={{ color: 'var(--color-muted)', fontWeight: '500' }}>GST Status:</span>
+                <span style={{ marginLeft: '8px', padding: '4px 8px', backgroundColor: 'var(--color-success)', color: '#fff', borderRadius: '4px', fontWeight: 'bold' }}>
+                  ✅ Yes
+                </span>
+              </div>
+              {ledger?.gstDetails?.gstNumber && (
+                <div>
+                  <span style={{ color: 'var(--color-muted)', fontWeight: '500' }}>GST Number:</span>
+                  <span style={{ marginLeft: '8px', fontWeight: '600', fontFamily: 'monospace' }}>
+                    {ledger.gstDetails.gstNumber}
+                  </span>
+                </div>
+              )}
+              {ledger?.gstDetails?.stateCode && (
+                <div>
+                  <span style={{ color: 'var(--color-muted)', fontWeight: '500' }}>State Code:</span>
+                  <span style={{ marginLeft: '8px', fontWeight: '600' }}>
+                    {ledger.gstDetails.stateCode}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+          
           <div className="grid grid-2" style={{ marginTop: '1.5rem' }}>
             <div>
               <div className="text-muted" style={{ fontSize: '0.875rem' }}>Gold Fine Weight</div>
