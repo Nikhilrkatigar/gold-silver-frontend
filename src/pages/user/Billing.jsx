@@ -46,6 +46,7 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
           <tr style={{ backgroundColor: '#f0f0f0' }}>
             <th style={{ border: '1px solid #000', padding: '5px' }}>Sr</th>
             <th style={{ border: '1px solid #000', padding: '5px' }}>Item Name</th>
+            <th style={{ border: '1px solid #000', padding: '5px' }}>Metal</th>
             <th style={{ border: '1px solid #000', padding: '5px' }}>Pcs</th>
             <th style={{ border: '1px solid #000', padding: '5px' }}>Gross</th>
             <th style={{ border: '1px solid #000', padding: '5px' }}>Less</th>
@@ -61,6 +62,7 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
             <tr key={index}>
               <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center' }}>{index + 1}</td>
               <td style={{ border: '1px solid #000', padding: '5px' }}>{item.itemName}</td>
+              <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center', color: item.metalType === 'gold' ? '#FFD700' : '#C0C0C0', fontWeight: 'bold' }}>{item.metalType === 'gold' ? 'GOLD' : 'SILVER'}</td>
               <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center' }}>{item.pieces}</td>
               <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right' }}>{parseFloat(item.grossWeight).toFixed(3)}</td>
               <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right' }}>{parseFloat(item.lessWeight).toFixed(3)}</td>
@@ -72,7 +74,7 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
             </tr>
           ))}
           <tr style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>
-            <td colSpan="2" style={{ border: '1px solid #000', padding: '5px', textAlign: 'center' }}>Total</td>
+            <td colSpan="3" style={{ border: '1px solid #000', padding: '5px', textAlign: 'center' }}>Total</td>
             <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center' }}>{totals.pieces}</td>
             <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right' }}>{totals.grossWeight.toFixed(3)}</td>
             <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right' }}>{totals.lessWeight.toFixed(3)}</td>
@@ -123,21 +125,55 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
           <div>Recept</div>
           <div>{parseFloat(formData.receiptGross || 0).toFixed(3)}</div>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div>Old Bal Amt :</div>
-          <div>{formData.paymentType === 'credit' ? (ledger?.balances?.creditBalance?.toFixed(2) || '0.00') : (ledger?.balances?.cashBalance?.toFixed(2) || '0.00')}</div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div>Old Bal Fine Wt :</div>
-          <div>{formData.paymentType === 'credit' ? ((ledger?.balances?.goldFineWeight || 0) + (ledger?.balances?.silverFineWeight || 0)).toFixed(3) : '0.000'}</div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div>Cur Bal Amt :</div>
-          <div>{formData.paymentType === 'credit' ? (parseFloat(ledger?.balances?.creditBalance || 0) - grandTotal).toFixed(2) : (parseFloat(ledger?.balances?.cashBalance || 0) - grandTotal).toFixed(2)}</div>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div>Cur Bal Net Wt :</div>
-          <div>{formData.paymentType === 'credit' ? (((ledger?.balances?.goldFineWeight || 0) + (ledger?.balances?.silverFineWeight || 0)) - totals.netWeight).toFixed(3) : (-totals.netWeight).toFixed(3)}</div>
+
+        {/* Balance Details - Separate Boxes */}
+        <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid #000' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+            <div>Cash Received</div>
+            <div>₹{parseFloat(formData.cashReceived || 0).toFixed(2)}</div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontWeight: 'bold' }}>
+            <div>Net Balance</div>
+            <div>₹{((totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)}</div>
+          </div>
+
+          {/* Old Balance Details Box */}
+          <div style={{ border: '1px solid var(--border-color)', padding: '10px', marginBottom: '10px', backgroundColor: 'var(--bg-primary)' }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '12px' }}>Old Balance Details</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
+              <div>Old Bal Amount</div>
+              <div>₹{formData.paymentType === 'credit' ? (ledger?.balances?.creditBalance?.toFixed(2) || '0.00') : (ledger?.balances?.cashBalance?.toFixed(2) || '0.00')}</div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
+              <div>Old Bal Gold Fine Wt</div>
+              <div style={{ color: '#FFD700', fontWeight: 'bold' }}>{formData.paymentType === 'credit' ? (ledger?.balances?.goldFineWeight?.toFixed(3) || '0.000') : '0.000'} g</div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+              <div>Old Bal Silver Fine Wt</div>
+              <div style={{ color: '#C0C0C0', fontWeight: 'bold' }}>{formData.paymentType === 'credit' ? (ledger?.balances?.silverFineWeight?.toFixed(3) || '0.000') : '0.000'} g</div>
+            </div>
+          </div>
+
+          {/* Current Balance Details Box */}
+          <div style={{ border: '1px solid var(--border-color)', padding: '10px', marginBottom: '10px', backgroundColor: 'var(--bg-primary)' }}>
+            <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '12px' }}>Current Balance Details</div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
+              <div>Cur Bal Amount</div>
+              <div>₹{formData.paymentType === 'credit' ? ((parseFloat(ledger?.balances?.creditBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))).toFixed(2) : ((parseFloat(ledger?.balances?.cashBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))).toFixed(2)}</div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
+              <div>Cur Bal Gold Fine Wt</div>
+              <div style={{ color: '#FFD700', fontWeight: 'bold' }}>{formData.paymentType === 'credit' ? ((parseFloat(ledger?.balances?.goldFineWeight || 0) + totals.fineWeight).toFixed(3)) : (totals.fineWeight).toFixed(3)} g</div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
+              <div>Cur Bal Silver Fine Wt</div>
+              <div style={{ color: '#C0C0C0', fontWeight: 'bold' }}>{formData.paymentType === 'credit' ? ((parseFloat(ledger?.balances?.silverFineWeight || 0) + totals.fineWeight).toFixed(3)) : (totals.fineWeight).toFixed(3)} g</div>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 'bold' }}>
+              <div>Receipt Gross (Entry Fine)</div>
+              <div>{totals.fineWeight.toFixed(3)} g</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

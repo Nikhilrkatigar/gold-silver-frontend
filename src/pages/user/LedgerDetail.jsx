@@ -447,6 +447,56 @@ export default function LedgerDetail() {
             </div>
           </div>
 
+          <!-- Balance Details Section -->
+          <div style="margin-top: 30px; margin-bottom: 30px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; font-weight: bold; color: #000000;">
+              <span>Cash Received</span>
+              <span>₹${parseFloat(voucher.cashReceived || 0).toFixed(2)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 14px; font-weight: bold; color: #d32f2f;">
+              <span>Net Balance</span>
+              <span>₹${(voucherTotal - (parseFloat(voucher.cashReceived || 0))).toFixed(2)}</span>
+            </div>
+
+            <!-- Old Balance Details Box -->
+            <div style="border: 1px solid #000; padding: 15px; margin-bottom: 15px; background-color: #ffffff;">
+              <div style="font-weight: bold; margin-bottom: 10px; font-size: 13px; color: #000000;">Old Balance Details</div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
+                <span>Old Bal Amount</span>
+                <span style="color: #000000;">₹${ledger?.balances?.amount?.toFixed(2) || '0.00'}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
+                <span>Old Bal Gold Fine Wt</span>
+                <span style="color: #FFD700; font-weight: bold;">${(ledger?.balances?.goldFineWeight || 0).toFixed(3)} g</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 12px; color: #333333;">
+                <span>Old Bal Silver Fine Wt</span>
+                <span style="color: #C0C0C0; font-weight: bold;">${(ledger?.balances?.silverFineWeight || 0).toFixed(3)} g</span>
+              </div>
+            </div>
+
+            <!-- Current Balance Details Box -->
+            <div style="border: 1px solid #000; padding: 15px; background-color: #ffffff;">
+              <div style="font-weight: bold; margin-bottom: 10px; font-size: 13px; color: #000000;">Current Balance Details</div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
+                <span>Cur Bal Amount</span>
+                <span style="color: #000000;">₹${((parseFloat(ledger?.balances?.amount || 0)) - (voucherTotal)).toFixed(2)}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
+                <span>Cur Bal Gold Fine Wt</span>
+                <span style="color: #FFD700; font-weight: bold;">${((parseFloat(ledger?.balances?.goldFineWeight || 0)) - (voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0) : 0)).toFixed(3)} g</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
+                <span>Cur Bal Silver Fine Wt</span>
+                <span style="color: #C0C0C0; font-weight: bold;">${((parseFloat(ledger?.balances?.silverFineWeight || 0)) - (voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0) : 0)).toFixed(3)} g</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 12px; color: #333333; font-weight: bold; margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd;">
+                <span>Receipt Gross (Entry Fine)</span>
+                <span>${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0).toFixed(3) : '0.000'} g</span>
+              </div>
+            </div>
+          </div>
+
           <!-- Footer -->
           <div style="text-align: center; border-top: 2px solid #ddd; padding-top: 20px; font-size: 12px; color: #666666;">
             <p style="margin: 0; color: #666666;">Generated on ${new Date().toLocaleString('en-IN')}</p>
@@ -964,7 +1014,7 @@ export default function LedgerDetail() {
                                   <td>₹{parseFloat(item.amount).toFixed(2)}</td>
                                 </tr>
                               ))}
-                              <tr style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>
+                              <tr style={{ fontWeight: 'bold', backgroundColor: 'var(--bg-hover)' }}>
                                 <td colSpan="3">Total</td>
                                 <td>{selectedItem.items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0).toFixed(3)}</td>
                                 <td>{selectedItem.items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0).toFixed(3)}</td>
@@ -1000,6 +1050,47 @@ export default function LedgerDetail() {
                             (parseFloat(selectedItem.fineAmount) || 0)
                           ).toFixed(2)}
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Balance Summary Section */}
+                    <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-primary)' }}>Balance Summary</h4>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                        <div>
+                          <div className="text-muted" style={{ fontSize: '0.875rem' }}>Cash Received</div>
+                          <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>₹{parseFloat(selectedItem.cashReceived || 0).toFixed(2)}</div>
+                        </div>
+                        <div>
+                          <div className="text-muted" style={{ fontSize: '0.875rem' }}>Net Balance</div>
+                          <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                            ₹{(
+                              (selectedItem.total?.toFixed(2) || (
+                                (selectedItem.items?.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) || 0) +
+                                (parseFloat(selectedItem.stoneAmount) || 0) +
+                                (parseFloat(selectedItem.fineAmount) || 0)
+                              )) - (parseFloat(selectedItem.cashReceived || 0))
+                            ).toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Old Balance Details Box */}
+                      <div style={{ border: '1px solid var(--border-color)', padding: '1rem', marginBottom: '1rem', backgroundColor: 'var(--bg-primary)' }}>
+                        <div style={{ fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '0.95rem', color: 'var(--text-primary)' }}>Old Balance Details</div>
+                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Old Bal Amount: ₹{parseFloat(selectedItem.oldBalAmount || 0).toFixed(2)}</div>
+                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#FFD700', fontWeight: 500 }}>Old Bal Gold Fine Wt: {parseFloat(selectedItem.oldBalGoldFineWt || 0).toFixed(3)}g</div>
+                        <div style={{ fontSize: '0.9rem', color: '#C0C0C0', fontWeight: 500 }}>Old Bal Silver Fine Wt: {parseFloat(selectedItem.oldBalSilverFineWt || 0).toFixed(3)}g</div>
+                      </div>
+
+                      {/* Current Balance Details Box */}
+                      <div style={{ border: '1px solid var(--border-color)', padding: '1rem', backgroundColor: 'var(--bg-primary)' }}>
+                        <div style={{ fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '0.95rem', color: 'var(--text-primary)' }}>Current Balance Details</div>
+                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Cur Bal Amount: ₹{parseFloat(selectedItem.curBalAmount || 0).toFixed(2)}</div>
+                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#FFD700', fontWeight: 500 }}>Cur Bal Gold Fine Wt: {parseFloat(selectedItem.curBalGoldFineWt || 0).toFixed(3)}g</div>
+                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#C0C0C0', fontWeight: 500 }}>Cur Bal Silver Fine Wt: {parseFloat(selectedItem.curBalSilverFineWt || 0).toFixed(3)}g</div>
+                        <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>Receipt Gross (Entry Fine): {parseFloat(selectedItem.receiptGross || 0).toFixed(3)}g</div>
                       </div>
                     </div>
 
