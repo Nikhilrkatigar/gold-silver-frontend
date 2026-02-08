@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
-import { voucherAPI, settlementAPI, stockAPI } from '../../services/api';
+import { voucherAPI, settlementAPI, stockAPI, ledgerAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
 
@@ -11,8 +11,111 @@ export default function UserDashboard() {
 
   useEffect(() => {
     fetchDueCredits();
-    fetchTodayTransactions();
+    fetchLedgersAndTransactions();
   }, []);
+
+  const fetchLedgersAndTransactions = async () => {
+    try {
+      // Fetch all ledgers
+      const ledgersRes = await ledgerAPI.getAll();
+      
+      if (!Array.isArray(ledgersRes.data.ledgers) || ledgersRes.data.ledgers.length === 0) {
+        setTodayTransactions([]);
+        setLoading(false);
+        return;
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const transactions = [];
+
+      // Fetch transactions for each ledger
+      for (const ledger of ledgersRes.data.ledgers) {
+        try {
+          const transRes = await ledgerAPI.getTransactions(ledger._id, {});
+          
+          // Process today's transactions for this ledger
+          if (Array.isArray(transRes.data.transactions)) {
+            transRes.data.transactions
+              .filter(t => {
+                const tDate = new Date(t.date);
+                tDate.setHours(0, 0, 0, 0);
+                return tDate.getTime() === today.getTime();
+              })
+              .forEach(t => {
+                if (t.type === 'voucher') {
+                  const totalAmount = t.items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(t.stoneAmount) || 0);
+                  transactions.push({
+                    type: 'voucher',
+                    date: t.date,
+                    description: `Voucher #${t.voucherNumber} - ${ledger.name}`,
+                    amount: totalAmount,
+                    paymentType: t.paymentType,
+                    timestamp: new Date(t.date).getTime()
+                  });
+                } else if (t.type === 'settlement') {
+                  transactions.push({
+                    type: 'settlement',
+                    date: t.date,
+                    description: `Settlement - ${ledger.name} (${t.metalType.toUpperCase()} ${parseFloat(t.fineGiven).toFixed(3)}g)`,
+                    amount: parseFloat(t.amount),
+                    paymentType: 'settlement',
+                    timestamp: new Date(t.date).getTime()
+                  });
+                }
+              });
+          }
+        } catch (error) {
+          console.error(`Error fetching transactions for ledger:`, error);
+        }
+      }
+
+      // Add stock changes
+      try {
+        const stockRes = await stockAPI.getHistory().catch(() => ({ data: { history: [] } }));
+        if (stockRes.data.history) {
+          stockRes.data.history
+            .filter(sh => {
+              const shDate = new Date(sh.date);
+              shDate.setHours(0, 0, 0, 0);
+              return shDate.getTime() === today.getTime();
+            })
+            .forEach(sh => {
+              if (parseFloat(sh.gold) !== 0) {
+                transactions.push({
+                  type: 'stock',
+                  date: sh.date,
+                  description: `Stock Add - Gold ${parseFloat(sh.gold) >= 0 ? '+' : ''}${parseFloat(sh.gold).toFixed(3)}g`,
+                  amount: 0,
+                  paymentType: 'stock',
+                  timestamp: new Date(sh.date).getTime()
+                });
+              }
+              if (parseFloat(sh.silver) !== 0) {
+                transactions.push({
+                  type: 'stock',
+                  date: sh.date,
+                  description: `Stock Add - Silver ${parseFloat(sh.silver) >= 0 ? '+' : ''}${parseFloat(sh.silver).toFixed(3)}g`,
+                  amount: 0,
+                  paymentType: 'stock',
+                  timestamp: new Date(sh.date).getTime()
+                });
+              }
+            });
+        }
+      } catch (error) {
+        console.error('Error fetching stock history:', error);
+      }
+
+      // Sort by timestamp descending (newest first)
+      transactions.sort((a, b) => b.timestamp - a.timestamp);
+      setTodayTransactions(transactions);
+    } catch (error) {
+      console.error('Error in fetchLedgersAndTransactions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchDueCredits = async () => {
     try {
@@ -25,99 +128,7 @@ export default function UserDashboard() {
     }
   };
 
-  const fetchTodayTransactions = async () => {
-    try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
 
-      const [vouchersRes, settlementsRes, stockRes] = await Promise.all([
-        voucherAPI.getAll().catch(() => ({ data: { vouchers: [] } })),
-        settlementAPI.getAll().catch(() => ({ data: { settlements: [] } })),
-        stockAPI.getHistory().catch(() => ({ data: { history: [] } }))
-      ]);
-
-      const transactions = [];
-
-      // Add today's vouchers
-      if (vouchersRes.data.vouchers) {
-        vouchersRes.data.vouchers
-          .filter(v => {
-            const vDate = new Date(v.date);
-            vDate.setHours(0, 0, 0, 0);
-            return vDate.getTime() === today.getTime();
-          })
-          .forEach(v => {
-            const totalAmount = v.items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(v.stoneAmount) || 0);
-            transactions.push({
-              type: 'voucher',
-              date: v.date,
-              description: `Voucher #${v.voucherNumber}`,
-              amount: totalAmount,
-              paymentType: v.paymentType,
-              timestamp: new Date(v.date).getTime()
-            });
-          });
-      }
-
-      // Add today's settlements
-      if (settlementsRes.data.settlements) {
-        settlementsRes.data.settlements
-          .filter(s => {
-            const sDate = new Date(s.date);
-            sDate.setHours(0, 0, 0, 0);
-            return sDate.getTime() === today.getTime();
-          })
-          .forEach(s => {
-            transactions.push({
-              type: 'settlement',
-              date: s.date,
-              description: `Settlement - ${s.metalType.toUpperCase()} (${parseFloat(s.fineGiven).toFixed(3)}g)`,
-              amount: parseFloat(s.amount),
-              paymentType: 'settlement',
-              timestamp: new Date(s.date).getTime()
-            });
-          });
-      }
-
-      // Add today's stock changes
-      if (stockRes.data.history) {
-        stockRes.data.history
-          .filter(sh => {
-            const shDate = new Date(sh.date);
-            shDate.setHours(0, 0, 0, 0);
-            return shDate.getTime() === today.getTime();
-          })
-          .forEach(sh => {
-            if (parseFloat(sh.gold) !== 0) {
-              transactions.push({
-                type: 'stock',
-                date: sh.date,
-                description: `Stock Add - Gold ${parseFloat(sh.gold) >= 0 ? '+' : ''}${parseFloat(sh.gold).toFixed(3)}g`,
-                amount: 0,
-                paymentType: 'stock',
-                timestamp: new Date(sh.date).getTime()
-              });
-            }
-            if (parseFloat(sh.silver) !== 0) {
-              transactions.push({
-                type: 'stock',
-                date: sh.date,
-                description: `Stock Add - Silver ${parseFloat(sh.silver) >= 0 ? '+' : ''}${parseFloat(sh.silver).toFixed(3)}g`,
-                amount: 0,
-                paymentType: 'stock',
-                timestamp: new Date(sh.date).getTime()
-              });
-            }
-          });
-      }
-
-      // Sort by timestamp descending (newest first)
-      transactions.sort((a, b) => b.timestamp - a.timestamp);
-      setTodayTransactions(transactions);
-    } catch (error) {
-      console.error('Failed to load today\'s transactions:', error);
-    }
-  };
 
   if (loading) {
     return (

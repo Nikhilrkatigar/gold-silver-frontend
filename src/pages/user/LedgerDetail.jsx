@@ -4,7 +4,7 @@ import Layout from '../../components/Layout';
 import { ledgerAPI, voucherAPI, settlementAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
-import { FiTrash2, FiArrowLeft, FiEye, FiX, FiPrinter, FiShare2 } from 'react-icons/fi';
+import { FiTrash2, FiArrowLeft, FiEye, FiX, FiPrinter, FiShare2, FiEdit2 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import html2pdf from 'html2pdf.js';
 
@@ -85,19 +85,20 @@ export default function LedgerDetail() {
       <html>
       <head>
         <title>Voucher Print</title>
+        <meta name="color-scheme" content="light dark">
         <style>
-          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #fff; color: #000; }
           table { width: 100%; border-collapse: collapse; }
           th, td { border: 1px solid #000; padding: 8px; text-align: left; }
           th { background-color: #f5f5f5; font-weight: bold; }
           .header { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 10px; border-bottom: 2px solid #000; padding-bottom: 10px; }
           .shop-name { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
-          .total-row { font-weight: bold; background-color: #f5f5f5; }
+          .total-row { font-weight: bold; background-color: #d0d0d0; color: #000; border-top: 2px solid #000; border-bottom: 2px solid #000; }
           .amount-section { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
           .section-label { font-weight: bold; margin-bottom: 5px; margin-top: 10px; }
           .line-height { height: 30px; border-bottom: 1px solid #000; }
           .voucher-container { max-width: 900px; margin: 0 auto; }
-          @media print { body { margin: 0; padding: 0; } }
+          @media print { body { margin: 0; padding: 0; background-color: #fff; } }
         </style>
       </head>
       <body>
@@ -150,7 +151,7 @@ export default function LedgerDetail() {
                   <td>${parseFloat(item.amount).toFixed(2)}</td>
                 </tr>
               `).join('') || ''}
-              <tr style="font-weight: bold; background-color: #f5f5f5;">
+              <tr class="total-row">
                 <td colspan="2">Total</td>
                 <td>${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseInt(item.pieces) || 0), 0) : 0}</td>
                 <td>${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.grossWeight) || 0), 0).toFixed(3) : '0.000'}</td>
@@ -347,52 +348,52 @@ export default function LedgerDetail() {
 
       const voucherContent = document.createElement('div');
       voucherContent.innerHTML = `
-        <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto;">
+        <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; background-color: #ffffff; color: #333333;">
           <!-- Header -->
           <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #333; padding-bottom: 20px;">
-            <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #333;">${user?.shopName || 'ESTIMATE/ON APPROVAL'}</h1>
-            <p style="margin: 8px 0 0 0; font-size: 16px; color: #666;">ESTIMATE/ON APPROVAL - ISSUE</p>
+            <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #000000;">${user?.shopName || 'ESTIMATE/ON APPROVAL'}</h1>
+            <p style="margin: 8px 0 0 0; font-size: 16px; color: #333333;">ESTIMATE/ON APPROVAL - ISSUE</p>
           </div>
 
           <!-- Customer & Voucher Info -->
-          <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #333;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #333333;">
             <div>
-              <div style="font-weight: bold; margin-bottom: 5px;">Customer Name</div>
-              <div style="font-size: 16px; font-weight: 600;">${ledger?.name || 'N/A'}</div>
+              <div style="font-weight: bold; margin-bottom: 5px; color: #000000;">Customer Name</div>
+              <div style="font-size: 16px; font-weight: 600; color: #000000;">${ledger?.name || 'N/A'}</div>
             </div>
             <div style="text-align: right;">
-              <div style="font-weight: bold; margin-bottom: 5px;">Voucher No</div>
-              <div style="font-size: 16px; font-weight: 600;">${voucher.voucherNumber}</div>
+              <div style="font-weight: bold; margin-bottom: 5px; color: #000000;">Voucher No</div>
+              <div style="font-size: 16px; font-weight: 600; color: #000000;">${voucher.voucherNumber}</div>
             </div>
           </div>
 
-          <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #666; border-bottom: 1px solid #ccc; padding-bottom: 15px;">
-            <div>Date: <strong>${new Date(voucher.date).toLocaleDateString('en-IN')}</strong></div>
-            <div>Time: <strong>${new Date().toLocaleTimeString('en-IN')}</strong></div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #444444; border-bottom: 1px solid #ccc; padding-bottom: 15px;">
+            <div>Date: <strong style="color: #000000;">${new Date(voucher.date).toLocaleDateString('en-IN')}</strong></div>
+            <div>Time: <strong style="color: #000000;">${new Date().toLocaleTimeString('en-IN')}</strong></div>
           </div>
 
           <!-- Items Table -->
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px;">
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 13px; color: #333333;">
             <thead>
               <tr style="background-color: #f5f5f5; border: 1px solid #ddd;">
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold;">Sr</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: left; font-weight: bold;">Item Name</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold;">Metal</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold;">Pcs</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Gross (g)</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Less (g)</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Net (g)</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Fine (g)</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Labour (₹)</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold;">Amount (₹)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold; color: #000000;">Sr</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: left; font-weight: bold; color: #000000;">Item Name</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold; color: #000000;">Metal</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold; color: #000000;">Pcs</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold; color: #000000;">Gross (g)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold; color: #000000;">Less (g)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold; color: #000000;">Net (g)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold; color: #000000;">Fine (g)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold; color: #000000;">Labour (₹)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold; color: #000000;">Amount (₹)</th>
               </tr>
             </thead>
             <tbody>
               ${voucher.items ? voucher.items.map((item, index) => `
-                <tr style="border: 1px solid #ddd;">
+                <tr style="border: 1px solid #ddd; color: #333333;">
                   <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${index + 1}</td>
                   <td style="border: 1px solid #ddd; padding: 10px;">${item.itemName}</td>
-                  <td style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold; background-color: ${item.metalType === 'gold' ? '#fff9e6' : '#f0f0f0'};">${item.metalType === 'gold' ? '🟡 GOLD' : '⚪ SILVER'}</td>
+                  <td style="border: 1px solid #ddd; padding: 10px; text-align: center; font-weight: bold; background-color: ${item.metalType === 'gold' ? '#fff9e6' : '#f0f0f0'}; color: #000000;">${item.metalType === 'gold' ? '🟡 GOLD' : '⚪ SILVER'}</td>
                   <td style="border: 1px solid #ddd; padding: 10px; text-align: center;">${item.pieces}</td>
                   <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${parseFloat(item.grossWeight).toFixed(3)}</td>
                   <td style="border: 1px solid #ddd; padding: 10px; text-align: right;">${parseFloat(item.lessWeight).toFixed(3)}</td>
@@ -427,81 +428,149 @@ export default function LedgerDetail() {
                 <span>Stone Amount:</span>
                 <strong>₹${parseFloat(voucher.stoneAmount || 0).toFixed(2)}</strong>
               </div>
-              <div style="display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 2px solid #ddd; font-size: 16px; font-weight: bold;">
+              <div style="display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 2px solid #ddd; font-size: 16px; font-weight: bold; color: #000000;">
                 <span>Grand Total:</span>
                 <span style="color: #d32f2f;">₹${voucherTotal.toFixed(2)}</span>
               </div>
             </div>
 
             <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0;">
-              <h3 style="margin: 0 0 15px 0; font-size: 14px; font-weight: bold; color: #333;">Rates</h3>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <h3 style="margin: 0 0 15px 0; font-size: 14px; font-weight: bold; color: #000000;">Rates</h3>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #333333;">
                 <span>Gold Rate:</span>
-                <strong>₹${parseFloat(voucher.goldRate || 0).toFixed(2)}/g</strong>
+                <strong style="color: #000000;">₹${parseFloat(voucher.goldRate || 0).toFixed(2)}/g</strong>
               </div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 12px; color: #333333;">
                 <span>Silver Rate:</span>
-                <strong>₹${parseFloat(voucher.silverRate || 0).toFixed(2)}/g</strong>
+                <strong style="color: #000000;">₹${parseFloat(voucher.silverRate || 0).toFixed(2)}/g</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Balance Details Section -->
+          <div style="margin-top: 30px; margin-bottom: 30px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; font-weight: bold; color: #000000;">
+              <span>Cash Received</span>
+              <span>₹${parseFloat(voucher.cashReceived || 0).toFixed(2)}</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 14px; font-weight: bold; color: #d32f2f;">
+              <span>Net Balance</span>
+              <span>₹${(voucherTotal - (parseFloat(voucher.cashReceived || 0))).toFixed(2)}</span>
+            </div>
+
+            <!-- Old Balance Details Box -->
+            <div style="border: 1px solid #000; padding: 15px; margin-bottom: 15px; background-color: #ffffff;">
+              <div style="font-weight: bold; margin-bottom: 10px; font-size: 13px; color: #000000;">Old Balance Details</div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
+                <span>Old Bal Amount</span>
+                <span style="color: #000000;">₹${ledger?.balances?.amount?.toFixed(2) || '0.00'}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
+                <span>Old Bal Gold Fine Wt</span>
+                <span style="color: #FFD700; font-weight: bold;">${(ledger?.balances?.goldFineWeight || 0).toFixed(3)} g</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 12px; color: #333333;">
+                <span>Old Bal Silver Fine Wt</span>
+                <span style="color: #C0C0C0; font-weight: bold;">${(ledger?.balances?.silverFineWeight || 0).toFixed(3)} g</span>
+              </div>
+            </div>
+
+            <!-- Current Balance Details Box -->
+            <div style="border: 1px solid #000; padding: 15px; background-color: #ffffff;">
+              <div style="font-weight: bold; margin-bottom: 10px; font-size: 13px; color: #000000;">Current Balance Details</div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
+                <span>Cur Bal Amount</span>
+                <span style="color: #000000;">₹${((parseFloat(ledger?.balances?.amount || 0)) - (voucherTotal)).toFixed(2)}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
+                <span>Cur Bal Gold Fine Wt</span>
+                <span style="color: #FFD700; font-weight: bold;">${((parseFloat(ledger?.balances?.goldFineWeight || 0)) - (voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0) : 0)).toFixed(3)} g</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
+                <span>Cur Bal Silver Fine Wt</span>
+                <span style="color: #C0C0C0; font-weight: bold;">${((parseFloat(ledger?.balances?.silverFineWeight || 0)) - (voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0) : 0)).toFixed(3)} g</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 12px; color: #333333; font-weight: bold; margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd;">
+                <span>Receipt Gross (Entry Fine)</span>
+                <span>${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0).toFixed(3) : '0.000'} g</span>
               </div>
             </div>
           </div>
 
           <!-- Footer -->
-          <div style="text-align: center; border-top: 2px solid #ddd; padding-top: 20px; font-size: 12px; color: #999;">
-            <p style="margin: 0;">Generated on ${new Date().toLocaleString('en-IN')}</p>
-            <p style="margin: 0;">This is an electronically generated document</p>
+          <div style="text-align: center; border-top: 2px solid #ddd; padding-top: 20px; font-size: 12px; color: #666666;">
+            <p style="margin: 0; color: #666666;">Generated on ${new Date().toLocaleString('en-IN')}</p>
+            <p style="margin: 0; color: #666666;">This is an electronically generated document</p>
           </div>
         </div>
       `;
 
-      const options = {
-        margin: [10, 10, 10, 10],
-        filename: `Voucher-${voucher.voucherNumber}-${Date.now()}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCors: true, allowTaint: true },
-        jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
-      };
+      // CRITICAL: Append to DOM so html2pdf can properly render the element
+      document.body.appendChild(voucherContent);
 
-      html2pdf()
-        .set(options)
-        .from(voucherContent)
-        .output('blob')
-        .then((blob) => {
-          const fileName = `Voucher-${voucher.voucherNumber}.pdf`;
-          const file = new File([blob], fileName, { type: 'application/pdf' });
+      // Add delay for browser rendering
+      setTimeout(() => {
+        const options = {
+          margin: [10, 10, 10, 10],
+          filename: `Voucher-${voucher.voucherNumber}-${Date.now()}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { 
+            scale: 2, 
+            useCors: true, 
+            allowTaint: true,
+            backgroundColor: '#ffffff'
+          },
+          jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+        };
 
-          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-            navigator.share({
-              files: [file],
-              title: `Voucher #${voucher.voucherNumber}`,
-              text: `Voucher for ${ledger?.name || 'N/A'}`
-            }).then(() => {
-              toast.success('Voucher PDF shared successfully!');
-            }).catch(err => {
-              if (err.name !== 'AbortError') {
-                downloadPDF(blob, fileName);
-              }
-            });
-          } else {
-            downloadPDF(blob, fileName);
-            const whatsappText = `Check out this voucher for ${ledger?.name}. Voucher #${voucher.voucherNumber}. Amount: ₹${voucherTotal.toFixed(2)}`;
-            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
-            
-            toast.info(
-              <div>
-                <p>PDF downloaded! Share it via:</p>
-                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{ marginRight: '10px', color: '#25D366', textDecoration: 'none', fontWeight: 'bold' }}>
-                  📱 WhatsApp
-                </a>
-              </div>,
-              { autoClose: 5000 }
-            );
-          }
-        })
-        .catch(error => {
-          console.error('PDF generation error:', error);
-          toast.error('Failed to generate PDF');
-        });
+        html2pdf()
+          .set(options)
+          .from(voucherContent)
+          .output('blob')
+          .then((blob) => {
+            // Remove from DOM after PDF generation
+            document.body.removeChild(voucherContent);
+
+            const fileName = `Voucher-${voucher.voucherNumber}.pdf`;
+            const file = new File([blob], fileName, { type: 'application/pdf' });
+
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+              navigator.share({
+                files: [file],
+                title: `Voucher #${voucher.voucherNumber}`,
+                text: `Voucher for ${ledger?.name || 'N/A'}`
+              }).then(() => {
+                toast.success('Voucher PDF shared successfully!');
+              }).catch(err => {
+                if (err.name !== 'AbortError') {
+                  downloadPDF(blob, fileName);
+                }
+              });
+            } else {
+              downloadPDF(blob, fileName);
+              const whatsappText = `Check out this voucher for ${ledger?.name}. Voucher #${voucher.voucherNumber}. Amount: ₹${voucherTotal.toFixed(2)}`;
+              const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
+              
+              toast.info(
+                <div>
+                  <p>PDF downloaded! Share it via:</p>
+                  <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{ marginRight: '10px', color: '#25D366', textDecoration: 'none', fontWeight: 'bold' }}>
+                    📱 WhatsApp
+                  </a>
+                </div>,
+                { autoClose: 5000 }
+              );
+            }
+          })
+          .catch(error => {
+            console.error('PDF generation error:', error);
+            // Clean up DOM on error
+            if (document.body.contains(voucherContent)) {
+              document.body.removeChild(voucherContent);
+            }
+            toast.error('Failed to generate PDF. Please try again.');
+          });
+      }, 500);
     } catch (error) {
       console.error('Share error:', error);
       toast.error('Failed to generate or share PDF');
@@ -512,15 +581,15 @@ export default function LedgerDetail() {
     try {
       const settlementContent = document.createElement('div');
       settlementContent.innerHTML = `
-        <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto;">
+        <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; background-color: #ffffff; color: #333333;">
           <!-- Header -->
-          <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #333; padding-bottom: 20px;">
-            <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #333;">${user?.shopName || 'SETTLEMENT'}</h1>
-            <p style="margin: 8px 0 0 0; font-size: 16px; color: #666;">SETTLEMENT RECEIPT</p>
+          <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #000000; padding-bottom: 20px;">
+            <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #000000;">${user?.shopName || 'SETTLEMENT'}</h1>
+            <p style="margin: 8px 0 0 0; font-size: 16px; color: #333333;">SETTLEMENT RECEIPT</p>
           </div>
 
           <!-- Customer & Settlement Info -->
-          <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #333;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #333333;">
             <div>
               <div style="font-weight: bold; margin-bottom: 5px;">Customer Name</div>
               <div style="font-size: 16px; font-weight: 600;">${ledger?.name || 'N/A'}</div>
@@ -533,37 +602,37 @@ export default function LedgerDetail() {
 
           <!-- Settlement Details -->
           <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 30px;">
-            <h3 style="margin: 0 0 20px 0; font-size: 14px; font-weight: bold; color: #333;">Settlement Details</h3>
+            <h3 style="margin: 0 0 20px 0; font-size: 14px; font-weight: bold; color: #000000;">Settlement Details</h3>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
               <div>
-                <div style="color: #666; margin-bottom: 5px; font-size: 12px;">Metal Type</div>
-                <div style="font-size: 16px; font-weight: 600;">${settlement.metalType === 'gold' ? '🟡 Gold' : '⚪ Silver'}</div>
+                <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Metal Type</div>
+                <div style="font-size: 16px; font-weight: 600; color: #000000;">${settlement.metalType === 'gold' ? '🟡 Gold' : '⚪ Silver'}</div>
               </div>
               <div>
-                <div style="color: #666; margin-bottom: 5px; font-size: 12px;">Metal Rate</div>
-                <div style="font-size: 16px; font-weight: 600;">₹${parseFloat(settlement.metalRate).toFixed(2)}/g</div>
+                <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Metal Rate</div>
+                <div style="font-size: 16px; font-weight: 600; color: #000000;">₹${parseFloat(settlement.metalRate).toFixed(2)}/g</div>
               </div>
               <div>
-                <div style="color: #666; margin-bottom: 5px; font-size: 12px;">Fine Given</div>
-                <div style="font-size: 16px; font-weight: 600;">${parseFloat(settlement.fineGiven).toFixed(3)} g</div>
+                <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Fine Given</div>
+                <div style="font-size: 16px; font-weight: 600; color: #000000;">${parseFloat(settlement.fineGiven).toFixed(3)} g</div>
               </div>
               <div>
-                <div style="color: #666; margin-bottom: 5px; font-size: 12px;">Settlement Amount</div>
+                <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Settlement Amount</div>
                 <div style="font-size: 16px; font-weight: 600; color: #d32f2f;">₹${parseFloat(settlement.amount).toFixed(2)}</div>
               </div>
             </div>
 
             ${settlement.narration ? `
               <div style="border-top: 1px solid #ddd; padding-top: 15px;">
-                <div style="color: #666; margin-bottom: 5px; font-size: 12px;">Remarks</div>
-                <div>${settlement.narration}</div>
+                <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Remarks</div>
+                <div style="color: #000000;">${settlement.narration}</div>
               </div>
             ` : ''}
           </div>
 
           <!-- Footer -->
-          <div style="text-align: center; border-top: 2px solid #ddd; padding-top: 20px; font-size: 12px; color: #999;">
+          <div style="text-align: center; border-top: 2px solid #ddd; padding-top: 20px; font-size: 12px; color: #666666;">
             <p style="margin: 0;">Generated on ${new Date().toLocaleString('en-IN')}</p>
             <p style="margin: 0;">This is an electronically generated document</p>
           </div>
@@ -578,46 +647,72 @@ export default function LedgerDetail() {
         jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
       };
 
-      html2pdf()
-        .set(options)
-        .from(settlementContent)
-        .output('blob')
-        .then((blob) => {
-          const fileName = `Settlement-${new Date().toISOString().split('T')[0]}.pdf`;
-          const file = new File([blob], fileName, { type: 'application/pdf' });
+      // CRITICAL: Append to DOM so html2pdf can properly render the element
+      document.body.appendChild(settlementContent);
 
-          if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-            navigator.share({
-              files: [file],
-              title: 'Settlement Receipt',
-              text: `Settlement for ${ledger?.name || 'N/A'}`
-            }).then(() => {
-              toast.success('Settlement PDF shared successfully!');
-            }).catch(err => {
-              if (err.name !== 'AbortError') {
-                downloadPDF(blob, fileName);
-              }
-            });
-          } else {
-            downloadPDF(blob, fileName);
-            const whatsappText = `Settlement Receipt for ${ledger?.name}. Amount: ₹${parseFloat(settlement.amount).toFixed(2)}`;
-            const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
-            
-            toast.info(
-              <div>
-                <p>PDF downloaded! Share it via:</p>
-                <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{ marginRight: '10px', color: '#25D366', textDecoration: 'none', fontWeight: 'bold' }}>
-                  📱 WhatsApp
-                </a>
-              </div>,
-              { autoClose: 5000 }
-            );
-          }
-        })
-        .catch(error => {
-          console.error('PDF generation error:', error);
-          toast.error('Failed to generate PDF');
-        });
+      // Add delay for browser rendering
+      setTimeout(() => {
+        const options = {
+          margin: [10, 10, 10, 10],
+          filename: `Settlement-${Date.now()}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { 
+            scale: 2, 
+            useCors: true, 
+            allowTaint: true,
+            backgroundColor: '#ffffff'
+          },
+          jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+        };
+
+        html2pdf()
+          .set(options)
+          .from(settlementContent)
+          .output('blob')
+          .then((blob) => {
+            // Remove from DOM after PDF generation
+            document.body.removeChild(settlementContent);
+
+            const fileName = `Settlement-${new Date().toISOString().split('T')[0]}.pdf`;
+            const file = new File([blob], fileName, { type: 'application/pdf' });
+
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+              navigator.share({
+                files: [file],
+                title: 'Settlement Receipt',
+                text: `Settlement for ${ledger?.name || 'N/A'}`
+              }).then(() => {
+                toast.success('Settlement PDF shared successfully!');
+              }).catch(err => {
+                if (err.name !== 'AbortError') {
+                  downloadPDF(blob, fileName);
+                }
+              });
+            } else {
+              downloadPDF(blob, fileName);
+              const whatsappText = `Settlement Receipt for ${ledger?.name}. Amount: ₹${parseFloat(settlement.amount).toFixed(2)}`;
+              const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
+              
+              toast.info(
+                <div>
+                  <p>PDF downloaded! Share it via:</p>
+                  <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{ marginRight: '10px', color: '#25D366', textDecoration: 'none', fontWeight: 'bold' }}>
+                    📱 WhatsApp
+                  </a>
+                </div>,
+                { autoClose: 5000 }
+              );
+            }
+          })
+          .catch(error => {
+            console.error('PDF generation error:', error);
+            // Clean up DOM on error
+            if (document.body.contains(settlementContent)) {
+              document.body.removeChild(settlementContent);
+            }
+            toast.error('Failed to generate PDF. Please try again.');
+          });
+      }, 500);
     } catch (error) {
       console.error('Share error:', error);
       toast.error('Failed to generate or share PDF');
@@ -683,6 +778,8 @@ export default function LedgerDetail() {
         .reduce((itemSum, item) => itemSum + (item.fineWeight || 0), 0);
       return sum + silverFine;
     }, 0);
+
+  const amountBalance = (ledger?.balances?.creditBalance || 0) + (ledger?.balances?.cashBalance || 0);
 
   return (
     <Layout>
@@ -777,6 +874,15 @@ export default function LedgerDetail() {
                     <td>₹{txn.total?.toFixed(2) || txn.amount?.toFixed(2) || '0.00'}</td>
                     <td style={{ textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                        {txn.type === 'voucher' && (
+                          <button 
+                            onClick={() => navigate(`/billing?voucherid=${txn._id}`)}
+                            className="btn btn-sm btn-secondary"
+                            title="Edit"
+                          >
+                            <FiEdit2 />
+                          </button>
+                        )}
                         <button 
                           onClick={() => txn.type === 'voucher' ? handlePreviewVoucher(txn) : handlePreviewSettlement(txn)} 
                           className="btn btn-sm btn-secondary"
@@ -829,6 +935,11 @@ export default function LedgerDetail() {
                 <tr style={{ fontWeight: 700, background: 'var(--bg-tertiary)' }}>
                   <td colSpan="3">Silver Credit</td>
                   <td>₹{silverCreditAmount.toFixed(2)} | {silverCreditFineWeight.toFixed(3)} g fine</td>
+                  <td></td>
+                </tr>
+                <tr style={{ fontWeight: 700, background: 'var(--bg-secondary)' }}>
+                  <td colSpan="3">Amount Balance</td>
+                  <td>₹{amountBalance.toFixed(2)}</td>
                   <td></td>
                 </tr>
               </tfoot>
@@ -903,6 +1014,12 @@ export default function LedgerDetail() {
                                   <td>₹{parseFloat(item.amount).toFixed(2)}</td>
                                 </tr>
                               ))}
+                              <tr style={{ fontWeight: 'bold', backgroundColor: 'var(--bg-hover)' }}>
+                                <td colSpan="3">Total</td>
+                                <td>{selectedItem.items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0).toFixed(3)}</td>
+                                <td>{selectedItem.items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0).toFixed(3)}</td>
+                                <td>₹{selectedItem.items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)}</td>
+                              </tr>
                             </tbody>
                           </table>
                         </div>
@@ -933,6 +1050,47 @@ export default function LedgerDetail() {
                             (parseFloat(selectedItem.fineAmount) || 0)
                           ).toFixed(2)}
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Balance Summary Section */}
+                    <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
+                      <h4 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-primary)' }}>Balance Summary</h4>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+                        <div>
+                          <div className="text-muted" style={{ fontSize: '0.875rem' }}>Cash Received</div>
+                          <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>₹{parseFloat(selectedItem.cashReceived || 0).toFixed(2)}</div>
+                        </div>
+                        <div>
+                          <div className="text-muted" style={{ fontSize: '0.875rem' }}>Net Balance</div>
+                          <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                            ₹{(
+                              (selectedItem.total?.toFixed(2) || (
+                                (selectedItem.items?.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) || 0) +
+                                (parseFloat(selectedItem.stoneAmount) || 0) +
+                                (parseFloat(selectedItem.fineAmount) || 0)
+                              )) - (parseFloat(selectedItem.cashReceived || 0))
+                            ).toFixed(2)}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Old Balance Details Box */}
+                      <div style={{ border: '1px solid var(--border-color)', padding: '1rem', marginBottom: '1rem', backgroundColor: 'var(--bg-primary)' }}>
+                        <div style={{ fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '0.95rem', color: 'var(--text-primary)' }}>Old Balance Details</div>
+                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Old Bal Amount: ₹{parseFloat(selectedItem.oldBalAmount || 0).toFixed(2)}</div>
+                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#FFD700', fontWeight: 500 }}>Old Bal Gold Fine Wt: {parseFloat(selectedItem.oldBalGoldFineWt || 0).toFixed(3)}g</div>
+                        <div style={{ fontSize: '0.9rem', color: '#C0C0C0', fontWeight: 500 }}>Old Bal Silver Fine Wt: {parseFloat(selectedItem.oldBalSilverFineWt || 0).toFixed(3)}g</div>
+                      </div>
+
+                      {/* Current Balance Details Box */}
+                      <div style={{ border: '1px solid var(--border-color)', padding: '1rem', backgroundColor: 'var(--bg-primary)' }}>
+                        <div style={{ fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '0.95rem', color: 'var(--text-primary)' }}>Current Balance Details</div>
+                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Cur Bal Amount: ₹{parseFloat(selectedItem.curBalAmount || 0).toFixed(2)}</div>
+                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#FFD700', fontWeight: 500 }}>Cur Bal Gold Fine Wt: {parseFloat(selectedItem.curBalGoldFineWt || 0).toFixed(3)}g</div>
+                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#C0C0C0', fontWeight: 500 }}>Cur Bal Silver Fine Wt: {parseFloat(selectedItem.curBalSilverFineWt || 0).toFixed(3)}g</div>
+                        <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>Receipt Gross (Entry Fine): {parseFloat(selectedItem.receiptGross || 0).toFixed(3)}g</div>
                       </div>
                     </div>
 
