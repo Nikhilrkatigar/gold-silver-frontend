@@ -1,0 +1,41 @@
+v1.7 [GST option]
+
+i want you to add new feature implementation of gst i will explain u how it works 
+
+Admin
+
+in Add new User Page:-
+
+add Gst:yes/no
+
+User List:-
+
+here add edit option Actions (so that old user want i can add tht to them)
+----------------------------------------------------------------------------
+In User 
+
+if admin select yes for that particular user to Gst then in his Account Information page
+GST Settings
+
+GST Number                                                           
+[his Gst shop gst number {input tab with save and edit option}]  GST Rate (%)[let user decide ]
+
+
+In billing page :
+it should show Gst or normal
+
+if normal same working
+
+if Selected Gst 
+add this option beside Select Customer gst type: IGST / State GST
+if user select IGST then it should auto calculated with amount and should show in total 
+above Balance Summary add gst and show taxable value  gst amount and total [taxable value+gst amount] 
+if igst then only one if state gst then cgst[50%] and sgst [50%] 
+Percentage of. Should autofletch from GST rates set in user account? Page GST number. Let me explain you.
+For example. I have selected IGST. Then if the user has. Set as 3%. Then IGST should be calculated by 3%.
+If users select state, GST. Then CGST 1.5% and SGST 1.5%
+And in print. Users GST Number should be shown. And customer GST number should and. Should be shown. If customers don't have GST then only it should not show. If he has entered GST then it should show.
+While adding Ledger. It should ask GST number. If user don't enter. Then it should not take. If user enters GST number. then Building print or in share. It should show his GST number.
+
+
+
