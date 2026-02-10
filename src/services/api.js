@@ -10,8 +10,6 @@ const api = axios.create({
   },
 });
 
-console.log('API Base URL:', API_URL);
-
 // Request interceptor to add token
 api.interceptors.request.use(
   (config) => {
@@ -28,7 +26,8 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    const isLoginRequest = error.config?.url?.includes('/api/auth/login');
+    if (error.response?.status === 401 && !isLoginRequest) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
@@ -76,6 +75,7 @@ export const voucherAPI = {
   getAll: (params) => api.get('/api/voucher', { params }),
   getDueCredits: () => api.get('/api/voucher/due-credits'),
   getOne: (id) => api.get(`/api/voucher/${id}`),
+  cancel: (id, data) => api.patch(`/api/voucher/${id}`, data),
   delete: (id) => api.delete(`/api/voucher/${id}`),
 };
 

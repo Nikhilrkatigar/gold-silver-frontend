@@ -44,12 +44,11 @@ export default function UserDashboard() {
               })
               .forEach(t => {
                 if (t.type === 'voucher') {
-                  const totalAmount = t.items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(t.stoneAmount) || 0);
                   transactions.push({
                     type: 'voucher',
                     date: t.date,
                     description: `Voucher #${t.voucherNumber} - ${ledger.name}`,
-                    amount: totalAmount,
+                    amount: parseFloat(t.total) || 0,
                     paymentType: t.paymentType,
                     timestamp: new Date(t.date).getTime()
                   });

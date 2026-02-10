@@ -5,8 +5,10 @@ import { ledgerAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import { FiPlus, FiEdit2, FiTrash2, FiEye, FiX } from 'react-icons/fi';
 import { isValidGSTFormat, extractStateFromGST } from '../../utils/gstCalculations';
+import { useAuth } from '../../context/AuthContext';
 
 export default function LedgerManagement() {
+  const { user } = useAuth();
   const [ledgers, setLedgers] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [editingLedger, setEditingLedger] = useState(null);
@@ -104,7 +106,20 @@ export default function LedgerManagement() {
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <h1>Ledger Management</h1>
-          <button onClick={() => { setEditingLedger(null); setFormData({ name: '', phoneNumber: '', hasGST: false, gstNumber: '', stateCode: '' }); setShowModal(true); }} className="btn btn-primary">
+          <button 
+            onClick={() => { 
+              setEditingLedger(null); 
+              setFormData({ 
+                name: '', 
+                phoneNumber: '', 
+                hasGST: false,
+                gstNumber: '',
+                stateCode: ''
+              }); 
+              setShowModal(true); 
+            }} 
+            className="btn btn-primary"
+          >
             <FiPlus /> Add Ledger
           </button>
         </div>

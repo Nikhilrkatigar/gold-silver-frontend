@@ -23,6 +23,7 @@
   --text-primary: #111827;
   --text-secondary: #6b7280;
   --text-tertiary: #9ca3af;
+  --color-text: #111827;
   
   --border-color: #e5e7eb;
   --border-color-hover: #d1d5db;
@@ -43,6 +44,7 @@
   --text-primary: #f9fafb;
   --text-secondary: #d1d5db;
   --text-tertiary: #9ca3af;
+  --color-text: #f9fafb;
   
   --border-color: #374151;
   --border-color-hover: #4b5563;

@@ -21,7 +21,7 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
     amount: items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
   };
 
-  const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0);
+  const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.roundOff) || 0);
 
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
@@ -46,17 +46,7 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
         <div>Page No : 1/1</div>
       </div>
 
-      {/* GST Customer Info */}
-      {formData.invoiceType === 'gst' && formData.customerGSTNumber && (
-        <div style={{ marginBottom: '20px', padding: '10px', backgroundColor: '#f5f5f5', border: '1px solid #ddd', borderRadius: '4px', fontSize: '13px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-            <div><strong>Customer GST Number :</strong> {formData.customerGSTNumber}</div>
-          </div>
-          <div style={{ color: '#666' }}>
-            <strong>Invoice Type :</strong> {user?.gstSettings?.businessState && extractStateFromGST(user.gstSettings.businessState) === extractStateFromGST(formData.customerGSTNumber) ? 'CGST + SGST (Same State)' : 'IGST (Different State)'}
-          </div>
-        </div>
-      )}
+
 
       {/* Items Table */}
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
@@ -122,7 +112,7 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
             <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>GST Details</div>
             {(() => {
               const taxableAmount = totals.amount + (parseFloat(formData.stoneAmount) || 0);
-              const gstType = extractStateFromGST(user?.gstSettings?.businessState) === extractStateFromGST(formData.customerGSTNumber) ? 'CGST_SGST' : 'IGST';
+              const gstType = 'IGST';
               const gstCalc = calculateGST(taxableAmount, parseFloat(formData.gstRate), gstType);
               
               return (
@@ -193,9 +183,15 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
             <div>Cash Received</div>
             <div>₹{parseFloat(formData.cashReceived || 0).toFixed(2)}</div>
           </div>
+          {parseFloat(formData.roundOff || 0) !== 0 && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
+              <div>Round Off</div>
+              <div style={{ color: parseFloat(formData.roundOff) > 0 ? '#27ae60' : '#e74c3c' }}>₹{parseFloat(formData.roundOff || 0).toFixed(2)}</div>
+            </div>
+          )}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontWeight: 'bold' }}>
             <div>Net Balance</div>
-            <div>₹{((totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)}</div>
+            <div>₹{((totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.roundOff) || 0)) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)}</div>
           </div>
 
           {/* Old Balance Details Box */}
@@ -247,7 +243,13 @@ export default function Billing() {
   const voucherid = searchParams.get('voucherid');
   const [ledgers, setLedgers] = useState([]);
   const [showAddLedgerModal, setShowAddLedgerModal] = useState(false);
-  const [ledgerFormData, setLedgerFormData] = useState({ name: '', phoneNumber: '' });
+  const [ledgerFormData, setLedgerFormData] = useState({ 
+    name: '', 
+    phoneNumber: '',
+    hasGST: false,
+    gstNumber: '',
+    stateCode: ''
+  });
   const [addingLedger, setAddingLedger] = useState(false);
   const [editingVoucherId, setEditingVoucherId] = useState(null);
   const [formData, setFormData] = useState({
@@ -262,8 +264,8 @@ export default function Billing() {
     receiptGross: '',
     narration: '',
     cashReceived: '',
+    roundOff: '0',
     invoiceType: 'normal',
-    customerGSTNumber: '',
     gstRate: ''
   });
   const [items, setItems] = useState([]);
@@ -281,6 +283,16 @@ export default function Billing() {
       loadVoucherData(voucherid);
     }
   }, [voucherid]);
+
+  // Update customer search when ledgerId changes (fixes customer name not showing on edit/preview)
+  useEffect(() => {
+    if (formData.ledgerId && ledgers.length > 0) {
+      const selectedCustomer = ledgers.find(l => l._id === formData.ledgerId);
+      if (selectedCustomer) {
+        setCustomerSearch(selectedCustomer.name);
+      }
+    }
+  }, [formData.ledgerId, ledgers]);
 
   const loadVoucherData = async (id) => {
     try {
@@ -300,13 +312,12 @@ export default function Billing() {
         receiptGross: voucher.receipt?.gross || '',
         narration: voucher.narration || '',
         cashReceived: voucher.cashReceived || '',
+        roundOff: voucher.roundOff || '0',
         invoiceType: voucher.invoiceType || 'normal',
-        customerGSTNumber: voucher.gstDetails?.customerGSTNumber || '',
         gstRate: voucher.gstDetails?.gstRate || ''
       });
       
       setItems(voucher.items || []);
-      setCustomerSearch(ledgers.find(l => l._id === voucher.ledgerId)?.name || '');
       toast.success('Voucher loaded successfully');
     } catch (error) {
       console.error('Error loading voucher:', error);
@@ -341,11 +352,46 @@ export default function Billing() {
       const ledger = ledgers.find(l => l._id === formData.ledgerId);
       if (ledger) {
         setSelectedLedger(ledger);
+        
+
       }
     } else {
       setSelectedLedger(null);
     }
-  }, [formData.ledgerId, ledgers]);
+  }, [formData.ledgerId, ledgers, user?.gstEnabled]);
+
+  // Close dropdown when clicking outside (fixes dropdown getting stuck)
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      const customerDropdownContainer = document.querySelector('[data-customer-dropdown]');
+      if (customerDropdownContainer && !customerDropdownContainer.contains(event.target)) {
+        setShowCustomerDropdown(false);
+      }
+    };
+
+    if (showCustomerDropdown) {
+      document.addEventListener('mousedown', handleOutsideClick);
+      return () => {
+        document.removeEventListener('mousedown', handleOutsideClick);
+      };
+    }
+  }, [showCustomerDropdown]);
+
+  // Handle Escape key to close dropdown
+  useEffect(() => {
+    const handleEscapeKey = (event) => {
+      if (event.key === 'Escape' && showCustomerDropdown) {
+        setShowCustomerDropdown(false);
+      }
+    };
+
+    if (showCustomerDropdown) {
+      document.addEventListener('keydown', handleEscapeKey);
+      return () => {
+        document.removeEventListener('keydown', handleEscapeKey);
+      };
+    }
+  }, [showCustomerDropdown]);
 
   // Recalculate all items when Gold/Silver rates change
   useEffect(() => {
@@ -398,12 +444,30 @@ export default function Billing() {
       return;
     }
 
+    // Validate GST if enabled
+    if (ledgerFormData.hasGST && (!ledgerFormData.gstNumber || !isValidGSTFormat(ledgerFormData.gstNumber))) {
+      toast.error('Please enter a valid GST number');
+      return;
+    }
+
     setAddingLedger(true);
     try {
-      await ledgerAPI.create(ledgerFormData);
+      const submitData = {
+        name: ledgerFormData.name,
+        phoneNumber: ledgerFormData.phoneNumber,
+        ...(ledgerFormData.hasGST && {
+          gstDetails: {
+            hasGST: true,
+            gstNumber: ledgerFormData.gstNumber,
+            stateCode: ledgerFormData.stateCode
+          }
+        })
+      };
+      
+      await ledgerAPI.create(submitData);
       toast.success('Ledger created successfully');
       setShowAddLedgerModal(false);
-      setLedgerFormData({ name: '', phoneNumber: '' });
+      setLedgerFormData({ name: '', phoneNumber: '', hasGST: false, gstNumber: '', stateCode: '' });
       fetchLedgers();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to create ledger');
@@ -535,10 +599,6 @@ export default function Billing() {
 
     // Validate GST fields if GST invoice is selected
     if (formData.invoiceType === 'gst') {
-      if (!formData.customerGSTNumber || !isValidGSTFormat(formData.customerGSTNumber)) {
-        toast.error('Please enter a valid customer GST number');
-        return;
-      }
       if (!formData.gstRate || parseFloat(formData.gstRate) < 0) {
         toast.error('Please select a valid GST rate');
         return;
@@ -572,26 +632,24 @@ export default function Billing() {
       receipt: { gross: parseFloat(formData.receiptGross) || 0 },
       narration: formData.narration,
       cashReceived: parseFloat(formData.cashReceived) || 0,
+      roundOff: parseFloat(formData.roundOff) || 0,
       invoiceType: formData.invoiceType,
       ...(formData.invoiceType === 'gst' && {
         gstDetails: {
-          customerGSTNumber: formData.customerGSTNumber,
-          gstRate: parseFloat(formData.gstRate) || 0,
-          gstType: user?.gstSettings?.businessState && formData.customerGSTNumber 
-            ? (extractStateFromGST(user.gstSettings.businessState) === extractStateFromGST(formData.customerGSTNumber) ? 'CGST_SGST' : 'IGST')
-            : null
+          gstRate: parseFloat(formData.gstRate) || 0
         }
       })
     };
 
     try {
       if (editingVoucherId) {
-        // Delete old voucher and create new one
-        await voucherAPI.delete(editingVoucherId);
+        await voucherAPI.cancel(editingVoucherId, {
+          status: 'cancelled',
+          cancelledReason: 'Updated with new voucher'
+        });
         await voucherAPI.create(voucherData);
-        toast.success('Voucher updated successfully!');
+        toast.success('Voucher updated successfully and previous voucher was cancelled.');
       } else {
-        // Create new voucher
         await voucherAPI.create(voucherData);
         toast.success('Voucher created successfully!');
       }
@@ -971,7 +1029,7 @@ export default function Billing() {
           <!-- GST Section -->
           ${formData.invoiceType === 'gst' && formData.gstRate ? (() => {
             const taxableAmount = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0);
-            const gstType = user?.gstSettings?.businessState && formData.customerGSTNumber && formData.customerGSTNumber.substr(0, 2) === user.gstSettings.businessState.substr(0, 2) ? 'CGST_SGST' : 'IGST';
+            const gstType = 'IGST';
             const rate = parseFloat(formData.gstRate) || 0;
             let igst = 0, cgst = 0, sgst = 0, totalGST = 0;
             
@@ -985,9 +1043,7 @@ export default function Billing() {
             }
 
             let html = '<div style="background-color: #e3f2fd; padding: 20px; border-radius: 8px; border: 2px solid #2196f3; margin-bottom: 20px; font-size: 14px; color: #333333;"><h3 style="margin: 0 0 15px 0; font-size: 14px; font-weight: bold; color: #1565c0;">📄 GST Details (Tax Invoice)</h3>';
-            if (formData.customerGSTNumber) {
-              html += '<div style="display: flex; justify-content: space-between; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px solid rgba(0,0,0,0.1);"><div><div style="color: #666; font-size: 12px; margin-bottom: 3px;">Customer GST Number</div><div style="font-weight: bold; color: #000000;">' + formData.customerGSTNumber + '</div></div><div style="text-align: right;"><div style="color: #666; font-size: 12px; margin-bottom: 3px;">GST Type</div><div style="font-weight: bold; color: #000000;">' + (gstType === 'CGST_SGST' ? 'CGST + SGST' : 'IGST') + '</div></div></div>';
-            }
+
             html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;"><div style="background-color: rgba(255,255,255,0.6); padding: 12px; border-radius: 4px;"><div style="color: #666; font-size: 12px; margin-bottom: 3px;">Taxable Amount</div><div style="font-size: 14px; font-weight: bold; color: #000000;">₹' + taxableAmount.toFixed(2) + '</div></div><div style="background-color: rgba(255,255,255,0.6); padding: 12px; border-radius: 4px;"><div style="color: #666; font-size: 12px; margin-bottom: 3px;">GST Rate</div><div style="font-size: 14px; font-weight: bold; color: #000000;">' + rate + '%</div></div>';
             if (gstType === 'IGST') {
               html += '<div style="background-color: rgba(255,255,255,0.6); padding: 12px; border-radius: 4px;"><div style="color: #666; font-size: 12px; margin-bottom: 3px;">IGST (' + rate + '%)</div><div style="font-size: 14px; font-weight: bold; color: #1565c0;">₹' + igst.toFixed(2) + '</div></div>';
@@ -1100,7 +1156,54 @@ export default function Billing() {
   return (
     <Layout>
       <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-        <h1 style={{ color: 'var(--color-primary)', marginBottom: '30px' }}>{editingVoucherId ? '✏️ Edit Voucher' : 'Create Voucher'}</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '15px' }}>
+          <h1 style={{ color: 'var(--color-primary)', marginBottom: 0, margin: 0 }}>{editingVoucherId ? '✏️ Edit Voucher' : '📋 Create Voucher'}</h1>
+          
+          {/* GST Billing Mode Selector - Only show for GST-enabled users */}
+          {user?.gstEnabled && (
+            <div style={{
+              display: 'flex',
+              gap: '10px',
+              backgroundColor: 'var(--bg-secondary)',
+              padding: '8px',
+              borderRadius: '6px',
+              border: '1px solid var(--border-color)'
+            }}>
+              <button
+                onClick={() => window.location.href = '/billing'}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: editingVoucherId || !editingVoucherId ? 'var(--color-primary)' : 'transparent',
+                  color: editingVoucherId || !editingVoucherId ? '#fff' : 'var(--color-text)',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '13px',
+                  transition: 'all 0.3s'
+                }}
+              >
+                Normal Billing
+              </button>
+              <button
+                onClick={() => window.location.href = '/gst-billing'}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#27ae60',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '13px',
+                  transition: 'all 0.3s'
+                }}
+              >
+                📄 GST Billing
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Customer Selection */}
         <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
@@ -1108,7 +1211,16 @@ export default function Billing() {
             <h3 style={{ marginTop: 0, marginBottom: 0 }}>Select Customer</h3>
             <button
               type="button"
-              onClick={() => setShowAddLedgerModal(true)}
+              onClick={() => {
+                setLedgerFormData({ 
+                  name: '', 
+                  phoneNumber: '', 
+                  hasGST: false,
+                  gstNumber: '',
+                  stateCode: ''
+                });
+                setShowAddLedgerModal(true);
+              }}
               style={{
                 padding: '8px 15px',
                 backgroundColor: 'var(--color-primary)',
@@ -1126,7 +1238,7 @@ export default function Billing() {
             </button>
           </div>
           
-          <div style={{ position: 'relative', maxWidth: '500px' }}>
+          <div style={{ position: 'relative', maxWidth: '500px' }} data-customer-dropdown>
             <input
               type="text"
               placeholder="Search or select customer..."
@@ -1373,6 +1485,30 @@ export default function Billing() {
             </div>
 
             <div>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Round Off (₹)</label>
+              <input
+                type="number"
+                step="0.01"
+                value={formData.roundOff}
+                onChange={(e) => setFormData(prev => ({ ...prev, roundOff: e.target.value }))}
+                placeholder="0.00"
+                style={{
+                  width: '100%',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--color-text)',
+                  boxSizing: 'border-box',
+                  fontSize: '13px'
+                }}
+              />
+              <small style={{ display: 'block', marginTop: '2px', color: 'var(--color-muted)', fontSize: '10px' }}>
+                (adjustment for final amount - positive or negative)
+              </small>
+            </div>
+
+            <div>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Payment Type</label>
               <select
                 value={formData.paymentType}
@@ -1395,114 +1531,6 @@ export default function Billing() {
                 {formData.paymentType === 'credit' ? 'On Balance' : 'Immediate'}
               </small>
             </div>
-          </div>
-
-          {/* GST Invoice Section */}
-          <div style={{ marginBottom: '20px', padding: '15px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-            <div style={{ marginBottom: '15px' }}>
-              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '13px' }}>📄 Invoice Type</label>
-              <div style={{ display: 'flex', gap: '20px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '13px' }}>
-                  <input
-                    type="radio"
-                    name="invoiceType"
-                    value="normal"
-                    checked={formData.invoiceType === 'normal'}
-                    onChange={(e) => setFormData(prev => ({ ...prev, invoiceType: e.target.value, customerGSTNumber: '', gstRate: '' }))}
-                    style={{ marginRight: '8px', cursor: 'pointer' }}
-                  />
-                  Normal Invoice
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', fontSize: '13px' }}>
-                  <input
-                    type="radio"
-                    name="invoiceType"
-                    value="gst"
-                    checked={formData.invoiceType === 'gst'}
-                    onChange={(e) => setFormData(prev => ({ ...prev, invoiceType: e.target.value }))}
-                    style={{ marginRight: '8px', cursor: 'pointer' }}
-                  />
-                  GST Invoice
-                </label>
-              </div>
-            </div>
-
-            {formData.invoiceType === 'gst' && (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Customer GST Number *</label>
-                  <input
-                    type="text"
-                    value={formData.customerGSTNumber}
-                    onChange={(e) => setFormData(prev => ({ ...prev, customerGSTNumber: e.target.value.toUpperCase() }))}
-                    placeholder="15-digit GST format"
-                    maxLength="15"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      borderRadius: '4px',
-                      border: formData.customerGSTNumber && !isValidGSTFormat(formData.customerGSTNumber) ? '2px solid #ff4757' : '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-primary)',
-                      color: 'var(--color-text)',
-                      boxSizing: 'border-box',
-                      fontSize: '13px'
-                    }}
-                  />
-                  {formData.customerGSTNumber && !isValidGSTFormat(formData.customerGSTNumber) && (
-                    <small style={{ display: 'block', marginTop: '2px', color: '#ff4757', fontSize: '10px' }}>
-                      Invalid GST format. Expected: 15 characters (2 digits + 5 letters + 4 digits + 1 letter + 1 alphanumeric + Z + 1 digit)
-                    </small>
-                  )}
-                  {formData.customerGSTNumber && isValidGSTFormat(formData.customerGSTNumber) && (
-                    <small style={{ display: 'block', marginTop: '2px', color: 'var(--color-success)', fontSize: '10px' }}>
-                      ✓ Valid GST format
-                    </small>
-                  )}
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>GST Rate (%)</label>
-                  <select
-                    value={formData.gstRate}
-                    onChange={(e) => setFormData(prev => ({ ...prev, gstRate: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-primary)',
-                      color: 'var(--color-text)',
-                      boxSizing: 'border-box',
-                      fontSize: '13px'
-                    }}
-                  >
-                    <option value="">Select GST Rate</option>
-                    <option value="0">0% - Exempted</option>
-                    <option value="3">3% - Supplies</option>
-                    <option value="5">5% - Supplies</option>
-                    <option value="12">12% - Supplies</option>
-                    <option value="18">18% - Standard Rate</option>
-                  </select>
-                </div>
-
-                {formData.customerGSTNumber && isValidGSTFormat(formData.customerGSTNumber) && user?.gstSettings?.businessState && (
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>GST Type</label>
-                    <div style={{
-                      padding: '8px',
-                      backgroundColor: 'var(--bg-primary)',
-                      borderRadius: '4px',
-                      border: '1px solid var(--border-color)',
-                      fontSize: '13px'
-                    }}>
-                      {extractStateFromGST(user.gstSettings.businessState) === extractStateFromGST(formData.customerGSTNumber) 
-                        ? '🟡 CGST + SGST (Same State)' 
-                        : '🟣 IGST (Different State)'}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
           </div>
 
           {/* Items Section */}

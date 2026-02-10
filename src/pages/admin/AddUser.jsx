@@ -29,7 +29,19 @@ export default function AddUser() {
     setLoading(true);
 
     try {
-      await adminAPI.createUser(formData);
+      const submitData = {
+        shopName: formData.shopName,
+        phoneNumber: formData.phoneNumber,
+        password: formData.password,
+        licenseDays: formData.licenseDays,
+        gstEnabled: formData.gstEnabled,
+        gstSettings: {
+          gstEditPermission: formData.gstEditPermission,
+          defaultGSTRate: 18
+        }
+      };
+      
+      await adminAPI.createUser(submitData);
       toast.success('User created successfully!');
       setFormData({
         shopName: '',

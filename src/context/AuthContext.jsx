@@ -29,8 +29,11 @@ export const AuthProvider = ({ children }) => {
       const token = localStorage.getItem('token');
       if (token) {
         const response = await authAPI.getMe();
-        setUser(response.data.user);
-        setTheme(response.data.user.theme || 'system');
+        const userData = response.data.user;
+        setUser(userData);
+        setTheme(userData.theme || 'system');
+        // Update localStorage with latest user data including GST
+        localStorage.setItem('user', JSON.stringify(userData));
       }
     } catch (error) {
       localStorage.removeItem('token');
@@ -62,9 +65,15 @@ export const AuthProvider = ({ children }) => {
 
   const updateTheme = async (newTheme) => {
     try {
-      await authAPI.updateSettings({ theme: newTheme });
+      const response = await authAPI.updateSettings({ theme: newTheme });
       setTheme(newTheme);
-      setUser(prev => ({ ...prev, theme: newTheme }));
+      setUser(response.data.user);
+      // Persist to localStorage
+      const updatedUser = {
+        ...JSON.parse(localStorage.getItem('user')),
+        theme: newTheme
+      };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
     } catch (error) {
       console.error('Failed to update theme:', error);
     }
@@ -89,11 +98,14 @@ export const AuthProvider = ({ children }) => {
 
   const updateVoucherSettings = async (settings) => {
     try {
-      await authAPI.updateSettings({ voucherSettings: settings });
-      setUser(prev => ({ 
-        ...prev, 
-        voucherSettings: { ...prev.voucherSettings, ...settings }
-      }));
+      const response = await authAPI.updateSettings({ voucherSettings: settings });
+      setUser(response.data.user);
+      // Persist to localStorage
+      const updatedUser = {
+        ...JSON.parse(localStorage.getItem('user')),
+        voucherSettings: response.data.user.voucherSettings
+      };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
     } catch (error) {
       console.error('Failed to update voucher settings:', error);
       throw error;
@@ -102,11 +114,18 @@ export const AuthProvider = ({ children }) => {
 
   const updateGSTSettings = async (data) => {
     try {
-      await authAPI.updateSettings(data);
+      const response = await authAPI.updateSettings(data);
+      const updatedGSTSettings = response.data.user.gstSettings;
       setUser(prev => ({ 
         ...prev, 
-        gstSettings: { ...prev.gstSettings, ...data.gstSettings }
+        gstSettings: updatedGSTSettings
       }));
+      // Persist to localStorage
+      const updatedUser = {
+        ...JSON.parse(localStorage.getItem('user')),
+        gstSettings: updatedGSTSettings
+      };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
     } catch (error) {
       console.error('Failed to update GST settings:', error);
       throw error;

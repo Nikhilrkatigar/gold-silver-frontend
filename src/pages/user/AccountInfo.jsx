@@ -2,12 +2,12 @@ import React, { useState, useMemo } from 'react';
 import Layout from '../../components/Layout';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
-import { format, differenceInDays, parse } from 'date-fns';
+import { format, differenceInDays } from 'date-fns';
 import { FiSun, FiMoon, FiMonitor, FiLock, FiEdit2, FiSave, FiX } from 'react-icons/fi';
 
 export default function AccountInfo() {
   const { user, updateTheme, updateVoucherSettings, logout, theme, updateGSTSettings } = useAuth();
-  const [voucherMode, setVoucherMode] = useState(user?.voucherSettings?.autoIncrement || true);
+  const [voucherMode, setVoucherMode] = useState(user?.voucherSettings?.autoIncrement ?? true);
   const [editingGST, setEditingGST] = useState(false);
   const [gstFormData, setGstFormData] = useState({
     gstNumber: user?.gstSettings?.gstNumber || '',
@@ -17,40 +17,43 @@ export default function AccountInfo() {
   const [savingGST, setSavingGST] = useState(false);
 
   const indianStates = [
-    { code: 'AN', name: 'Andaman and Nicobar Islands' },
-    { code: 'AP', name: 'Andhra Pradesh' },
-    { code: 'AR', name: 'Arunachal Pradesh' },
-    { code: 'AS', name: 'Assam' },
-    { code: 'BR', name: 'Bihar' },
-    { code: 'CG', name: 'Chhattisgarh' },
-    { code: 'CH', name: 'Chandigarh' },
-    { code: 'DN', name: 'Dadra and Nagar Haveli' },
-    { code: 'DL', name: 'Delhi' },
-    { code: 'GA', name: 'Goa' },
-    { code: 'GJ', name: 'Gujarat' },
-    { code: 'HR', name: 'Haryana' },
-    { code: 'HP', name: 'Himachal Pradesh' },
-    { code: 'JK', name: 'Jammu and Kashmir' },
-    { code: 'JH', name: 'Jharkhand' },
-    { code: 'KA', name: 'Karnataka' },
-    { code: 'KL', name: 'Kerala' },
-    { code: 'LD', name: 'Lakshadweep' },
-    { code: 'MP', name: 'Madhya Pradesh' },
-    { code: 'MH', name: 'Maharashtra' },
-    { code: 'MN', name: 'Manipur' },
-    { code: 'ML', name: 'Meghalaya' },
-    { code: 'MZ', name: 'Mizoram' },
-    { code: 'NL', name: 'Nagaland' },
-    { code: 'OR', name: 'Odisha' },
-    { code: 'PB', name: 'Punjab' },
-    { code: 'PY', name: 'Puducherry' },
-    { code: 'RJ', name: 'Rajasthan' },
-    { code: 'SK', name: 'Sikkim' },
-    { code: 'TN', name: 'Tamil Nadu' },
-    { code: 'TR', name: 'Telangana' },
-    { code: 'UP', name: 'Uttar Pradesh' },
-    { code: 'UT', name: 'Uttarakhand' },
-    { code: 'WB', name: 'West Bengal' }
+    { code: '01', name: 'Jammu and Kashmir' },
+    { code: '02', name: 'Himachal Pradesh' },
+    { code: '03', name: 'Punjab' },
+    { code: '04', name: 'Chandigarh' },
+    { code: '05', name: 'Uttarakhand' },
+    { code: '06', name: 'Haryana' },
+    { code: '07', name: 'Delhi' },
+    { code: '08', name: 'Rajasthan' },
+    { code: '09', name: 'Uttar Pradesh' },
+    { code: '10', name: 'Bihar' },
+    { code: '11', name: 'Sikkim' },
+    { code: '12', name: 'Arunachal Pradesh' },
+    { code: '13', name: 'Nagaland' },
+    { code: '14', name: 'Manipur' },
+    { code: '15', name: 'Mizoram' },
+    { code: '16', name: 'Tripura' },
+    { code: '17', name: 'Meghalaya' },
+    { code: '18', name: 'Assam' },
+    { code: '19', name: 'West Bengal' },
+    { code: '20', name: 'Jharkhand' },
+    { code: '21', name: 'Odisha' },
+    { code: '22', name: 'Chhattisgarh' },
+    { code: '23', name: 'Madhya Pradesh' },
+    { code: '24', name: 'Gujarat' },
+    { code: '25', name: 'Daman and Diu' },
+    { code: '26', name: 'Dadra and Nagar Haveli' },
+    { code: '27', name: 'Maharashtra' },
+    { code: '28', name: 'Andhra Pradesh (Old)' },
+    { code: '29', name: 'Karnataka' },
+    { code: '30', name: 'Goa' },
+    { code: '31', name: 'Lakshadweep' },
+    { code: '32', name: 'Kerala' },
+    { code: '33', name: 'Tamil Nadu' },
+    { code: '34', name: 'Puducherry' },
+    { code: '35', name: 'Andaman and Nicobar Islands' },
+    { code: '36', name: 'Telangana' },
+    { code: '37', name: 'Andhra Pradesh (New)' }
   ];
 
   // Calculate days remaining properly
@@ -89,8 +92,8 @@ export default function AccountInfo() {
       return;
     }
 
-    // Validate GST format (15 characters)
-    if (!/^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}Z\d{1}$/.test(gstFormData.gstNumber)) {
+    // Validate GST format: 2 digits (state) + 5 letters (PAN) + 4 digits (entity) + 4 alphanumeric
+    if (!/^\d{2}[A-Z]{5}\d{4}[A-Z0-9]{4}$/.test(gstFormData.gstNumber)) {
       toast.error('Invalid GST number format (must be 15 characters)');
       return;
     }
@@ -156,7 +159,7 @@ export default function AccountInfo() {
           <div className="card" style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h3 style={{ margin: 0 }}>GST Settings ✅</h3>
-              {!editingGST && (
+              {!editingGST && user?.gstSettings?.gstEditPermission !== 'admin' && (
                 <button
                   onClick={() => setEditingGST(true)}
                   className="btn btn-sm"
@@ -166,6 +169,12 @@ export default function AccountInfo() {
                 </button>
               )}
             </div>
+
+            {user?.gstSettings?.gstEditPermission === 'admin' && (
+              <div style={{ marginBottom: '1rem', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                GST settings are managed by admin for this account.
+              </div>
+            )}
 
             {editingGST ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -191,7 +200,7 @@ export default function AccountInfo() {
                     }}
                   />
                   <small style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '0.25rem', display: 'block' }}>
-                    Format: 2 digits + 5 letters + 4 digits + 1 letter + 1 letter/digit + Z + 1 digit
+                    Format: 2-digit state code + 5 letters (PAN) + 4 digits (entity) + 4 alphanumeric
                   </small>
                 </div>
 

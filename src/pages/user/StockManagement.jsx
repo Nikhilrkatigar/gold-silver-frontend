@@ -87,7 +87,8 @@ const StockManagement = () => {
                 value={goldInput}
                 onChange={e => setGoldInput(e.target.value)}
                 step="0.01"
-                placeholder="Can be negative"
+                min="0"
+                placeholder="Enter gold grams"
                 required={silverInput === ''}
                 style={{ width: '100%' }}
               />
@@ -100,7 +101,8 @@ const StockManagement = () => {
                 value={silverInput}
                 onChange={e => setSilverInput(e.target.value)}
                 step="0.01"
-                placeholder="Can be negative"
+                min="0"
+                placeholder="Enter silver grams"
                 required={goldInput === ''}
                 style={{ width: '100%' }}
               />

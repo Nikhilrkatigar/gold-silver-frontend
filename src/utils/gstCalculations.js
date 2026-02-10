@@ -15,11 +15,12 @@ export const extractStateFromGST = (gstNumber) => {
 
 /**
  * Validate GST number format
- * Valid format: 15 characters - DDAAAAADDDDALDZ1
+ * Valid format: 15 characters - 29AABCR1718E1ZL
+ * Structure: 2 digits (state) + 5 letters (PAN) + 4 digits (entity) + 4 alphanumeric (check/filler)
  */
 export const isValidGSTFormat = (gstNumber) => {
   if (!gstNumber) return false;
-  const gstRegex = /^\d{2}[A-Z]{5}\d{4}[A-Z]{1}[A-Z\d]{1}Z\d{1}$/;
+  const gstRegex = /^\d{2}[A-Z]{5}\d{4}[A-Z0-9]{4}$/;
   return gstRegex.test(gstNumber.toUpperCase());
 };
 
@@ -109,50 +110,59 @@ export const formatGSTNumber = (gstNumber) => {
 };
 
 /**
- * State code to name mapping for Indian states
+ * State code to name mapping for Indian states (GST State Codes 01-38)
+ * Format: {stateCode: 'State Name'}
  */
 export const STATE_CODES = {
-  'AN': 'Andaman and Nicobar Islands',
-  'AP': 'Andhra Pradesh',
-  'AR': 'Arunachal Pradesh',
-  'AS': 'Assam',
-  'BR': 'Bihar',
-  'CG': 'Chhattisgarh',
-  'CH': 'Chandigarh',
-  'DN': 'Dadra and Nagar Haveli',
-  'DL': 'Delhi',
-  'GA': 'Goa',
-  'GJ': 'Gujarat',
-  'HR': 'Haryana',
-  'HP': 'Himachal Pradesh',
-  'JK': 'Jammu and Kashmir',
-  'JH': 'Jharkhand',
-  'KA': 'Karnataka',
-  'KL': 'Kerala',
-  'LD': 'Lakshadweep',
-  'MP': 'Madhya Pradesh',
-  'MH': 'Maharashtra',
-  'MN': 'Manipur',
-  'ML': 'Meghalaya',
-  'MZ': 'Mizoram',
-  'NL': 'Nagaland',
-  'OR': 'Odisha',
-  'PB': 'Punjab',
-  'PY': 'Puducherry',
-  'RJ': 'Rajasthan',
-  'SK': 'Sikkim',
-  'TN': 'Tamil Nadu',
-  'TR': 'Telangana',
-  'UP': 'Uttar Pradesh',
-  'UT': 'Uttarakhand',
-  'WB': 'West Bengal'
+  '01': 'Jammu & Kashmir',
+  '02': 'Himachal Pradesh',
+  '03': 'Punjab',
+  '04': 'Chandigarh',
+  '05': 'Uttarakhand',
+  '06': 'Haryana',
+  '07': 'Delhi',
+  '08': 'Rajasthan',
+  '09': 'Uttar Pradesh',
+  '10': 'Bihar',
+  '11': 'Sikkim',
+  '12': 'Arunachal Pradesh',
+  '13': 'Nagaland',
+  '14': 'Manipur',
+  '15': 'Mizoram',
+  '16': 'Tripura',
+  '17': 'Meghalaya',
+  '18': 'Assam',
+  '19': 'West Bengal',
+  '20': 'Jharkhand',
+  '21': 'Odisha',
+  '22': 'Chhattisgarh',
+  '23': 'Madhya Pradesh',
+  '24': 'Gujarat',
+  '25': 'Daman & Diu',
+  '26': 'Dadra & Nagar Haveli',
+  '27': 'Maharashtra',
+  '28': 'Andhra Pradesh (Old)',
+  '29': 'Karnataka',
+  '30': 'Goa',
+  '31': 'Lakshadweep',
+  '32': 'Kerala',
+  '33': 'Tamil Nadu',
+  '34': 'Puducherry',
+  '35': 'Andaman & Nicobar Islands',
+  '36': 'Telangana',
+  '37': 'Andhra Pradesh (New)',
+  '38': 'Ladakh',
+  '97': 'Other Territory',
+  '99': 'Centre Jurisdiction'
 };
 
 /**
- * Get state name from code
+ * Get state name from GST state code
+ * @param {string} stateCode - GST state code (01-38, 97, 99)
+ * @returns {string} - State name or the code if not found
  */
 export const getStateName = (stateCode) => {
-  return STATE_CODES[stateCode] || stateCode;
+  return STATE_CODES[stateCode] || STATE_CODES[String(stateCode).padStart(2, '0')] || stateCode;
 };
 
 /**

@@ -61,24 +61,66 @@ export default function LedgerDetail() {
   };
 
   const handleDeleteVoucher = async (voucherId) => {
-    if (!confirm('Delete this voucher?')) return;
-
+    const voucher = transactions.find(t => t._id === voucherId);
+    const isCancelled = voucher?.status === 'cancelled';
+    
     try {
-      await voucherAPI.delete(voucherId);
-      toast.success('Voucher deleted successfully');
+      if (!isCancelled) {
+        // First, cancel the voucher
+        const confirmCancel = confirm('Cancel this voucher?');
+        if (!confirmCancel) return;
+        
+        await fetch(`http://localhost:5000/api/voucher/${voucherId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'cancelled', cancelledReason: 'Cancelled from ledger' })
+        });
+        toast.success('Voucher cancelled successfully!');
+      } else {
+        // Voucher already cancelled, now offer to delete
+        const confirmDelete = confirm('This voucher is already cancelled. Permanently delete it? This cannot be undone!');
+        if (confirmDelete) {
+          await voucherAPI.delete(voucherId);
+          toast.success('Voucher deleted successfully!');
+        } else {
+          return;
+        }
+      }
       fetchLedgerDetails();
     } catch (error) {
-      toast.error('Failed to delete voucher');
+      toast.error('Failed to process voucher action');
     }
   };
 
   const handlePreviewVoucher = (voucher) => {
+    // Check if this is a GST invoice
+    const isGST = voucher.gstDetails || voucher.customerGSTNumber;
+    
+    if (isGST) {
+      // Use GST invoice format - redirect to GSTBilling with preview action
+      sessionStorage.setItem('gstPreviewVoucherId', voucher._id);
+      navigate(`/gst-billing?voucherid=${voucher._id}&action=preview`);
+      return;
+    }
+    
+    // Otherwise show modal preview
     setPreviewType('voucher');
     setSelectedItem(voucher);
     setShowPreview(true);
   };
 
   const handlePrintVoucher = (voucher) => {
+    // Check if this is a GST invoice
+    const isGST = voucher.gstDetails || voucher.customerGSTNumber;
+    
+    if (isGST) {
+      // Use GST invoice format - redirect to GSTBilling with print action
+      sessionStorage.setItem('gstPrintVoucherId', voucher._id);
+      navigate(`/gst-billing?voucherid=${voucher._id}&action=print`);
+      return;
+    }
+    
+    // Otherwise use old format
     const printWindow = window.open('', '_blank');
     const voucherHTML = `
       <!DOCTYPE html>
@@ -342,6 +384,17 @@ export default function LedgerDetail() {
 
   const handleShareVoucher = async (voucher) => {
     try {
+      // Check if this is a GST invoice
+      const isGST = voucher.gstDetails || voucher.customerGSTNumber;
+      
+      if (isGST) {
+        // Use GST invoice format - redirect to GSTBilling with share action
+        sessionStorage.setItem('gstShareVoucherId', voucher._id);
+        navigate(`/gst-billing?voucherid=${voucher._id}&action=share`);
+        return;
+      }
+      
+      // Otherwise use old format
       const voucherTotal = voucher.items 
         ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(voucher.stoneAmount) || 0)
         : 0;
@@ -910,7 +963,14 @@ export default function LedgerDetail() {
                       <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                         {txn.type === 'voucher' && (
                           <button 
-                            onClick={() => navigate(`/billing?voucherid=${txn._id}`)}
+                            onClick={() => {
+                              const isGST = txn.gstDetails || txn.customerGSTNumber;
+                              if (isGST) {
+                                navigate(`/gst-billing?voucherid=${txn._id}`);
+                              } else {
+                                navigate(`/billing?voucherid=${txn._id}`);
+                              }
+                            }}
                             className="btn btn-sm btn-secondary"
                             title="Edit"
                           >
@@ -941,7 +1001,7 @@ export default function LedgerDetail() {
                         <button 
                           onClick={() => txn.type === 'voucher' ? handleDeleteVoucher(txn._id) : handleDeleteSettlement(txn._id)}
                           className="btn btn-sm btn-danger"
-                          title="Delete"
+                          title={txn.type === 'voucher' ? 'Cancel/Delete Voucher' : 'Delete'}
                         >
                           <FiTrash2 />
                         </button>

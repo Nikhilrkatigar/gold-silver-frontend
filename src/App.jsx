@@ -13,6 +13,7 @@ import ExpiringUsers from './pages/admin/ExpiringUsers';
 
 import UserDashboard from './pages/user/Dashboard';
 import Billing from './pages/user/Billing';
+import GSTBilling from './pages/user/GSTBilling';
 import LedgerManagement from './pages/user/LedgerManagement';
 import LedgerDetail from './pages/user/LedgerDetail';
 import Settlement from './pages/user/Settlement';
@@ -71,6 +72,9 @@ function AppRoutes() {
       {/* User Routes */}
       <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
       <Route path="/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
+      <Route path="/user/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
+      <Route path="/gst-billing" element={<ProtectedRoute><GSTBilling /></ProtectedRoute>} />
+      <Route path="/user/gst-billing" element={<ProtectedRoute><GSTBilling /></ProtectedRoute>} />
       <Route path="/ledgers" element={<ProtectedRoute><LedgerManagement /></ProtectedRoute>} />
       <Route path="/ledgers/:id" element={<ProtectedRoute><LedgerDetail /></ProtectedRoute>} />
       <Route path="/settlement" element={<ProtectedRoute><Settlement /></ProtectedRoute>} />
