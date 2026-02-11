@@ -15,6 +15,7 @@ import UserDashboard from './pages/user/Dashboard';
 import Billing from './pages/user/Billing';
 import GSTBilling from './pages/user/GSTBilling';
 import LedgerManagement from './pages/user/LedgerManagement';
+import GSTLedger from './pages/user/GSTLedger';
 import LedgerDetail from './pages/user/LedgerDetail';
 import Settlement from './pages/user/Settlement';
 import AccountInfo from './pages/user/AccountInfo';
@@ -27,11 +28,11 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
 
   if (loading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh' 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh'
       }}>
         <div className="loading" style={{ width: '40px', height: '40px' }}></div>
       </div>
@@ -58,17 +59,17 @@ function AppRoutes() {
 
   return (
     <Routes>
-      <Route 
-        path="/login" 
-        element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} replace /> : <Login />} 
+      <Route
+        path="/login"
+        element={user ? <Navigate to={user.role === 'admin' ? '/admin' : '/dashboard'} replace /> : <Login />}
       />
-      
+
       {/* Admin Routes */}
       <Route path="/admin" element={<ProtectedRoute adminOnly><AdminDashboard /></ProtectedRoute>} />
       <Route path="/admin/add-user" element={<ProtectedRoute adminOnly><AddUser /></ProtectedRoute>} />
       <Route path="/admin/users" element={<ProtectedRoute adminOnly><UserList /></ProtectedRoute>} />
       <Route path="/admin/expiring" element={<ProtectedRoute adminOnly><ExpiringUsers /></ProtectedRoute>} />
-      
+
       {/* User Routes */}
       <Route path="/dashboard" element={<ProtectedRoute><UserDashboard /></ProtectedRoute>} />
       <Route path="/billing" element={<ProtectedRoute><Billing /></ProtectedRoute>} />
@@ -76,12 +77,13 @@ function AppRoutes() {
       <Route path="/gst-billing" element={<ProtectedRoute><GSTBilling /></ProtectedRoute>} />
       <Route path="/user/gst-billing" element={<ProtectedRoute><GSTBilling /></ProtectedRoute>} />
       <Route path="/ledgers" element={<ProtectedRoute><LedgerManagement /></ProtectedRoute>} />
+      <Route path="/gst-ledger" element={<ProtectedRoute><GSTLedger /></ProtectedRoute>} />
       <Route path="/ledgers/:id" element={<ProtectedRoute><LedgerDetail /></ProtectedRoute>} />
       <Route path="/settlement" element={<ProtectedRoute><Settlement /></ProtectedRoute>} />
       <Route path="/stock" element={<ProtectedRoute><StockManagement /></ProtectedRoute>} />
       <Route path="/account" element={<ProtectedRoute><AccountInfo /></ProtectedRoute>} />
       <Route path="/karigar" element={<ProtectedRoute><Karigar /></ProtectedRoute>} />
-      
+
       {/* Default redirect */}
       <Route path="/" element={<Navigate to={user ? (user.role === 'admin' ? '/admin' : '/dashboard') : '/login'} replace />} />
       <Route path="*" element={<Navigate to="/" replace />} />

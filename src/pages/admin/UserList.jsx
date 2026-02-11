@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import { adminAPI } from '../../services/api';
 import { toast } from 'react-toastify';
-import { FiEdit2, FiTrash2, FiPlusCircle, FiX, FiSave } from 'react-icons/fi';
+import { FiEdit2, FiTrash2, FiPlusCircle, FiX, FiSave, FiUser } from 'react-icons/fi';
 import { format } from 'date-fns';
 
 export default function UserList() {
@@ -16,6 +17,22 @@ export default function UserList() {
     gstEditPermission: 'user'
   });
   const [savingGST, setSavingGST] = useState(false);
+
+  // New states for edit user functionality
+  const [editingUserInfo, setEditingUserInfo] = useState(null);
+  const [userFormData, setUserFormData] = useState({
+    phoneNumber: '',
+    password: ''
+  });
+  const [savingUser, setSavingUser] = useState(false);
+
+  // State for confirmation dialog
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null
+  });
 
   useEffect(() => {
     fetchUsers();
@@ -32,16 +49,21 @@ export default function UserList() {
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this user? All their data will be lost.')) return;
-
-    try {
-      await adminAPI.deleteUser(id);
-      toast.success('User deleted successfully');
-      fetchUsers();
-    } catch (error) {
-      toast.error('Failed to delete user');
-    }
+  const handleDelete = async (user) => {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete User',
+      message: `Are you sure you want to delete "${user.shopName}"? All their data (ledgers, vouchers, settlements, etc.) will be permanently lost. This action cannot be undone.`,
+      onConfirm: async () => {
+        try {
+          await adminAPI.deleteUser(user.id);
+          toast.success('User deleted successfully');
+          fetchUsers();
+        } catch (error) {
+          toast.error('Failed to delete user');
+        }
+      }
+    });
   };
 
   const handleExtendLicense = async (userId) => {
@@ -88,6 +110,89 @@ export default function UserList() {
     }
   };
 
+  // New handlers for edit user functionality
+  const handleEditUser = (user) => {
+    setEditingUserInfo(user.id);
+    setUserFormData({
+      phoneNumber: user.phoneNumber,
+      password: '' // Start empty for security
+    });
+  };
+
+  const handleSaveUser = async (userId) => {
+    // Validate phone number
+    const phoneNumber = userFormData.phoneNumber.replace(/\D/g, '');
+    if (!/^[0-9]{10}$/.test(phoneNumber)) {
+      toast.error('Phone number must be 10 digits');
+      return;
+    }
+
+    setSavingUser(true);
+    try {
+      const updateData = {
+        phoneNumber: phoneNumber
+      };
+
+      // Only include password if it's been entered
+      if (userFormData.password && userFormData.password.trim() !== '') {
+        if (userFormData.password.length < 6) {
+          toast.error('Password must be at least 6 characters');
+          setSavingUser(false);
+          return;
+        }
+        updateData.password = userFormData.password;
+      }
+
+      await adminAPI.updateUser(userId, updateData);
+      toast.success('User updated successfully');
+      setEditingUserInfo(null);
+      setUserFormData({ phoneNumber: '', password: '' });
+      fetchUsers();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update user');
+    } finally {
+      setSavingUser(false);
+    }
+  };
+
+  // Helper function to format storage size
+  const formatStorageSize = (storageUsage) => {
+    if (!storageUsage || !storageUsage.totalBytes) {
+      return '0 KB';
+    }
+
+    const bytes = storageUsage.totalBytes;
+    const kb = bytes / 1024;
+    const mb = bytes / (1024 * 1024);
+    const gb = bytes / (1024 * 1024 * 1024);
+
+    if (gb >= 1) {
+      return `${gb.toFixed(2)} GB`;
+    } else if (mb >= 1) {
+      return `${mb.toFixed(2)} MB`;
+    } else {
+      return `${kb.toFixed(2)} KB`;
+    }
+  };
+
+  // Helper function to format breakdown for tooltip
+  const formatBreakdown = (breakdown) => {
+    if (!breakdown) return '';
+
+    const formatBytes = (bytes) => {
+      const kb = bytes / 1024;
+      const mb = bytes / (1024 * 1024);
+      if (mb >= 1) return `${mb.toFixed(2)} MB`;
+      return `${kb.toFixed(2)} KB`;
+    };
+
+    return `Ledgers: ${formatBytes(breakdown.ledgers?.bytes || 0)} (${breakdown.ledgers?.count || 0} entries)
+Vouchers: ${formatBytes(breakdown.vouchers?.bytes || 0)} (${breakdown.vouchers?.count || 0} entries)
+Settlements: ${formatBytes(breakdown.settlements?.bytes || 0)} (${breakdown.settlements?.count || 0} entries)
+Karigars: ${formatBytes(breakdown.karigars?.bytes || 0)} (${breakdown.karigars?.count || 0} entries)
+Stock: ${formatBytes(breakdown.stock?.bytes || 0)} (${breakdown.stock?.count || 0} entries)`;
+  };
+
   if (loading) {
     return (
       <Layout>
@@ -113,6 +218,7 @@ export default function UserList() {
                 <th>Days Left</th>
                 <th>Status</th>
                 <th>GST Status</th>
+                <th>Storage Usage</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -134,7 +240,23 @@ export default function UserList() {
                     </span>
                   </td>
                   <td>
+                    <span
+                      className="badge badge-info"
+                      title={formatBreakdown(user.storageUsage?.breakdown)}
+                      style={{ cursor: 'help', fontWeight: 'bold' }}
+                    >
+                      💾 {formatStorageSize(user.storageUsage)}
+                    </span>
+                  </td>
+                  <td>
                     <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                      <button
+                        onClick={() => handleEditUser(user)}
+                        className="btn btn-sm btn-primary"
+                        title="Edit User Info"
+                      >
+                        <FiUser /> Edit
+                      </button>
                       <button
                         onClick={() => handleEditGST(user)}
                         className="btn btn-sm btn-info"
@@ -149,7 +271,7 @@ export default function UserList() {
                         <FiPlusCircle /> Extend
                       </button>
                       <button
-                        onClick={() => handleDelete(user.id)}
+                        onClick={() => handleDelete(user)}
                         className="btn btn-sm btn-danger"
                       >
                         <FiTrash2 />
@@ -252,6 +374,76 @@ export default function UserList() {
             </div>
           </div>
         )}
+
+        {editingUserInfo && (
+          <div className="modal-overlay" onClick={() => setEditingUserInfo(null)}>
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3 className="modal-title">Edit User Information</h3>
+                <button
+                  onClick={() => setEditingUserInfo(null)}
+                  className="btn btn-icon"
+                  style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+                >
+                  <FiX size={24} />
+                </button>
+              </div>
+              <div className="modal-body">
+                <div className="input-group">
+                  <label className="input-label">Phone Number *</label>
+                  <input
+                    type="tel"
+                    className="input"
+                    value={userFormData.phoneNumber}
+                    onChange={(e) => setUserFormData({ ...userFormData, phoneNumber: e.target.value })}
+                    placeholder="10-digit phone number"
+                    maxLength="10"
+                  />
+                  <small style={{ display: 'block', marginTop: '0.5rem', color: 'var(--color-gray-400)' }}>
+                    Must be 10 digits and unique
+                  </small>
+                </div>
+
+                <div className="input-group">
+                  <label className="input-label">New Password (optional)</label>
+                  <input
+                    type="password"
+                    className="input"
+                    value={userFormData.password}
+                    onChange={(e) => setUserFormData({ ...userFormData, password: e.target.value })}
+                    placeholder="Leave empty to keep current password"
+                  />
+                  <small style={{ display: 'block', marginTop: '0.5rem', color: 'var(--color-gray-400)' }}>
+                    Minimum 6 characters. Leave empty to keep existing password.
+                  </small>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button onClick={() => setEditingUserInfo(null)} className="btn btn-secondary">
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleSaveUser(editingUserInfo)}
+                  disabled={savingUser}
+                  className="btn btn-primary"
+                >
+                  <FiSave /> {savingUser ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+          onConfirm={confirmDialog.onConfirm}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmText="Delete"
+          cancelText="Cancel"
+          danger={true}
+        />
       </div>
     </Layout>
   );

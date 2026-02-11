@@ -59,7 +59,7 @@ export const adminAPI = {
 // Ledger APIs
 export const ledgerAPI = {
   create: (data) => api.post('/api/ledger', data),
-  getAll: () => api.get('/api/ledger'),
+  getAll: (params) => api.get('/api/ledger', { params }),
   getOne: (id) => api.get(`/api/ledger/${id}`),
   getTransactions: (id, params) =>
     api.get(`/api/ledger/${id}/transactions`, { params }),
@@ -67,6 +67,7 @@ export const ledgerAPI = {
   delete: (id) => api.delete(`/api/ledger/${id}`),
   deleteAllVouchers: (id) => api.delete(`/api/ledger/${id}/vouchers`),
   recalculateBalance: (id) => api.post(`/api/ledger/${id}/recalculate-balance`),
+  migrateFixTypes: () => api.post('/api/ledger/migrate/fix-ledger-types'),
 };
 
 // Voucher APIs

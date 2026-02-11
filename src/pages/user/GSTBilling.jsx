@@ -481,6 +481,7 @@ export default function GSTBilling() {
   const [showAddLedgerModal, setShowAddLedgerModal] = useState(false);
   const [addingLedger, setAddingLedger] = useState(false);
   const [customerSearch, setCustomerSearch] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
 
   const [formData, setFormData] = useState({
     ledgerId: '',
@@ -527,11 +528,11 @@ export default function GSTBilling() {
   useEffect(() => {
     const voucherId = searchParams.get('voucherid') || searchParams.get('edit');
     const action = searchParams.get('action');
-    
+
     if (voucherId) {
       loadVoucher(voucherId);
       setEditingVoucherId(voucherId);
-      
+
       // Auto-trigger print/share/preview after loading
       if (action === 'print' || action === 'share' || action === 'preview') {
         // Store action for later execution
@@ -568,7 +569,7 @@ export default function GSTBilling() {
   // Handle auto-print/share/preview from LedgerDetail
   useEffect(() => {
     const pendingAction = sessionStorage.getItem('pendingAction');
-    
+
     if (pendingAction && items.length > 0 && editingVoucherId) {
       // Wait a moment for all data to be ready
       const timer = setTimeout(() => {
@@ -584,14 +585,16 @@ export default function GSTBilling() {
         sessionStorage.removeItem('pendingAction');
         sessionStorage.removeItem('pendingVoucherId');
       }, 1000);
-      
+
       return () => clearTimeout(timer);
     }
   }, [items, editingVoucherId]);
 
   const fetchLedgers = async () => {
     try {
-      const response = await ledgerAPI.getAll();
+      const response = await ledgerAPI.getAll({ type: 'gst' });
+      console.log('📊 GST Ledgers fetched:', response?.data?.ledgers?.length || 0);
+      console.log('📋 Ledger Types:', response?.data?.ledgers?.map(l => ({ name: l.name, type: l.ledgerType })));
       if (response?.data?.ledgers) {
         setLedgers(response.data.ledgers);
       }
@@ -608,8 +611,8 @@ export default function GSTBilling() {
       if (response?.data?.vouchers) {
         const existingInvoice = response.data.vouchers.find(
           v => v.status !== 'cancelled' &&
-               v.invoiceNumber === invoiceNumber && 
-               (!excludeVoucherId || v._id !== excludeVoucherId)
+            v.invoiceNumber === invoiceNumber &&
+            (!excludeVoucherId || v._id !== excludeVoucherId)
         );
         return !!existingInvoice;
       }
@@ -624,7 +627,7 @@ export default function GSTBilling() {
     try {
       const response = await voucherAPI.getOne(voucherId);
       const voucher = response.data.voucher;
-      
+
       setFormData({
         ledgerId: voucher.ledgerId,
         invoiceNumber: voucher.invoiceNumber || 'GST-' + voucher.voucherNumber,
@@ -647,9 +650,15 @@ export default function GSTBilling() {
         transportId: voucher.transportId || '',
         deliveryLocation: voucher.deliveryLocation || '',
       });
-      
+
       setItems(voucher.items || []);
-      setCustomerSearch(ledgers.find(l => l._id === voucher.ledgerId)?.name || '');
+
+      // Set customer search - will be updated by useEffect when ledgers are loaded
+      // This ensures customer name shows even if ledgers aren't loaded yet
+      if (voucher.customerName) {
+        setCustomerSearch(voucher.customerName);
+      }
+
       toast.success('Invoice loaded');
     } catch (error) {
       console.error('Error loading voucher:', error);
@@ -659,9 +668,9 @@ export default function GSTBilling() {
 
   const handleAddLedgerSubmit = async (e) => {
     e.preventDefault();
-    
-    if (!ledgerFormData.name || !ledgerFormData.phoneNumber) {
-      toast.error('Please fill in all fields');
+
+    if (!ledgerFormData.name) {
+      toast.error('Please enter customer name');
       return;
     }
 
@@ -675,6 +684,7 @@ export default function GSTBilling() {
       const submitData = {
         name: ledgerFormData.name,
         phoneNumber: ledgerFormData.phoneNumber,
+        ledgerType: 'gst', // Ensure new ledgers created here are GST type
         ...(ledgerFormData.hasGST && {
           gstDetails: {
             hasGST: true,
@@ -683,7 +693,7 @@ export default function GSTBilling() {
           }
         })
       };
-      
+
       await ledgerAPI.create(submitData);
       toast.success('Customer created successfully');
       setShowAddLedgerModal(false);
@@ -731,8 +741,8 @@ export default function GSTBilling() {
 
         const netWeight = grossWeight - lessWeight;
         const fineWeight = (netWeight * (melting / 100)) + wastage;
-        const rate = item.metalType === 'gold' 
-          ? (parseFloat(formData.goldRate) || 0) 
+        const rate = item.metalType === 'gold'
+          ? (parseFloat(formData.goldRate) || 0)
           : (parseFloat(formData.silverRate) || 0);
         const amount = (fineWeight * rate) + labourRate;
 
@@ -846,13 +856,41 @@ export default function GSTBilling() {
         await voucherAPI.create(voucherData);
         toast.success('Invoice updated successfully and previous invoice was cancelled.');
       } else {
-        await voucherAPI.create(voucherData);
+        const response = await voucherAPI.create(voucherData);
+        console.log('✅ GST Voucher created:', response.data);
+        console.log('📋 Invoice Type:', response.data.voucher?.invoiceType);
+        console.log('🆔 Ledger ID:', response.data.voucher?.ledgerId);
         toast.success('Invoice created successfully!');
       }
 
-      setTimeout(() => {
-        navigate('/user/billing');
-      }, 1000);
+      // Reset form after save
+      setFormData({
+        ledgerId: '',
+        invoiceNumber: '',
+        date: new Date().toISOString().split('T')[0],
+        referenceNo: '',
+        eWayBillNo: '',
+        voucherNumber: user?.voucherSettings?.currentVoucherNumber || '',
+        goldRate: '',
+        silverRate: '',
+        stoneAmount: '0',
+        roundOff: '0',
+        narration: '',
+        customerGSTNumber: '',
+        gstRate: user?.gstSettings?.defaultGSTRate || 18,
+        bankName: '',
+        accountNumber: '',
+        ifscCode: '',
+        upiId: '',
+        transport: '',
+        transportId: '',
+        deliveryLocation: '',
+        paymentType: 'cash'
+      });
+      setItems([]);
+      setCustomerSearch('');
+      setSelectedLedger(null);
+      setEditingVoucherId(null);
     } catch (error) {
       console.error('Error saving invoice:', error);
       toast.error(error.response?.data?.message || 'Failed to save invoice');
@@ -882,7 +920,7 @@ export default function GSTBilling() {
     // Create temporary container for rendering
     const tempContainer = document.createElement('div');
     document.body.appendChild(tempContainer);
-    
+
     const root = ReactDOM.createRoot(tempContainer);
     root.render(
       <GSTInvoiceTemplate
@@ -902,7 +940,7 @@ export default function GSTBilling() {
       printWindow.document.write(tempContainer.innerHTML);
       printWindow.document.close();
       printWindow.print();
-      
+
       // Cleanup
       root.unmount();
       document.body.removeChild(tempContainer);
@@ -964,7 +1002,7 @@ export default function GSTBilling() {
 
     try {
       const ledger = ledgers.find(l => l._id === formData.ledgerId);
-      
+
       if (!ledger) {
         toast.error('Please select a customer');
         return;
@@ -1031,11 +1069,11 @@ export default function GSTBilling() {
           } else {
             // Fallback: Download + Show sharing options
             downloadPDFFile(blob, fileName);
-            
+
             // Show WhatsApp and other sharing options
             const whatsappText = `Check out this GST Tax Invoice for ${ledger?.name}. Invoice #${formData.invoiceNumber}. Total: ₹${totalAmount.toFixed(2)}`;
             const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
-            
+
             toast.info(
               <div>
                 <p>PDF downloaded! Share it via:</p>
@@ -1103,7 +1141,7 @@ export default function GSTBilling() {
           }}>
             <div>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: 'var(--color-text)' }}>
-                Invoice Number * 
+                Invoice Number *
                 <span style={{ fontSize: '12px', color: 'var(--color-warning)', fontWeight: 'normal', display: 'block' }}>
                   Must be unique and manually entered
                 </span>
@@ -1178,7 +1216,11 @@ export default function GSTBilling() {
                   type="text"
                   placeholder="Search customers..."
                   value={customerSearch}
-                  onChange={(e) => setCustomerSearch(e.target.value)}
+                  onChange={(e) => {
+                    setCustomerSearch(e.target.value);
+                    setShowDropdown(true);
+                  }}
+                  onFocus={() => setShowDropdown(true)}
                   style={{
                     padding: '10px',
                     border: '1px solid var(--border-color)',
@@ -1189,7 +1231,7 @@ export default function GSTBilling() {
                     color: 'var(--color-text)'
                   }}
                 />
-                {customerSearch && filteredLedgers.length > 0 && (
+                {showDropdown && customerSearch && filteredLedgers.length > 0 && (
                   <div style={{
                     position: 'absolute',
                     top: '100%',
@@ -1210,6 +1252,7 @@ export default function GSTBilling() {
                         onClick={() => {
                           setFormData({ ...formData, ledgerId: ledger._id });
                           setCustomerSearch(ledger.name);
+                          setShowDropdown(false);
                         }}
                         style={{
                           padding: '10px',
@@ -1901,12 +1944,12 @@ export default function GSTBilling() {
                 </div>
 
                 <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: 'var(--color-text)' }}>Phone Number *</label>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', color: 'var(--color-text)' }}>Phone Number (Optional)</label>
                   <input
                     type="tel"
                     value={ledgerFormData.phoneNumber}
                     onChange={(e) => setLedgerFormData({ ...ledgerFormData, phoneNumber: e.target.value })}
-                    placeholder="Enter phone number"
+                    placeholder="10 digits (optional)"
                     style={{
                       width: '100%',
                       padding: '10px',

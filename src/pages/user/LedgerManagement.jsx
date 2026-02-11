@@ -10,11 +10,13 @@ import { useAuth } from '../../context/AuthContext';
 export default function LedgerManagement() {
   const { user } = useAuth();
   const [ledgers, setLedgers] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingLedger, setEditingLedger] = useState(null);
-  const [formData, setFormData] = useState({ 
-    name: '', 
+  const [formData, setFormData] = useState({
+    name: '',
     phoneNumber: '',
+    ledgerType: 'regular',
     hasGST: false,
     gstNumber: '',
     stateCode: ''
@@ -26,26 +28,37 @@ export default function LedgerManagement() {
 
   const fetchLedgers = async () => {
     try {
-      const response = await ledgerAPI.getAll();
+      const response = await ledgerAPI.getAll({ type: 'regular' });
+      console.log('📋 Regular Ledgers fetched:', response?.data?.ledgers?.length || 0);
       setLedgers(response.data.ledgers);
     } catch (error) {
       toast.error('Failed to load ledgers');
     }
   };
 
+  // Filter ledgers based on search term
+  const filteredLedgers = ledgers.filter(ledger => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      ledger.name.toLowerCase().includes(searchLower) ||
+      (ledger.phoneNumber && ledger.phoneNumber.includes(searchTerm))
+    );
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate GST if enabled
     if (formData.hasGST && (!formData.gstNumber || !isValidGSTFormat(formData.gstNumber))) {
       toast.error('Please enter a valid GST number');
       return;
     }
-    
+
     try {
       const submitData = {
         name: formData.name,
         phoneNumber: formData.phoneNumber,
+        ledgerType: formData.ledgerType,
         ...(formData.hasGST && {
           gstDetails: {
             hasGST: true,
@@ -62,9 +75,9 @@ export default function LedgerManagement() {
         await ledgerAPI.create(submitData);
         toast.success('Ledger created successfully');
       }
-      
+
       setShowModal(false);
-      setFormData({ name: '', phoneNumber: '', hasGST: false, gstNumber: '', stateCode: '' });
+      setFormData({ name: '', phoneNumber: '', ledgerType: 'regular', hasGST: false, gstNumber: '', stateCode: '' });
       setEditingLedger(null);
       fetchLedgers();
     } catch (error) {
@@ -74,9 +87,10 @@ export default function LedgerManagement() {
 
   const handleEdit = (ledger) => {
     setEditingLedger(ledger);
-    setFormData({ 
-      name: ledger.name, 
+    setFormData({
+      name: ledger.name,
       phoneNumber: ledger.phoneNumber,
+      ledgerType: ledger.ledgerType || 'regular',
       hasGST: ledger.gstDetails?.hasGST || false,
       gstNumber: ledger.gstDetails?.gstNumber || '',
       stateCode: ledger.gstDetails?.stateCode || ''
@@ -89,7 +103,7 @@ export default function LedgerManagement() {
       toast.error('Cannot delete ledger with existing vouchers');
       return;
     }
-    
+
     if (!confirm(`Delete ledger "${ledger.name}"?`)) return;
 
     try {
@@ -106,22 +120,49 @@ export default function LedgerManagement() {
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <h1>Ledger Management</h1>
-          <button 
-            onClick={() => { 
-              setEditingLedger(null); 
-              setFormData({ 
-                name: '', 
-                phoneNumber: '', 
+          <button
+            onClick={() => {
+              setEditingLedger(null);
+              setFormData({
+                name: '',
+                phoneNumber: '',
+                ledgerType: 'regular',
                 hasGST: false,
                 gstNumber: '',
                 stateCode: ''
-              }); 
-              setShowModal(true); 
-            }} 
+              });
+              setShowModal(true);
+            }}
             className="btn btn-primary"
           >
             <FiPlus /> Add Ledger
           </button>
+        </div>
+
+        {/* Search Bar */}
+        <div style={{ marginBottom: '1.5rem' }}>
+          <input
+            type="text"
+            placeholder="🔍 Search ledgers by name or phone number..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            style={{
+              width: '100%',
+              maxWidth: '400px',
+              padding: '10px 15px',
+              borderRadius: '6px',
+              border: '1px solid var(--border-color)',
+              backgroundColor: 'var(--bg-primary)',
+              color: 'var(--color-text)',
+              fontSize: '14px',
+              boxSizing: 'border-box'
+            }}
+          />
+          {searchTerm && (
+            <div style={{ fontSize: '0.875rem', color: 'var(--color-muted)', marginTop: '0.5rem' }}>
+              Found {filteredLedgers.length} of {ledgers.length} ledgers
+            </div>
+          )}
         </div>
 
         <div className="table-container">
@@ -130,26 +171,37 @@ export default function LedgerManagement() {
               <tr>
                 <th>Name</th>
                 <th>Phone</th>
+                <th>Type</th>
                 <th>GST Status</th>
-                <th>Amount Balance</th>
-                <th>Gold Fine Wt</th>
-                <th>Silver Fine Wt</th>
+                <th>Balance</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              {ledgers.map((ledger) => (
+              {filteredLedgers.map((ledger) => (
                 <tr key={ledger._id}>
                   <td>{ledger.name}</td>
                   <td>{ledger.phoneNumber}</td>
+                  <td>
+                    <span className={`badge ${ledger.ledgerType === 'gst' ? 'badge-success' : 'badge-info'}`}>
+                      {ledger.ledgerType === 'gst' ? '📄 GST' : '💰 Regular'}
+                    </span>
+                  </td>
                   <td>
                     <span className={`badge ${ledger.gstDetails?.hasGST ? 'badge-success' : 'badge-secondary'}`}>
                       {ledger.gstDetails?.hasGST ? '✅ Yes' : '❌ No'}
                     </span>
                   </td>
-                  <td>₹{ledger.balances?.amount?.toFixed(2) || '0.00'}</td>
-                  <td>{ledger.balances?.goldFineWeight?.toFixed(3) || '0.000'} g</td>
-                  <td>{ledger.balances?.silverFineWeight?.toFixed(3) || '0.000'} g</td>
+                  <td>
+                    <div style={{ fontSize: '12px' }}>
+                      <div style={{ color: '#FFD700', fontWeight: 'bold' }}>
+                        Gold: {ledger.balances?.goldFineWeight?.toFixed(3) || '0.000'} g fine
+                      </div>
+                      <div style={{ color: '#C0C0C0', fontWeight: 'bold' }}>
+                        Silver: {ledger.balances?.silverFineWeight?.toFixed(3) || '0.000'} g fine
+                      </div>
+                    </div>
+                  </td>
                   <td>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
                       <Link to={`/ledgers/${ledger._id}`} className="btn btn-sm btn-secondary">
@@ -190,19 +242,37 @@ export default function LedgerManagement() {
                       type="text"
                       className="input"
                       value={formData.name}
-                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       required
                     />
                   </div>
                   <div className="input-group">
-                    <label className="input-label">Phone Number</label>
+                    <label className="input-label">Phone Number (Optional)</label>
                     <input
                       type="tel"
                       className="input"
                       value={formData.phoneNumber}
-                      onChange={(e) => setFormData({...formData, phoneNumber: e.target.value})}
-                      required
+                      onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                      placeholder="10 digits (optional)"
                     />
+                  </div>
+
+                  <div className="input-group">
+                    <label className="input-label">Ledger Type</label>
+                    <select
+                      className="input"
+                      value={formData.ledgerType}
+                      onChange={(e) => setFormData({ ...formData, ledgerType: e.target.value })}
+                      required
+                    >
+                      <option value="regular">💰 Regular (Credit/Cash Billing)</option>
+                      <option value="gst">📄 GST Customer (Full Payment)</option>
+                    </select>
+                    <small style={{ display: 'block', marginTop: '5px', color: 'var(--text-secondary)', fontSize: '11px' }}>
+                      {formData.ledgerType === 'regular'
+                        ? '✓ Allows partial payments and balance tracking'
+                        : '✓ GST invoices only, full payment expected (like Tally)'}
+                    </small>
                   </div>
 
                   <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '15px', paddingTop: '15px' }}>
@@ -212,7 +282,7 @@ export default function LedgerManagement() {
                         checked={formData.hasGST}
                         onChange={(e) => {
                           setFormData({
-                            ...formData, 
+                            ...formData,
                             hasGST: e.target.checked,
                             gstNumber: e.target.checked ? formData.gstNumber : '',
                             stateCode: e.target.checked ? formData.stateCode : ''
@@ -233,7 +303,7 @@ export default function LedgerManagement() {
                           onChange={(e) => {
                             const gstNum = e.target.value.toUpperCase();
                             setFormData({
-                              ...formData, 
+                              ...formData,
                               gstNumber: gstNum,
                               stateCode: isValidGSTFormat(gstNum) ? extractStateFromGST(gstNum) : ''
                             });
@@ -263,8 +333,8 @@ export default function LedgerManagement() {
                   <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">
                     Cancel
                   </button>
-                  <button 
-                    type="submit" 
+                  <button
+                    type="submit"
                     className="btn btn-primary"
                     disabled={formData.hasGST && (!formData.gstNumber || !isValidGSTFormat(formData.gstNumber))}
                   >

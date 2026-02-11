@@ -30,10 +30,20 @@ export default function LedgerDetail() {
       const queryFilters = {};
       if (filters.startDate) queryFilters.startDate = filters.startDate;
       if (filters.endDate) queryFilters.endDate = filters.endDate;
-      
+
       const response = await ledgerAPI.getTransactions(id, queryFilters);
       setLedger(response.data.ledger);
-      setTransactions(response.data.transactions);
+      console.log('📊 Ledger Type:', response.data.ledger.ledgerType);
+      console.log('📦 Total Transactions:', response.data.transactions.length);
+
+      // Transactions are already filtered by invoice type on backend based on ledger type
+      // Regular ledgers get only 'normal' invoices
+      // GST ledgers get only 'gst' invoices
+      const filteredTransactions = response.data.transactions;
+
+      console.log('✅ Total Transactions (filtered by type):', filteredTransactions.length);
+      console.log('📋 Voucher Types:', filteredTransactions.filter(t => t.type === 'voucher').map(v => ({ invoiceType: v.invoiceType, voucherNumber: v.voucherNumber })));
+      setTransactions(filteredTransactions);
     } catch (error) {
       toast.error('Failed to load ledger details');
     } finally {
@@ -63,13 +73,13 @@ export default function LedgerDetail() {
   const handleDeleteVoucher = async (voucherId) => {
     const voucher = transactions.find(t => t._id === voucherId);
     const isCancelled = voucher?.status === 'cancelled';
-    
+
     try {
       if (!isCancelled) {
         // First, cancel the voucher
         const confirmCancel = confirm('Cancel this voucher?');
         if (!confirmCancel) return;
-        
+
         await fetch(`http://localhost:5000/api/voucher/${voucherId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
@@ -93,16 +103,14 @@ export default function LedgerDetail() {
   };
 
   const handlePreviewVoucher = (voucher) => {
-    // Check if this is a GST invoice
-    const isGST = voucher.gstDetails || voucher.customerGSTNumber;
-    
-    if (isGST) {
+    // Use invoiceType as source of truth
+    if (voucher.invoiceType === 'gst') {
       // Use GST invoice format - redirect to GSTBilling with preview action
       sessionStorage.setItem('gstPreviewVoucherId', voucher._id);
       navigate(`/gst-billing?voucherid=${voucher._id}&action=preview`);
       return;
     }
-    
+
     // Otherwise show modal preview
     setPreviewType('voucher');
     setSelectedItem(voucher);
@@ -110,16 +118,14 @@ export default function LedgerDetail() {
   };
 
   const handlePrintVoucher = (voucher) => {
-    // Check if this is a GST invoice
-    const isGST = voucher.gstDetails || voucher.customerGSTNumber;
-    
-    if (isGST) {
+    // Use invoiceType as source of truth
+    if (voucher.invoiceType === 'gst') {
       // Use GST invoice format - redirect to GSTBilling with print action
       sessionStorage.setItem('gstPrintVoucherId', voucher._id);
       navigate(`/gst-billing?voucherid=${voucher._id}&action=print`);
       return;
     }
-    
+
     // Otherwise use old format
     const printWindow = window.open('', '_blank');
     const voucherHTML = `
@@ -384,18 +390,16 @@ export default function LedgerDetail() {
 
   const handleShareVoucher = async (voucher) => {
     try {
-      // Check if this is a GST invoice
-      const isGST = voucher.gstDetails || voucher.customerGSTNumber;
-      
-      if (isGST) {
+      // Use invoiceType as source of truth
+      if (voucher.invoiceType === 'gst') {
         // Use GST invoice format - redirect to GSTBilling with share action
         sessionStorage.setItem('gstShareVoucherId', voucher._id);
         navigate(`/gst-billing?voucherid=${voucher._id}&action=share`);
         return;
       }
-      
+
       // Otherwise use old format
-      const voucherTotal = voucher.items 
+      const voucherTotal = voucher.items
         ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(voucher.stoneAmount) || 0)
         : 0;
 
@@ -567,9 +571,9 @@ export default function LedgerDetail() {
           margin: [10, 10, 10, 10],
           filename: `Voucher-${voucher.voucherNumber}-${Date.now()}.pdf`,
           image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { 
-            scale: 2, 
-            useCors: true, 
+          html2canvas: {
+            scale: 2,
+            useCors: true,
             allowTaint: true,
             backgroundColor: '#ffffff'
           },
@@ -603,7 +607,7 @@ export default function LedgerDetail() {
               downloadPDF(blob, fileName);
               const whatsappText = `Check out this voucher for ${ledger?.name}. Voucher #${voucher.voucherNumber}. Amount: ₹${voucherTotal.toFixed(2)}`;
               const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
-              
+
               toast.info(
                 <div>
                   <p>PDF downloaded! Share it via:</p>
@@ -709,9 +713,9 @@ export default function LedgerDetail() {
           margin: [10, 10, 10, 10],
           filename: `Settlement-${Date.now()}.pdf`,
           image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { 
-            scale: 2, 
-            useCors: true, 
+          html2canvas: {
+            scale: 2,
+            useCors: true,
             allowTaint: true,
             backgroundColor: '#ffffff'
           },
@@ -745,7 +749,7 @@ export default function LedgerDetail() {
               downloadPDF(blob, fileName);
               const whatsappText = `Settlement Receipt for ${ledger?.name}. Amount: ₹${parseFloat(settlement.amount).toFixed(2)}`;
               const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
-              
+
               toast.info(
                 <div>
                   <p>PDF downloaded! Share it via:</p>
@@ -846,51 +850,76 @@ export default function LedgerDetail() {
         <div className="card" style={{ marginBottom: '1.5rem' }}>
           <h2>{ledger?.name}</h2>
           <p className="text-muted">{ledger?.phoneNumber}</p>
-          
-          {ledger?.gstDetails?.hasGST && (
-            <div style={{ 
-              display: 'flex', 
-              gap: '15px', 
-              marginTop: '1rem', 
-              paddingTop: '1rem', 
-              borderTop: '1px solid var(--border-color)',
-              fontSize: '13px'
-            }}>
+
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '15px',
+            marginTop: '1rem',
+            paddingTop: '1rem',
+            borderTop: '1px solid var(--border-color)',
+            fontSize: '13px'
+          }}>
+            <div>
+              <span style={{ color: 'var(--color-muted)', fontWeight: '500' }}>Ledger Type:</span>
+              <span className={`badge ${ledger?.ledgerType === 'gst' ? 'badge-success' : 'badge-info'}`} style={{ marginLeft: '8px' }}>
+                {ledger?.ledgerType === 'gst' ? '📄 GST' : '💰 Regular'}
+              </span>
+            </div>
+            {ledger?.gstDetails?.hasGST && (
+              <>
+                <div>
+                  <span style={{ color: 'var(--color-muted)', fontWeight: '500' }}>GST Status:</span>
+                  <span style={{ marginLeft: '8px', padding: '2px 8px', backgroundColor: 'var(--color-success)', color: '#fff', borderRadius: '4px', fontWeight: 'bold' }}>
+                    ✅ Yes
+                  </span>
+                </div>
+                {ledger?.gstDetails?.gstNumber && (
+                  <div>
+                    <span style={{ color: 'var(--color-muted)', fontWeight: '500' }}>GST Number:</span>
+                    <span style={{ marginLeft: '8px', fontWeight: '600', fontFamily: 'monospace' }}>
+                      {ledger.gstDetails.gstNumber}
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {ledger?.ledgerType === 'gst' ? (
+            <div style={{ marginTop: '1.5rem', padding: '1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)' }}>
+                ℹ️ <strong>GST Ledger:</strong> This ledger is in Full Payment mode (like Tally).
+                Balance tracking and fine weights are disabled. All GST invoices are stored as independent records.
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-2" style={{ marginTop: '1.5rem' }}>
+
               <div>
-                <span style={{ color: 'var(--color-muted)', fontWeight: '500' }}>GST Status:</span>
-                <span style={{ marginLeft: '8px', padding: '4px 8px', backgroundColor: 'var(--color-success)', color: '#fff', borderRadius: '4px', fontWeight: 'bold' }}>
-                  ✅ Yes
-                </span>
+                <div className="text-muted" style={{ fontSize: '0.875rem' }}> Fine Gold</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 600, color: ledger?.balances?.goldFineWeight > 0 ? 'red' : undefined }}>
+                  {ledger?.balances?.goldFineWeight > 0 ? '-' : ''}{Math.abs(ledger?.balances?.goldFineWeight || 0).toFixed(3)} g
+                </div>
               </div>
-              {ledger?.gstDetails?.gstNumber && (
-                <div>
-                  <span style={{ color: 'var(--color-muted)', fontWeight: '500' }}>GST Number:</span>
-                  <span style={{ marginLeft: '8px', fontWeight: '600', fontFamily: 'monospace' }}>
-                    {ledger.gstDetails.gstNumber}
-                  </span>
+              <div>
+                <div className="text-muted" style={{ fontSize: '0.875rem' }}> Fine Silver</div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 600, color: ledger?.balances?.silverFineWeight > 0 ? 'red' : undefined }}>
+                  {ledger?.balances?.silverFineWeight > 0 ? '-' : ''}{Math.abs(ledger?.balances?.silverFineWeight || 0).toFixed(3)} g
                 </div>
-              )}
-              {ledger?.gstDetails?.stateCode && (
-                <div>
-                  <span style={{ color: 'var(--color-muted)', fontWeight: '500' }}>State Code:</span>
-                  <span style={{ marginLeft: '8px', fontWeight: '600' }}>
-                    {ledger.gstDetails.stateCode}
-                  </span>
+              </div>
+              <div>
+                <div className="text-muted" style={{ fontSize: '0.875rem' }}>Cash Balance</div>
+                <div style={{
+                  fontSize: '1.2rem',
+                  fontWeight: 600,
+                  color: ledger?.balances?.cashBalance > 0 ? 'red' : ledger?.balances?.cashBalance < 0 ? 'green' : undefined
+                }}>
+                  {ledger?.balances?.cashBalance > 0 ? '-' : ledger?.balances?.cashBalance < 0 ? '+' : ''}₹{Math.abs(ledger?.balances?.cashBalance)?.toFixed(2) || '0.00'}
                 </div>
-              )}
+              </div>
             </div>
           )}
-          
-          <div className="grid grid-2" style={{ marginTop: '1.5rem' }}>
-            <div>
-              <div className="text-muted" style={{ fontSize: '0.875rem' }}>Gold Fine Weight</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{ledger?.balances?.goldFineWeight?.toFixed(3) || '0.000'} g</div>
-            </div>
-            <div>
-              <div className="text-muted" style={{ fontSize: '0.875rem' }}>Silver Fine Weight</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700 }}>{ledger?.balances?.silverFineWeight?.toFixed(3) || '0.000'} g</div>
-            </div>
-          </div>
         </div>
 
         <div className="card" style={{ marginBottom: '1.5rem' }}>
@@ -913,7 +942,7 @@ export default function LedgerDetail() {
                 type="date"
                 className="input"
                 value={filters.startDate}
-                onChange={(e) => setFilters({...filters, startDate: e.target.value})}
+                onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
               />
             </div>
             <div className="input-group">
@@ -922,13 +951,13 @@ export default function LedgerDetail() {
                 type="date"
                 className="input"
                 value={filters.endDate}
-                onChange={(e) => setFilters({...filters, endDate: e.target.value})}
+                onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
               />
             </div>
           </div>
 
           <div style={{ marginBottom: '1rem' }}>
-            <button 
+            <button
               onClick={handleClearFilters}
               className="btn btn-sm btn-secondary"
               style={{ padding: '6px 16px' }}
@@ -962,10 +991,10 @@ export default function LedgerDetail() {
                     <td style={{ textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                         {txn.type === 'voucher' && (
-                          <button 
+                          <button
                             onClick={() => {
-                              const isGST = txn.gstDetails || txn.customerGSTNumber;
-                              if (isGST) {
+                              // Use invoiceType as the source of truth
+                              if (txn.invoiceType === 'gst') {
                                 navigate(`/gst-billing?voucherid=${txn._id}`);
                               } else {
                                 navigate(`/billing?voucherid=${txn._id}`);
@@ -977,28 +1006,28 @@ export default function LedgerDetail() {
                             <FiEdit2 />
                           </button>
                         )}
-                        <button 
-                          onClick={() => txn.type === 'voucher' ? handlePreviewVoucher(txn) : handlePreviewSettlement(txn)} 
+                        <button
+                          onClick={() => txn.type === 'voucher' ? handlePreviewVoucher(txn) : handlePreviewSettlement(txn)}
                           className="btn btn-sm btn-secondary"
                           title="Preview"
                         >
                           <FiEye />
                         </button>
-                        <button 
+                        <button
                           onClick={() => txn.type === 'voucher' ? handlePrintVoucher(txn) : handlePrintSettlement(txn)}
                           className="btn btn-sm btn-secondary"
                           title="Print"
                         >
                           <FiPrinter />
                         </button>
-                        <button 
+                        <button
                           onClick={() => txn.type === 'voucher' ? handleShareVoucher(txn) : handleShareSettlement(txn)}
                           className="btn btn-sm btn-secondary"
                           title="Share"
                         >
                           <FiShare2 />
                         </button>
-                        <button 
+                        <button
                           onClick={() => txn.type === 'voucher' ? handleDeleteVoucher(txn._id) : handleDeleteSettlement(txn._id)}
                           className="btn btn-sm btn-danger"
                           title={txn.type === 'voucher' ? 'Cancel/Delete Voucher' : 'Delete'}
@@ -1011,31 +1040,11 @@ export default function LedgerDetail() {
                 ))}
               </tbody>
               <tfoot>
-                <tr style={{ fontWeight: 700, background: 'var(--bg-tertiary)' }}>
-                  <td colSpan="3">Total Credit</td>
-                  <td>₹{totalCredit.toFixed(2)}</td>
-                  <td></td>
-                </tr>
-                <tr style={{ fontWeight: 700, background: 'var(--bg-secondary)', fontSize: '1.05rem' }}>
-                  <td colSpan="3">🔹 Total</td>
-                  <td style={{ color: 'var(--color-primary)' }}>₹{totalAmount.toFixed(2)}</td>
-                  <td></td>
-                </tr>
-                <tr style={{ fontWeight: 700, background: 'var(--bg-secondary)' }}>
-                  <td colSpan="3">Gold Credit</td>
-                  <td>₹{goldCreditAmount.toFixed(2)} | {goldCreditFineWeight.toFixed(3)} g fine</td>
-                  <td></td>
-                </tr>
-                <tr style={{ fontWeight: 700, background: 'var(--bg-tertiary)' }}>
-                  <td colSpan="3">Silver Credit</td>
-                  <td>₹{silverCreditAmount.toFixed(2)} | {silverCreditFineWeight.toFixed(3)} g fine</td>
-                  <td></td>
-                </tr>
-                <tr style={{ fontWeight: 700, background: 'var(--bg-secondary)' }}>
-                  <td colSpan="3">Amount Balance</td>
-                  <td>₹{amountBalance.toFixed(2)}</td>
-                  <td></td>
-                </tr>
+                {ledger?.ledgerType === 'gst' ? (
+                  <></>
+                ) : (
+                  <></>
+                )}
               </tfoot>
             </table>
           </div>
@@ -1046,8 +1055,8 @@ export default function LedgerDetail() {
             <div className="modal" style={{ maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <h3 className="modal-title">
-                  {previewType === 'voucher' 
-                    ? `Voucher Preview - #${selectedItem.voucherNumber}` 
+                  {previewType === 'voucher'
+                    ? `Voucher Preview - #${selectedItem.voucherNumber}`
                     : `Settlement Preview`}
                 </h3>
                 <button onClick={() => setShowPreview(false)} className="btn btn-sm" style={{ position: 'absolute', right: '1rem', top: '1rem' }}>
@@ -1150,7 +1159,7 @@ export default function LedgerDetail() {
                     {/* Balance Summary Section */}
                     <div style={{ marginTop: '1.5rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
                       <h4 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-primary)' }}>Balance Summary</h4>
-                      
+
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                         <div>
                           <div className="text-muted" style={{ fontSize: '0.875rem' }}>Cash Received</div>

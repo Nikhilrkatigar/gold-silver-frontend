@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { 
+import ConfirmDialog from './ConfirmDialog';
+import {
   FiHome, FiUsers, FiClock, FiLogOut, FiMenu, FiX,
   FiDollarSign, FiBook, FiTrendingUp, FiSettings,
   FiFileText
@@ -9,6 +10,7 @@ import {
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { user, logout, isAdmin } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -24,6 +26,7 @@ export default function Layout({ children }) {
     { path: '/dashboard', icon: FiHome, label: 'Dashboard' },
     { path: '/billing', icon: FiFileText, label: 'Billing' },
     { path: '/ledgers', icon: FiBook, label: 'Ledgers' },
+    { path: '/gst-ledger', icon: FiFileText, label: 'GST Ledger' },
     { path: '/settlement', icon: FiTrendingUp, label: 'Settlement' },
     { path: '/karigar', icon: FiDollarSign, label: 'Karigar' },
     { path: '/stock', icon: FiDollarSign, label: 'Stock Management' },
@@ -33,9 +36,7 @@ export default function Layout({ children }) {
   const navItems = isAdmin ? adminNav : userNav;
 
   const handleLogout = () => {
-    if (confirm('Are you sure you want to logout?')) {
-      logout();
-    }
+    setShowLogoutConfirm(true);
   };
 
   return (
@@ -94,7 +95,7 @@ export default function Layout({ children }) {
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
-            
+
             return (
               <Link
                 key={item.path}
@@ -147,8 +148,8 @@ export default function Layout({ children }) {
       </aside>
 
       {/* Main Content */}
-      <div style={{ 
-        flex: 1, 
+      <div style={{
+        flex: 1,
         marginLeft: sidebarOpen ? '260px' : '0',
         transition: 'margin-left 0.3s',
         minHeight: '100vh',
@@ -200,6 +201,18 @@ export default function Layout({ children }) {
           }}
         />
       )}
+
+      {/* Logout Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={logout}
+        title="Logout"
+        message="Are you sure you want to logout?"
+        confirmText="Logout"
+        cancelText="Cancel"
+        danger={false}
+      />
     </div>
   );
 }
