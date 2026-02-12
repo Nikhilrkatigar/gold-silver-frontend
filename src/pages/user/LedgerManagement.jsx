@@ -172,7 +172,7 @@ export default function LedgerManagement() {
                 <th>Name</th>
                 <th>Phone</th>
                 <th>Type</th>
-                <th>GST Status</th>
+                <th>Cash Balance</th>
                 <th>Balance</th>
                 <th>Actions</th>
               </tr>
@@ -188,9 +188,9 @@ export default function LedgerManagement() {
                     </span>
                   </td>
                   <td>
-                    <span className={`badge ${ledger.gstDetails?.hasGST ? 'badge-success' : 'badge-secondary'}`}>
-                      {ledger.gstDetails?.hasGST ? '✅ Yes' : '❌ No'}
-                    </span>
+                    <div style={{ fontWeight: 'bold', color: '$var(--color-primary)' }}>
+                      ₹{(ledger.balances?.cashBalance !== undefined ? ledger.balances.cashBalance : (ledger.balances?.creditBalance || 0)).toFixed(2)}
+                    </div>
                   </td>
                   <td>
                     <div style={{ fontSize: '12px' }}>

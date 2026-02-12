@@ -281,7 +281,60 @@ export default function LedgerDetail() {
     setShowPreview(true);
   };
 
+  // Helper function to extract settlement properties based on type
+  const extractSettlementProperties = (settlement) => {
+    const isTrueSettlement = settlement.type === 'settlement';
+    let metalType, metalRate, fineGiven, amount;
+
+    if (isTrueSettlement) {
+      // True Settlement from Settlement Collection
+      metalType = settlement.metalType;
+      metalRate = settlement.metalRate;
+      fineGiven = settlement.fineGiven;
+      amount = settlement.amount;
+    } else {
+      // Settlement-type Voucher - map from paymentType
+      const paymentType = settlement.paymentType;
+
+      if (paymentType === 'add_cash') {
+        metalType = 'Cash';
+        metalRate = null;
+        fineGiven = null;
+        amount = settlement.cashReceived || 0;
+      } else if (paymentType === 'add_gold') {
+        metalType = 'gold';
+        metalRate = settlement.goldRate || 0;
+        fineGiven = settlement.cashReceived || 0;
+        amount = (settlement.cashReceived || 0) * (settlement.goldRate || 0);
+      } else if (paymentType === 'add_silver') {
+        metalType = 'silver';
+        metalRate = settlement.silverRate || 0;
+        fineGiven = settlement.cashReceived || 0;
+        amount = (settlement.cashReceived || 0) * (settlement.silverRate || 0);
+      } else if (paymentType === 'money_to_gold') {
+        metalType = 'gold';
+        metalRate = settlement.goldRate || 0;
+        fineGiven = settlement.goldRate ? (settlement.cashReceived || 0) / settlement.goldRate : 0;
+        amount = settlement.cashReceived || 0;
+      } else if (paymentType === 'money_to_silver') {
+        metalType = 'silver';
+        metalRate = settlement.silverRate || 0;
+        fineGiven = settlement.silverRate ? (settlement.cashReceived || 0) / settlement.silverRate : 0;
+        amount = settlement.cashReceived || 0;
+      } else {
+        metalType = 'Unknown';
+        metalRate = 0;
+        fineGiven = 0;
+        amount = settlement.cashReceived || 0;
+      }
+    }
+
+    return { metalType, metalRate, fineGiven, amount };
+  };
+
   const handlePrintSettlement = (settlement) => {
+    const { metalType, metalRate, fineGiven, amount } = extractSettlementProperties(settlement);
+
     const printWindow = window.open('', '_blank');
     const settlementHTML = `
       <!DOCTYPE html>
@@ -309,11 +362,11 @@ export default function LedgerDetail() {
             </div>
             <div class="detail-item">
               <div class="label">Metal Type</div>
-              <div class="value" style="text-transform: capitalize;">${settlement.metalType}</div>
+              <div class="value" style="text-transform: capitalize;">${metalType || 'N/A'}</div>
             </div>
             <div class="detail-item">
               <div class="label">Fine Given</div>
-              <div class="value">${parseFloat(settlement.fineGiven).toFixed(3)} g</div>
+              <div class="value">${fineGiven !== null ? parseFloat(fineGiven).toFixed(3) + ' g' : 'N/A'}</div>
             </div>
           </div>
           <div>
@@ -323,11 +376,11 @@ export default function LedgerDetail() {
             </div>
             <div class="detail-item">
               <div class="label">Metal Rate</div>
-              <div class="value">₹${parseFloat(settlement.metalRate).toFixed(2)}</div>
+              <div class="value">${metalRate !== null ? '₹' + parseFloat(metalRate).toFixed(2) : 'N/A'}</div>
             </div>
             <div class="detail-item">
               <div class="label">Settlement Amount</div>
-              <div class="value" style="font-weight: bold; font-size: 1.3rem;">₹${parseFloat(settlement.amount).toFixed(2)}</div>
+              <div class="value" style="font-weight: bold; font-size: 1.3rem;">₹${parseFloat(amount || 0).toFixed(2)}</div>
             </div>
           </div>
         </div>
@@ -356,7 +409,8 @@ export default function LedgerDetail() {
     if (!confirm('Delete this settlement?')) return;
 
     try {
-      await settlementAPI.delete(settlementId);
+      // Settlement vouchers are now stored in Voucher collection, not Settlement collection
+      await voucherAPI.delete(settlementId);
       toast.success('Settlement deleted successfully');
       fetchLedgerDetails();
     } catch (error) {
@@ -636,6 +690,8 @@ export default function LedgerDetail() {
 
   const handleShareSettlement = async (settlement) => {
     try {
+      const { metalType, metalRate, fineGiven, amount } = extractSettlementProperties(settlement);
+
       const settlementContent = document.createElement('div');
       settlementContent.innerHTML = `
         <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; background-color: #ffffff; color: #333333;">
@@ -664,19 +720,19 @@ export default function LedgerDetail() {
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
               <div>
                 <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Metal Type</div>
-                <div style="font-size: 16px; font-weight: 600; color: #000000;">${settlement.metalType === 'gold' ? '🟡 Gold' : '⚪ Silver'}</div>
+                <div style="font-size: 16px; font-weight: 600; color: #000000;">${metalType === 'gold' ? '🟡 Gold' : metalType === 'silver' ? '⚪ Silver' : metalType || 'N/A'}</div>
               </div>
               <div>
                 <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Metal Rate</div>
-                <div style="font-size: 16px; font-weight: 600; color: #000000;">₹${parseFloat(settlement.metalRate).toFixed(2)}/g</div>
+                <div style="font-size: 16px; font-weight: 600; color: #000000;">${metalRate !== null ? '₹' + parseFloat(metalRate).toFixed(2) + '/g' : 'N/A'}</div>
               </div>
               <div>
                 <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Fine Given</div>
-                <div style="font-size: 16px; font-weight: 600; color: #000000;">${parseFloat(settlement.fineGiven).toFixed(3)} g</div>
+                <div style="font-size: 16px; font-weight: 600; color: #000000;">${fineGiven !== null ? parseFloat(fineGiven).toFixed(3) + ' g' : 'N/A'}</div>
               </div>
               <div>
                 <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Settlement Amount</div>
-                <div style="font-size: 16px; font-weight: 600; color: #d32f2f;">₹${parseFloat(settlement.amount).toFixed(2)}</div>
+                <div style="font-size: 16px; font-weight: 600; color: #d32f2f;">₹${parseFloat(amount || 0).toFixed(2)}</div>
               </div>
             </div>
 
@@ -978,66 +1034,76 @@ export default function LedgerDetail() {
                 </tr>
               </thead>
               <tbody>
-                {transactions.map((txn) => (
-                  <tr key={txn._id}>
-                    <td>{format(new Date(txn.date), 'dd MMM yyyy')}</td>
-                    <td>
-                      <span className={`badge ${txn.type === 'voucher' ? 'badge-info' : 'badge-success'}`}>
-                        {txn.type === 'voucher' ? 'Voucher' : 'Settlement'}
-                      </span>
-                    </td>
-                    <td>{txn.type === 'voucher' ? txn.voucherNumber : `SET-${txn._id.substring(0, 6).toUpperCase()}`}</td>
-                    <td>₹{txn.total?.toFixed(2) || txn.amount?.toFixed(2) || '0.00'}</td>
-                    <td style={{ textAlign: 'center' }}>
-                      <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                        {txn.type === 'voucher' && (
+                {transactions.map((txn) => {
+                  // Check if it's a settlement voucher (created via Voucher API with settlement paymentType)
+                  const isSettlementVoucher = ['add_cash', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'].includes(txn.paymentType);
+                  const isSettlementType = txn.type === 'settlement' || isSettlementVoucher;
+
+                  return (
+                    <tr key={txn._id}>
+                      <td>{format(new Date(txn.date), 'dd MMM yyyy')}</td>
+                      <td>
+                        <span className={`badge ${isSettlementType ? 'badge-success' : 'badge-info'}`}>
+                          {isSettlementType ? 'Settlement' : 'Voucher'}
+                        </span>
+                      </td>
+                      <td>
+                        {isSettlementType
+                          ? `SET-${txn._id.substring(0, 6).toUpperCase()} (${txn.paymentType})`
+                          : txn.voucherNumber}
+                      </td>
+                      <td>₹{txn.total?.toFixed(2) || txn.amount?.toFixed(2) || '0.00'}</td>
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                          {!isSettlementType && txn.type === 'voucher' && (
+                            <button
+                              onClick={() => {
+                                // Use invoiceType as the source of truth
+                                if (txn.invoiceType === 'gst') {
+                                  navigate(`/gst-billing?voucherid=${txn._id}`);
+                                } else {
+                                  navigate(`/billing?voucherid=${txn._id}`);
+                                }
+                              }}
+                              className="btn btn-sm btn-secondary"
+                              title="Edit"
+                            >
+                              <FiEdit2 />
+                            </button>
+                          )}
                           <button
-                            onClick={() => {
-                              // Use invoiceType as the source of truth
-                              if (txn.invoiceType === 'gst') {
-                                navigate(`/gst-billing?voucherid=${txn._id}`);
-                              } else {
-                                navigate(`/billing?voucherid=${txn._id}`);
-                              }
-                            }}
+                            onClick={() => isSettlementType ? handlePreviewSettlement(txn) : handlePreviewVoucher(txn)}
                             className="btn btn-sm btn-secondary"
-                            title="Edit"
+                            title="Preview"
                           >
-                            <FiEdit2 />
+                            <FiEye />
                           </button>
-                        )}
-                        <button
-                          onClick={() => txn.type === 'voucher' ? handlePreviewVoucher(txn) : handlePreviewSettlement(txn)}
-                          className="btn btn-sm btn-secondary"
-                          title="Preview"
-                        >
-                          <FiEye />
-                        </button>
-                        <button
-                          onClick={() => txn.type === 'voucher' ? handlePrintVoucher(txn) : handlePrintSettlement(txn)}
-                          className="btn btn-sm btn-secondary"
-                          title="Print"
-                        >
-                          <FiPrinter />
-                        </button>
-                        <button
-                          onClick={() => txn.type === 'voucher' ? handleShareVoucher(txn) : handleShareSettlement(txn)}
-                          className="btn btn-sm btn-secondary"
-                          title="Share"
-                        >
-                          <FiShare2 />
-                        </button>
-                        <button
-                          onClick={() => txn.type === 'voucher' ? handleDeleteVoucher(txn._id) : handleDeleteSettlement(txn._id)}
-                          className="btn btn-sm btn-danger"
-                          title={txn.type === 'voucher' ? 'Cancel/Delete Voucher' : 'Delete'}
-                        >
-                          <FiTrash2 />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                          <button
+                            onClick={() => isSettlementType ? handlePrintSettlement(txn) : handlePrintVoucher(txn)}
+                            className="btn btn-sm btn-secondary"
+                            title="Print"
+                          >
+                            <FiPrinter />
+                          </button>
+                          <button
+                            onClick={() => isSettlementType ? handleShareSettlement(txn) : handleShareVoucher(txn)}
+                            className="btn btn-sm btn-secondary"
+                            title="Share"
+                          >
+                            <FiShare2 />
+                          </button>
+                          <button
+                            onClick={() => isSettlementType ? handleDeleteSettlement(txn._id) : handleDeleteVoucher(txn._id)}
+                            className="btn btn-sm btn-danger"
+                            title={isSettlementType ? 'Delete Settlement' : 'Cancel/Delete Voucher'}
+                          >
+                            <FiTrash2 />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
               <tfoot>
                 {ledger?.ledgerType === 'gst' ? (
@@ -1208,32 +1274,87 @@ export default function LedgerDetail() {
                   </>
                 ) : (
                   <>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-                      <div>
-                        <div className="text-muted" style={{ fontSize: '0.875rem' }}>Customer</div>
-                        <div>{ledger?.name}</div>
-                      </div>
-                      <div>
-                        <div className="text-muted" style={{ fontSize: '0.875rem' }}>Date</div>
-                        <div>{format(new Date(selectedItem.date), 'dd MMM yyyy')}</div>
-                      </div>
-                      <div>
-                        <div className="text-muted" style={{ fontSize: '0.875rem' }}>Metal Type</div>
-                        <div className="text-capitalize">{selectedItem.metalType}</div>
-                      </div>
-                      <div>
-                        <div className="text-muted" style={{ fontSize: '0.875rem' }}>Rate</div>
-                        <div>₹{parseFloat(selectedItem.metalRate).toFixed(2)}</div>
-                      </div>
-                      <div>
-                        <div className="text-muted" style={{ fontSize: '0.875rem' }}>Fine Given</div>
-                        <div>{parseFloat(selectedItem.fineGiven).toFixed(3)} g</div>
-                      </div>
-                      <div>
-                        <div className="text-muted" style={{ fontSize: '0.875rem' }}>Amount</div>
-                        <div style={{ fontSize: '1.15rem', fontWeight: 700 }}>₹{parseFloat(selectedItem.amount).toFixed(2)}</div>
-                      </div>
-                    </div>
+                    {(() => {
+                      // Detect if this is a true Settlement or a settlement-type Voucher
+                      const isTrueSettlement = selectedItem.type === 'settlement';
+
+                      // Extract properties based on type
+                      let metalType, metalRate, fineGiven, amount;
+
+                      if (isTrueSettlement) {
+                        // True Settlement from Settlement Collection
+                        metalType = selectedItem.metalType;
+                        metalRate = selectedItem.metalRate;
+                        fineGiven = selectedItem.fineGiven;
+                        amount = selectedItem.amount;
+                      } else {
+                        // Settlement-type Voucher - map from paymentType
+                        const paymentType = selectedItem.paymentType;
+
+                        if (paymentType === 'add_cash') {
+                          metalType = 'Cash';
+                          metalRate = null; // N/A for cash
+                          fineGiven = null; // N/A for cash
+                          amount = selectedItem.cashReceived || 0;
+                        } else if (paymentType === 'add_gold') {
+                          metalType = 'gold';
+                          metalRate = selectedItem.goldRate || 0;
+                          fineGiven = selectedItem.cashReceived || 0; // cashReceived holds the fine weight
+                          amount = (selectedItem.cashReceived || 0) * (selectedItem.goldRate || 0);
+                        } else if (paymentType === 'add_silver') {
+                          metalType = 'silver';
+                          metalRate = selectedItem.silverRate || 0;
+                          fineGiven = selectedItem.cashReceived || 0; // cashReceived holds the fine weight
+                          amount = (selectedItem.cashReceived || 0) * (selectedItem.silverRate || 0);
+                        } else if (paymentType === 'money_to_gold') {
+                          metalType = 'gold';
+                          metalRate = selectedItem.goldRate || 0;
+                          fineGiven = selectedItem.goldRate ? (selectedItem.cashReceived || 0) / selectedItem.goldRate : 0;
+                          amount = selectedItem.cashReceived || 0;
+                        } else if (paymentType === 'money_to_silver') {
+                          metalType = 'silver';
+                          metalRate = selectedItem.silverRate || 0;
+                          fineGiven = selectedItem.silverRate ? (selectedItem.cashReceived || 0) / selectedItem.silverRate : 0;
+                          amount = selectedItem.cashReceived || 0;
+                        } else {
+                          // Fallback for unknown types
+                          metalType = 'Unknown';
+                          metalRate = 0;
+                          fineGiven = 0;
+                          amount = selectedItem.cashReceived || 0;
+                        }
+                      }
+
+                      return (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+                          <div>
+                            <div className="text-muted" style={{ fontSize: '0.875rem' }}>Customer</div>
+                            <div>{ledger?.name}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted" style={{ fontSize: '0.875rem' }}>Date</div>
+                            <div>{format(new Date(selectedItem.date), 'dd MMM yyyy')}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted" style={{ fontSize: '0.875rem' }}>Metal Type</div>
+                            <div className="text-capitalize">{metalType || 'N/A'}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted" style={{ fontSize: '0.875rem' }}>Rate</div>
+                            <div>{metalRate !== null ? `₹${parseFloat(metalRate).toFixed(2)}` : 'N/A'}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted" style={{ fontSize: '0.875rem' }}>Fine Given</div>
+                            <div>{fineGiven !== null ? `${parseFloat(fineGiven).toFixed(3)} g` : 'N/A'}</div>
+                          </div>
+                          <div>
+                            <div className="text-muted" style={{ fontSize: '0.875rem' }}>Amount</div>
+                            <div style={{ fontSize: '1.15rem', fontWeight: 700 }}>₹{parseFloat(amount || 0).toFixed(2)}</div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
                     {selectedItem.narration && (
                       <div style={{ marginTop: '1rem' }}>
                         <div className="text-muted" style={{ fontSize: '0.875rem' }}>Narration</div>

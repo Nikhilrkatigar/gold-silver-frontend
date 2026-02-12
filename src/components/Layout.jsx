@@ -26,14 +26,23 @@ export default function Layout({ children }) {
     { path: '/dashboard', icon: FiHome, label: 'Dashboard' },
     { path: '/billing', icon: FiFileText, label: 'Billing' },
     { path: '/ledgers', icon: FiBook, label: 'Ledgers' },
-    { path: '/gst-ledger', icon: FiFileText, label: 'GST Ledger' },
-    { path: '/settlement', icon: FiTrendingUp, label: 'Settlement' },
+    { path: '/gst-ledger', icon: FiFileText, label: 'GST Ledger', requiresGST: true },
+    { path: '/expenses', icon: FiTrendingUp, label: 'Expenses' },
     { path: '/karigar', icon: FiDollarSign, label: 'Karigar' },
     { path: '/stock', icon: FiDollarSign, label: 'Stock Management' },
     { path: '/account', icon: FiSettings, label: 'Account' },
   ];
 
-  const navItems = isAdmin ? adminNav : userNav;
+  // Filter navigation items based on user permissions
+  const filteredUserNav = userNav.filter(item => {
+    // If item requires GST, only show it if user has GST enabled
+    if (item.requiresGST) {
+      return user?.gstEnabled === true;
+    }
+    return true;
+  });
+
+  const navItems = isAdmin ? adminNav : filteredUserNav;
 
   const handleLogout = () => {
     setShowLogoutConfirm(true);

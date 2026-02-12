@@ -104,4 +104,12 @@ export const karigarAPI = {
   delete: (id) => api.delete(`/api/karigar/${id}`),
 };
 
+// Expense APIs
+export const expenseAPI = {
+  create: (data) => api.post('/api/expense', data),
+  getAll: (params) => api.get('/api/expense', { params }),
+  getOne: (id) => api.get(`/api/expense/${id}`),
+  delete: (id) => api.delete(`/api/expense/${id}`),
+};
+
 export default api;

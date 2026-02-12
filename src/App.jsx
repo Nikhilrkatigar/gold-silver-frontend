@@ -17,7 +17,7 @@ import GSTBilling from './pages/user/GSTBilling';
 import LedgerManagement from './pages/user/LedgerManagement';
 import GSTLedger from './pages/user/GSTLedger';
 import LedgerDetail from './pages/user/LedgerDetail';
-import Settlement from './pages/user/Settlement';
+import Expenses from './pages/user/Expenses';
 import AccountInfo from './pages/user/AccountInfo';
 import StockManagement from './pages/user/StockManagement';
 import Karigar from './pages/user/Karigar';
@@ -79,7 +79,7 @@ function AppRoutes() {
       <Route path="/ledgers" element={<ProtectedRoute><LedgerManagement /></ProtectedRoute>} />
       <Route path="/gst-ledger" element={<ProtectedRoute><GSTLedger /></ProtectedRoute>} />
       <Route path="/ledgers/:id" element={<ProtectedRoute><LedgerDetail /></ProtectedRoute>} />
-      <Route path="/settlement" element={<ProtectedRoute><Settlement /></ProtectedRoute>} />
+      <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
       <Route path="/stock" element={<ProtectedRoute><StockManagement /></ProtectedRoute>} />
       <Route path="/account" element={<ProtectedRoute><AccountInfo /></ProtectedRoute>} />
       <Route path="/karigar" element={<ProtectedRoute><Karigar /></ProtectedRoute>} />

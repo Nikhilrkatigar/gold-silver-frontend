@@ -662,107 +662,16 @@ export default function Billing() {
     try {
       const isSettlementType = ['add_cash', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'].includes(formData.paymentType);
 
-      if (isSettlementType) {
-        // Handle settlement types
-        const settlementData = {
-          ledgerId: formData.ledgerId,
-          date: formData.date,
-          narration: formData.narration || `Settlement: ${formData.paymentType}`,
-          direction: 'receipt' // Cash/Gold/Silver received from customer
-        };
-
-        if (formData.paymentType === 'add_cash') {
-          // For cash settlement, we'll use a special entry
-          settlementData.metalType = 'cash';
-          settlementData.fineGiven = 0;
-          settlementData.amount = parseFloat(formData.cashReceived);
-          settlementData.balanceBefore = selectedLedger?.balances?.creditBalance || 0;
-          settlementData.metalRate = 0;
-          settlementData.balanceAfter = {
-            amount: (selectedLedger?.balances?.creditBalance || 0) - parseFloat(formData.cashReceived),
-            fineWeight: 0
-          };
-        } else if (formData.paymentType === 'add_gold') {
-          const fineAdjustment = parseFloat(formData.cashReceived) || 0;
-          settlementData.metalType = 'gold';
-          settlementData.direction = fineAdjustment >= 0 ? 'receipt' : 'payment';
-          settlementData.fineGiven = Math.abs(fineAdjustment);
-          settlementData.amount = 0;
-          settlementData.balanceBefore = selectedLedger?.balances?.goldFineWeight || 0;
-          settlementData.metalRate = parseFloat(formData.goldRate) || 0;
-          settlementData.isFineOnlyAdjustment = true;
-          settlementData.balanceAfter = {
-            amount: 0,
-            fineWeight: (selectedLedger?.balances?.goldFineWeight || 0) + fineAdjustment
-          };
-        } else if (formData.paymentType === 'add_silver') {
-          const fineAdjustment = parseFloat(formData.cashReceived) || 0;
-          settlementData.metalType = 'silver';
-          settlementData.direction = fineAdjustment >= 0 ? 'receipt' : 'payment';
-          settlementData.fineGiven = Math.abs(fineAdjustment);
-          settlementData.amount = 0;
-          settlementData.balanceBefore = selectedLedger?.balances?.silverFineWeight || 0;
-          settlementData.metalRate = parseFloat(formData.silverRate) || 0;
-          settlementData.isFineOnlyAdjustment = true;
-          settlementData.balanceAfter = {
-            amount: 0,
-            fineWeight: (selectedLedger?.balances?.silverFineWeight || 0) + fineAdjustment
-          };
-        } else if (formData.paymentType === 'money_to_gold') {
-          const amount = parseFloat(formData.cashReceived);
-          const goldRate = parseFloat(formData.goldRate) || 1;
-          const calculatedFineWeight = amount / goldRate;
-
-          settlementData.metalType = 'gold';
-          settlementData.fineGiven = calculatedFineWeight;
-          settlementData.amount = amount;
-          settlementData.isMoneyConversion = true;
-          settlementData.direction = 'receipt';
-          settlementData.balanceBefore = {
-            creditBalance: selectedLedger?.balances?.creditBalance || 0,
-            goldFineWeight: selectedLedger?.balances?.goldFineWeight || 0
-          };
-          settlementData.metalRate = goldRate;
-          settlementData.balanceAfter = {
-            amount: (selectedLedger?.balances?.creditBalance || 0) - amount,
-            fineWeight: (selectedLedger?.balances?.goldFineWeight || 0) + calculatedFineWeight
-          };
-        } else if (formData.paymentType === 'money_to_silver') {
-          const amount = parseFloat(formData.cashReceived);
-          const silverRate = parseFloat(formData.silverRate) || 1;
-          const calculatedFineWeight = amount / silverRate;
-
-          settlementData.metalType = 'silver';
-          settlementData.fineGiven = calculatedFineWeight;
-          settlementData.amount = amount;
-          settlementData.isMoneyConversion = true;
-          settlementData.direction = 'receipt';
-          settlementData.balanceBefore = {
-            creditBalance: selectedLedger?.balances?.creditBalance || 0,
-            silverFineWeight: selectedLedger?.balances?.silverFineWeight || 0
-          };
-          settlementData.metalRate = silverRate;
-          settlementData.balanceAfter = {
-            amount: (selectedLedger?.balances?.creditBalance || 0) - amount,
-            fineWeight: (selectedLedger?.balances?.silverFineWeight || 0) + calculatedFineWeight
-          };
-        }
-
-        await settlementAPI.create(settlementData);
-        toast.success(`Settlement created successfully! Balance updated.`);
+      if (editingVoucherId) {
+        await voucherAPI.cancel(editingVoucherId, {
+          status: 'cancelled',
+          cancelledReason: 'Updated with new voucher'
+        });
+        await voucherAPI.create(voucherData);
+        toast.success(isSettlementType ? 'Settlement created successfully!' : 'Voucher updated successfully and previous voucher was cancelled.');
       } else {
-        // Handle regular vouchers (cash/credit bills)
-        if (editingVoucherId) {
-          await voucherAPI.cancel(editingVoucherId, {
-            status: 'cancelled',
-            cancelledReason: 'Updated with new voucher'
-          });
-          await voucherAPI.create(voucherData);
-          toast.success('Voucher updated successfully and previous voucher was cancelled.');
-        } else {
-          await voucherAPI.create(voucherData);
-          toast.success('Voucher created successfully!');
-        }
+        await voucherAPI.create(voucherData);
+        toast.success(isSettlementType ? 'Settlement created successfully! Balance updated.' : 'Voucher created successfully!');
       }
       setTimeout(() => {
         window.location.reload();
@@ -2000,7 +1909,7 @@ export default function Billing() {
                 )}
                 {formData.paymentType === 'money_to_gold' && (
                   <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Cash Amount to Convert (₹)</label>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Cash Payment (₹)</label>
                     <input
                       type="number"
                       step="0.01"
@@ -2019,13 +1928,13 @@ export default function Billing() {
                       }}
                     />
                     <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
-                      Will convert to gold fine weight at ₹{parseFloat(formData.goldRate || 0).toFixed(2)}/g rate
+                      Customer pays to settle gold fine dues at ₹{parseFloat(formData.goldRate || 0).toFixed(2)}/g rate
                     </small>
                   </div>
                 )}
                 {formData.paymentType === 'money_to_silver' && (
                   <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Cash Amount to Convert (₹)</label>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Cash Payment (₹)</label>
                     <input
                       type="number"
                       step="0.01"
@@ -2044,7 +1953,7 @@ export default function Billing() {
                       }}
                     />
                     <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
-                      Will convert to silver fine weight at ₹{parseFloat(formData.silverRate || 0).toFixed(2)}/g rate
+                      Customer pays to settle silver fine dues at ₹{parseFloat(formData.silverRate || 0).toFixed(2)}/g rate
                     </small>
                   </div>
                 )}
@@ -2084,11 +1993,11 @@ export default function Billing() {
                     fontWeight: 'bold',
                     fontSize: '14px'
                   }}>
-                    {formData.paymentType === 'add_cash' && `₹${(selectedLedger?.balances?.creditBalance || 0)}`}
+                    {formData.paymentType === 'add_cash' && `₹${(selectedLedger?.balances?.cashBalance !== undefined ? selectedLedger.balances.cashBalance : (selectedLedger?.balances?.creditBalance || 0))}`}
                     {formData.paymentType === 'add_gold' && `${(selectedLedger?.balances?.goldFineWeight || 0).toFixed(3)}g`}
                     {formData.paymentType === 'add_silver' && `${(selectedLedger?.balances?.silverFineWeight || 0).toFixed(3)}g`}
-                    {formData.paymentType === 'money_to_gold' && `Cash: ₹${(selectedLedger?.balances?.creditBalance || 0).toFixed(2)} | Gold: ${(selectedLedger?.balances?.goldFineWeight || 0).toFixed(3)}g`}
-                    {formData.paymentType === 'money_to_silver' && `Cash: ₹${(selectedLedger?.balances?.creditBalance || 0).toFixed(2)} | Silver: ${(selectedLedger?.balances?.silverFineWeight || 0).toFixed(3)}g`}
+                    {formData.paymentType === 'money_to_gold' && `Cash: ₹${(selectedLedger?.balances?.cashBalance !== undefined ? selectedLedger.balances.cashBalance : (selectedLedger?.balances?.creditBalance || 0)).toFixed(2)} | Gold: ${(selectedLedger?.balances?.goldFineWeight || 0).toFixed(3)}g`}
+                    {formData.paymentType === 'money_to_silver' && `Cash: ₹${(selectedLedger?.balances?.cashBalance !== undefined ? selectedLedger.balances.cashBalance : (selectedLedger?.balances?.creditBalance || 0)).toFixed(2)} | Silver: ${(selectedLedger?.balances?.silverFineWeight || 0).toFixed(3)}g`}
                   </div>
                 </div>
                 <div>
@@ -2105,11 +2014,11 @@ export default function Billing() {
                     fontWeight: 'bold',
                     fontSize: '14px'
                   }}>
-                    {formData.paymentType === 'add_cash' && `₹${((selectedLedger?.balances?.creditBalance || 0) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)}`}
-                    {formData.paymentType === 'add_gold' && `${((selectedLedger?.balances?.goldFineWeight || 0) + (parseFloat(formData.cashReceived) || 0)).toFixed(3)}g`}
-                    {formData.paymentType === 'add_silver' && `${((selectedLedger?.balances?.silverFineWeight || 0) + (parseFloat(formData.cashReceived) || 0)).toFixed(3)}g`}
-                    {formData.paymentType === 'money_to_gold' && `Cash: ₹${((selectedLedger?.balances?.creditBalance || 0) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)} | Gold: ${((selectedLedger?.balances?.goldFineWeight || 0) + ((parseFloat(formData.cashReceived) || 0) / (parseFloat(formData.goldRate) || 1))).toFixed(3)}g`}
-                    {formData.paymentType === 'money_to_silver' && `Cash: ₹${((selectedLedger?.balances?.creditBalance || 0) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)} | Silver: ${((selectedLedger?.balances?.silverFineWeight || 0) + ((parseFloat(formData.cashReceived) || 0) / (parseFloat(formData.silverRate) || 1))).toFixed(3)}g`}
+                    {formData.paymentType === 'add_cash' && `₹${((selectedLedger?.balances?.cashBalance !== undefined ? selectedLedger.balances.cashBalance : (selectedLedger?.balances?.creditBalance || 0)) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)}`}
+                    {formData.paymentType === 'add_gold' && `${((selectedLedger?.balances?.goldFineWeight || 0) - (parseFloat(formData.cashReceived) || 0)).toFixed(3)}g`}
+                    {formData.paymentType === 'add_silver' && `${((selectedLedger?.balances?.silverFineWeight || 0) - (parseFloat(formData.cashReceived) || 0)).toFixed(3)}g`}
+                    {formData.paymentType === 'money_to_gold' && `Cash: ₹${(selectedLedger?.balances?.cashBalance !== undefined ? selectedLedger.balances.cashBalance : (selectedLedger?.balances?.creditBalance || 0)).toFixed(2)} | Gold: ${((selectedLedger?.balances?.goldFineWeight || 0) - ((parseFloat(formData.cashReceived) || 0) / (parseFloat(formData.goldRate) || 1))).toFixed(3)}g`}
+                    {formData.paymentType === 'money_to_silver' && `Cash: ₹${(selectedLedger?.balances?.cashBalance !== undefined ? selectedLedger.balances.cashBalance : (selectedLedger?.balances?.creditBalance || 0)).toFixed(2)} | Silver: ${((selectedLedger?.balances?.silverFineWeight || 0) - ((parseFloat(formData.cashReceived) || 0) / (parseFloat(formData.silverRate) || 1))).toFixed(3)}g`}
                   </div>
                 </div>
               </div>
