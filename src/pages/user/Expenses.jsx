@@ -57,13 +57,15 @@ export default function Expenses() {
     const calculateCashInHand = async () => {
         try {
             // Use the SAME calculation as Stock page frontend
-            const [ledgersRes, vouchersRes] = await Promise.all([
+            const [ledgersRes, vouchersRes, expensesRes] = await Promise.all([
                 ledgerAPI.getAll(),
-                voucherAPI.getAll()
+                voucherAPI.getAll(),
+                expenseAPI.getAll()
             ]);
 
             const allLedgers = ledgersRes.data.ledgers || [];
             const allVouchers = vouchersRes.data.vouchers || [];
+            const allExpenses = expensesRes.data.expenses || [];
 
             // Calculate total voucher amounts (same as Stock page)
             const totalVoucherAmount = allVouchers.reduce((sum, voucher) => {
@@ -82,9 +84,17 @@ export default function Expenses() {
                 return sum + creditBalance + cashBalance;
             }, 0);
 
-            // Cash in hand = Total voucher amounts - Total ledger balances (same as Stock page)
-            const cash = totalVoucherAmount - totalLedgerBalance;
-            setCashInHand(Math.max(0, cash));
+            // Calculate total cash expenses (only cash payment method)
+            const totalCashExpenses = allExpenses.reduce((sum, expense) => {
+                if (expense.paymentMethod === 'cash') {
+                    return sum + parseFloat(expense.amount || 0);
+                }
+                return sum;
+            }, 0);
+
+            // Cash in hand = Total voucher amounts - Total ledger balances - Cash expenses
+            const cash = totalVoucherAmount - totalLedgerBalance - totalCashExpenses;
+            setCashInHand(cash); // Allow negative values
         } catch (error) {
             console.error('Failed to calculate cash in hand:', error);
             setCashInHand(0);

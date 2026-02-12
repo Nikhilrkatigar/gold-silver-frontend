@@ -189,7 +189,7 @@ export default function LedgerManagement() {
                   </td>
                   <td>
                     <div style={{ fontWeight: 'bold', color: '$var(--color-primary)' }}>
-                      ₹{(ledger.balances?.cashBalance !== undefined ? ledger.balances.cashBalance : (ledger.balances?.creditBalance || 0)).toFixed(2)}
+                      ₹{(-(ledger.balances?.cashBalance !== undefined ? ledger.balances.cashBalance : (ledger.balances?.creditBalance || 0))).toFixed(2)}
                     </div>
                   </td>
                   <td>

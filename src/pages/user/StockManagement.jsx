@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { stockAPI, ledgerAPI, voucherAPI, settlementAPI } from '../../services/api';
+import { stockAPI, ledgerAPI, voucherAPI, settlementAPI, expenseAPI } from '../../services/api';
 import Layout from '../../components/Layout';
 import { FiRotateCcw } from 'react-icons/fi';
 import { toast } from 'react-toastify';
@@ -20,14 +20,16 @@ const StockManagement = () => {
 
   const calculateCashInHand = async () => {
     try {
-      // Fetch all vouchers and ledgers
-      const [ledgersRes, vouchersRes] = await Promise.all([
+      // Fetch all vouchers, ledgers, and expenses
+      const [ledgersRes, vouchersRes, expensesRes] = await Promise.all([
         ledgerAPI.getAll(),
-        voucherAPI.getAll()
+        voucherAPI.getAll(),
+        expenseAPI.getAll()
       ]);
 
       const allLedgers = ledgersRes.data.ledgers || [];
       const allVouchers = vouchersRes.data.vouchers || [];
+      const allExpenses = expensesRes.data.expenses || [];
 
       setLedgers(allLedgers);
       setVouchers(allVouchers);
@@ -49,9 +51,17 @@ const StockManagement = () => {
         return sum + creditBalance + cashBalance;
       }, 0);
 
-      // Cash in hand = Total voucher amounts - Total ledger balances
-      const cash = totalVoucherAmount - totalLedgerBalance;
-      setCashInHand(Math.max(0, cash));
+      // Calculate total cash expenses (only cash payment method)
+      const totalCashExpenses = allExpenses.reduce((sum, expense) => {
+        if (expense.paymentMethod === 'cash') {
+          return sum + parseFloat(expense.amount || 0);
+        }
+        return sum;
+      }, 0);
+
+      // Cash in hand = Total voucher amounts - Total ledger balances - Cash expenses
+      const cash = totalVoucherAmount - totalLedgerBalance - totalCashExpenses;
+      setCashInHand(cash); // Allow negative values
     } catch (err) {
       console.error('Error calculating cash in hand:', err);
       setCashInHand(0);
@@ -84,14 +94,14 @@ const StockManagement = () => {
   const handleAddStock = async (e) => {
     e.preventDefault();
     setError('');
-    
+
     if (!goldInput && !silverInput) {
       setError('Enter gold or silver amount.');
       return;
     }
 
     const totalAmount = (parseFloat(goldAmount) || 0) + (parseFloat(silverAmount) || 0);
-    
+
     if (totalAmount > cashInHand) {
       setError(`Total amount (₹${totalAmount.toFixed(2)}) exceeds cash in hand (₹${cashInHand.toFixed(2)})`);
       return;
@@ -208,7 +218,7 @@ const StockManagement = () => {
         {/* Add Stock Form */}
         <form onSubmit={handleAddStock} style={{ marginBottom: 24, padding: 16, backgroundColor: 'var(--bg-secondary)', borderRadius: 8 }}>
           <h3 style={{ marginTop: 0, marginBottom: 16, fontWeight: 600 }}>📦 Add Stock</h3>
-          
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
             {/* Gold Section */}
             <div>

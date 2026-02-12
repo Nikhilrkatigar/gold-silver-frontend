@@ -128,7 +128,7 @@ export default function AccountInfo() {
       <div style={{ maxWidth: '800px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <h1 style={{ margin: 0 }}>Account Information</h1>
-          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>v2.1</span>
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>v2.2</span>
         </div>
 
         <div className="card" style={{ marginBottom: '1.5rem' }}>
