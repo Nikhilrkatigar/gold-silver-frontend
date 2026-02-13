@@ -9,7 +9,7 @@ import html2pdf from 'html2pdf.js';
 import { isValidGSTFormat, extractStateFromGST, calculateGST } from '../../utils/gstCalculations';
 
 // Voucher Print Template Component
-const VoucherTemplate = ({ formData, items, ledgers, user }) => {
+const VoucherTemplate = ({ formData, items, ledgers, user, voucherData }) => {
   const ledger = ledgers.find(l => l._id === formData.ledgerId);
   const totals = {
     pieces: items.reduce((sum, item) => sum + (parseInt(item.pieces) || 0), 0),
@@ -29,6 +29,27 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
   const silverTotal = items
     .filter(item => item.metalType === 'silver')
     .reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0);
+
+  // Use saved balance snapshot if available (for viewing saved vouchers), otherwise use calculated values
+  const oldBalanceAmount = voucherData?.balanceSnapshot?.oldBalance?.totalAmount ?? 
+    (formData.paymentType === 'credit' ? (ledger?.balances?.creditBalance || 0) : (ledger?.balances?.cashBalance || 0));
+  
+  const oldBalanceGold = voucherData?.balanceSnapshot?.oldBalance?.goldFineWeight ?? 
+    (ledger?.balances?.goldFineWeight || 0);
+  
+  const oldBalanceSilver = voucherData?.balanceSnapshot?.oldBalance?.silverFineWeight ?? 
+    (ledger?.balances?.silverFineWeight || 0);
+
+  const curBalanceAmount = voucherData?.balanceSnapshot?.currentBalance?.amount ?? 
+    (formData.paymentType === 'credit' 
+      ? ((parseFloat(ledger?.balances?.creditBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)))
+      : ((parseFloat(ledger?.balances?.cashBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))));
+
+  const curBalanceGold = voucherData?.balanceSnapshot?.currentBalance?.goldFineWeight ?? 
+    (formData.paymentType === 'credit' ? ((parseFloat(ledger?.balances?.goldFineWeight || 0) + goldTotal)) : (parseFloat(ledger?.balances?.goldFineWeight) || 0));
+  
+  const curBalanceSilver = voucherData?.balanceSnapshot?.currentBalance?.silverFineWeight ?? 
+    (formData.paymentType === 'credit' ? ((parseFloat(ledger?.balances?.silverFineWeight || 0) + silverTotal)) : (parseFloat(ledger?.balances?.silverFineWeight) || 0));
 
   const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.roundOff) || 0);
 
@@ -213,15 +234,15 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
               <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '12px' }}>Old Balance Details</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
                 <div>Old Bal Amount</div>
-                <div>₹{formData.paymentType === 'credit' ? (ledger?.balances?.creditBalance?.toFixed(2) || '0.00') : (ledger?.balances?.cashBalance?.toFixed(2) || '0.00')}</div>
+                <div>₹{oldBalanceAmount?.toFixed(2) || '0.00'}</div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
                 <div>Old Bal Gold Fine Wt</div>
-                <div style={{ color: '#FFD700', fontWeight: 'bold' }}>{formData.paymentType === 'credit' ? (ledger?.balances?.goldFineWeight?.toFixed(3) || '0.000') : '0.000'} g</div>
+                <div style={{ color: '#FFD700', fontWeight: 'bold' }}>{oldBalanceGold?.toFixed(3) || '0.000'} g</div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
                 <div>Old Bal Silver Fine Wt</div>
-                <div style={{ color: '#C0C0C0', fontWeight: 'bold' }}>{formData.paymentType === 'credit' ? (ledger?.balances?.silverFineWeight?.toFixed(3) || '0.000') : '0.000'} g</div>
+                <div style={{ color: '#C0C0C0', fontWeight: 'bold' }}>{oldBalanceSilver?.toFixed(3) || '0.000'} g</div>
               </div>
             </div>
 
@@ -230,15 +251,15 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
               <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '12px' }}>Current Balance Details ({formData.paymentType === 'credit' ? 'Credit Bill' : 'Cash Bill'})</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
                 <div>Cur Bal Amount</div>
-                <div>₹{formData.paymentType === 'credit' ? ((parseFloat(ledger?.balances?.creditBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))).toFixed(2) : ((parseFloat(ledger?.balances?.cashBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))).toFixed(2)}</div>
+                <div>₹{curBalanceAmount?.toFixed(2) || '0.00'}</div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
                 <div>Cur Bal Gold Fine Wt</div>
-                <div style={{ color: '#FFD700', fontWeight: 'bold' }}>{formData.paymentType === 'credit' ? ((parseFloat(ledger?.balances?.goldFineWeight || 0) + goldTotal).toFixed(3)) : (goldTotal).toFixed(3)} g</div>
+                <div style={{ color: '#FFD700', fontWeight: 'bold' }}>{curBalanceGold?.toFixed(3) || '0.000'} g</div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
                 <div>Cur Bal Silver Fine Wt</div>
-                <div style={{ color: '#C0C0C0', fontWeight: 'bold' }}>{formData.paymentType === 'credit' ? ((parseFloat(ledger?.balances?.silverFineWeight || 0) + silverTotal).toFixed(3)) : (silverTotal).toFixed(3)} g</div>
+                <div style={{ color: '#C0C0C0', fontWeight: 'bold' }}>{curBalanceSilver?.toFixed(3) || '0.000'} g</div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 'bold' }}>
                 <div>Receipt Gross (Entry Fine)</div>
@@ -287,6 +308,7 @@ export default function Billing() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [selectedLedger, setSelectedLedger] = useState(null);
+  const [savedVoucherData, setSavedVoucherData] = useState(null);
 
   useEffect(() => {
     fetchLedgers();
@@ -315,6 +337,7 @@ export default function Billing() {
       const voucher = response.data.voucher;
 
       setEditingVoucherId(id);
+      setSavedVoucherData(voucher);
       setFormData({
         ledgerId: voucher.ledgerId,
         date: voucher.date.split('T')[0],
@@ -652,6 +675,40 @@ export default function Billing() {
       amount: parseFloat(item.amount) || 0
     }));
 
+    // Calculate balance snapshot at time of saving
+    const goldAddedInThisBill = cleanedItems
+      .filter(item => item.metalType === 'gold')
+      .reduce((sum, item) => sum + (item.fineWeight || 0), 0);
+
+    const silverAddedInThisBill = cleanedItems
+      .filter(item => item.metalType === 'silver')
+      .reduce((sum, item) => sum + (item.fineWeight || 0), 0);
+
+    const totalAmountInThisBill = cleanedItems.reduce((sum, item) => sum + (item.amount || 0), 0) + (parseFloat(formData.stoneAmount) || 0);
+    const netBalanceOfThisBill = totalAmountInThisBill - (parseFloat(formData.cashReceived) || 0);
+
+    const creditBalance = parseFloat(selectedLedger?.balances?.creditBalance) || 0;
+    const cashBalance = parseFloat(selectedLedger?.balances?.cashBalance) || 0;
+    const goldBalance = parseFloat(selectedLedger?.balances?.goldFineWeight) || 0;
+    const silverBalance = parseFloat(selectedLedger?.balances?.silverFineWeight) || 0;
+
+    const balanceSnapshot = {
+      oldBalance: {
+        creditAmount: creditBalance,
+        cashAmount: cashBalance,
+        totalAmount: creditBalance + cashBalance,
+        goldFineWeight: goldBalance,
+        silverFineWeight: silverBalance
+      },
+      currentBalance: {
+        amount: formData.paymentType === 'credit' 
+          ? netBalanceOfThisBill + creditBalance + cashBalance 
+          : netBalanceOfThisBill + cashBalance,
+        goldFineWeight: formData.paymentType === 'credit' ? goldBalance + goldAddedInThisBill : goldBalance,
+        silverFineWeight: formData.paymentType === 'credit' ? silverBalance + silverAddedInThisBill : silverBalance
+      }
+    };
+
     const voucherData = {
       ledgerId: formData.ledgerId,
       date: formData.date,
@@ -667,6 +724,7 @@ export default function Billing() {
       cashReceived: parseFloat(formData.cashReceived) || 0,
       roundOff: parseFloat(formData.roundOff) || 0,
       invoiceType: formData.invoiceType,
+      balanceSnapshot,
       ...(formData.invoiceType === 'gst' && {
         gstDetails: {
           gstRate: parseFloat(formData.gstRate) || 0
@@ -714,6 +772,29 @@ export default function Billing() {
     const silverTotal = items
       .filter(item => item.metalType === 'silver')
       .reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0);
+
+    // Use saved balance snapshot if available, otherwise calculate
+    const oldBalanceAmount = savedVoucherData?.balanceSnapshot?.oldBalance?.totalAmount ?? 
+      (formData.paymentType === 'credit' 
+        ? (selectedLedger?.balances?.creditBalance || 0) + (selectedLedger?.balances?.cashBalance || 0)
+        : (selectedLedger?.balances?.cashBalance || 0));
+    
+    const oldBalanceGold = savedVoucherData?.balanceSnapshot?.oldBalance?.goldFineWeight ?? 
+      (formData.paymentType === 'credit' ? (selectedLedger?.balances?.goldFineWeight || 0) : 0);
+    
+    const oldBalanceSilver = savedVoucherData?.balanceSnapshot?.oldBalance?.silverFineWeight ?? 
+      (formData.paymentType === 'credit' ? (selectedLedger?.balances?.silverFineWeight || 0) : 0);
+
+    const curBalanceAmount = savedVoucherData?.balanceSnapshot?.currentBalance?.amount ?? 
+      (formData.paymentType === 'credit' 
+        ? ((parseFloat(selectedLedger?.balances?.creditBalance || 0) + parseFloat(selectedLedger?.balances?.cashBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)))
+        : ((parseFloat(selectedLedger?.balances?.cashBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))));
+
+    const curBalanceGold = savedVoucherData?.balanceSnapshot?.currentBalance?.goldFineWeight ?? 
+      (formData.paymentType === 'credit' ? ((parseFloat(selectedLedger?.balances?.goldFineWeight || 0) + goldTotal)) : goldTotal);
+    
+    const curBalanceSilver = savedVoucherData?.balanceSnapshot?.currentBalance?.silverFineWeight ?? 
+      (formData.paymentType === 'credit' ? ((parseFloat(selectedLedger?.balances?.silverFineWeight || 0) + silverTotal)) : silverTotal);
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
@@ -879,15 +960,15 @@ export default function Billing() {
               <div class="balance-label">Old Balance Details</div>
               <div class="balance-row">
                 <div>Old Bal Amount</div>
-                <div>₹${formData.paymentType === 'credit' ? (selectedLedger?.balances?.creditBalance?.toFixed(2) || '0.00') : (selectedLedger?.balances?.cashBalance?.toFixed(2) || '0.00')}</div>
+                <div>₹${oldBalanceAmount?.toFixed(2) || '0.00'}</div>
               </div>
               <div class="balance-row">
                 <div>Old Bal Gold Fine Wt</div>
-                <div style="color: #FFD700; font-weight: bold;">${formData.paymentType === 'credit' ? (selectedLedger?.balances?.goldFineWeight?.toFixed(3) || '0.000') : '0.000'} g</div>
+                <div style="color: #FFD700; font-weight: bold;">${oldBalanceGold?.toFixed(3) || '0.000'} g</div>
               </div>
               <div class="balance-row">
                 <div>Old Bal Silver Fine Wt</div>
-                <div style="color: #C0C0C0; font-weight: bold;">${formData.paymentType === 'credit' ? (selectedLedger?.balances?.silverFineWeight?.toFixed(3) || '0.000') : '0.000'} g</div>
+                <div style="color: #C0C0C0; font-weight: bold;">${oldBalanceSilver?.toFixed(3) || '0.000'} g</div>
               </div>
             </div>
 
@@ -896,15 +977,15 @@ export default function Billing() {
               <div class="balance-label">Current Balance Details (${formData.paymentType === 'credit' ? 'Credit Bill' : 'Cash Bill'})</div>
               <div class="balance-row">
                 <div>Cur Bal Amount</div>
-                <div>₹${formData.paymentType === 'credit' ? ((parseFloat(selectedLedger?.balances?.creditBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))).toFixed(2) : ((parseFloat(selectedLedger?.balances?.cashBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))).toFixed(2)}</div>
+                <div>₹${curBalanceAmount?.toFixed(2) || '0.00'}</div>
               </div>
               <div class="balance-row">
                 <div>Cur Bal Gold Fine Wt</div>
-                <div style="color: #FFD700; font-weight: bold;">${formData.paymentType === 'credit' ? ((parseFloat(selectedLedger?.balances?.goldFineWeight || 0) + goldTotal).toFixed(3)) : (goldTotal).toFixed(3)} g</div>
+                <div style="color: #FFD700; font-weight: bold;">${curBalanceGold?.toFixed(3) || '0.000'} g</div>
               </div>
               <div class="balance-row">
                 <div>Cur Bal Silver Fine Wt</div>
-                <div style="color: #C0C0C0; font-weight: bold;">${formData.paymentType === 'credit' ? ((parseFloat(selectedLedger?.balances?.silverFineWeight || 0) + silverTotal).toFixed(3)) : (silverTotal).toFixed(3)} g</div>
+                <div style="color: #C0C0C0; font-weight: bold;">${curBalanceSilver?.toFixed(3) || '0.000'} g</div>
               </div>
               <div class="balance-row" style="font-weight: bold;">
                 <div>Receipt Gross (Entry Fine)</div>
@@ -925,7 +1006,7 @@ export default function Billing() {
 
     printWindow.document.write(voucherHTML);
     printWindow.document.close();
-  }, [items, ledgers, formData, user, calculateTotals]);
+  }, [items, ledgers, formData, user, calculateTotals, savedVoucherData, selectedLedger]);
 
   const handleShare = async () => {
     if (items.length === 0) {
@@ -1081,15 +1162,15 @@ export default function Billing() {
               <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
                 <div>
                   <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Old Bal Amount</div>
-                  <div style="font-size: 14px; font-weight: bold; color: #000000;">₹${formData.paymentType === 'credit' ? (parseFloat(selectedLedger?.balances?.creditBalance || 0).toFixed(2)) : (parseFloat(selectedLedger?.balances?.cashBalance || 0).toFixed(2))}</div>
+                  <div style="font-size: 14px; font-weight: bold; color: #000000;">₹${(savedVoucherData?.balanceSnapshot?.oldBalance?.totalAmount ?? (formData.paymentType === 'credit' ? (parseFloat(selectedLedger?.balances?.creditBalance || 0) + parseFloat(selectedLedger?.balances?.cashBalance || 0)) : parseFloat(selectedLedger?.balances?.cashBalance || 0))).toFixed(2)}</div>
                 </div>
                 <div>
                   <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Old Bal Gold Fine Wt</div>
-                  <div style="font-size: 14px; font-weight: bold; color: #FFD700;">${formData.paymentType === 'credit' ? parseFloat(selectedLedger?.balances?.goldFineWeight || 0).toFixed(3) : '0.000'} g</div>
+                  <div style="font-size: 14px; font-weight: bold; color: #FFD700;">${(savedVoucherData?.balanceSnapshot?.oldBalance?.goldFineWeight ?? (formData.paymentType === 'credit' ? parseFloat(selectedLedger?.balances?.goldFineWeight || 0) : 0)).toFixed(3)} g</div>
                 </div>
                 <div>
                   <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Old Bal Silver Fine Wt</div>
-                  <div style="font-size: 14px; font-weight: bold; color: #C0C0C0;">${formData.paymentType === 'credit' ? parseFloat(selectedLedger?.balances?.silverFineWeight || 0).toFixed(3) : '0.000'} g</div>
+                  <div style="font-size: 14px; font-weight: bold; color: #C0C0C0;">${(savedVoucherData?.balanceSnapshot?.oldBalance?.silverFineWeight ?? (formData.paymentType === 'credit' ? parseFloat(selectedLedger?.balances?.silverFineWeight || 0) : 0)).toFixed(3)} g</div>
                 </div>
               </div>
             </div>
@@ -1099,15 +1180,15 @@ export default function Billing() {
               <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
                 <div style="background-color: #d4edda; padding: 15px; border-radius: 4px;">
                   <div style="color: #155724; margin-bottom: 5px; font-size: 12px; font-weight: bold;">Cur Bal Amount</div>
-                  <div style="font-size: 16px; font-weight: bold; color: #155724;">₹${(((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)) + (formData.paymentType === 'credit' ? (parseFloat(selectedLedger?.balances?.creditBalance) || 0) : (parseFloat(selectedLedger?.balances?.cashBalance) || 0))).toFixed(2)}</div>
+                  <div style="font-size: 16px; font-weight: bold; color: #155724;">₹${(savedVoucherData?.balanceSnapshot?.currentBalance?.amount ?? (formData.paymentType === 'credit' ? (((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)) + (parseFloat(selectedLedger?.balances?.creditBalance || 0) + parseFloat(selectedLedger?.balances?.cashBalance || 0))) : (((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)) + (parseFloat(selectedLedger?.balances?.cashBalance) || 0)))).toFixed(2)}</div>
                 </div>
                 <div style="background-color: #d4edda; padding: 15px; border-radius: 4px;">
                   <div style="color: #155724; margin-bottom: 5px; font-size: 12px; font-weight: bold;">Cur Bal Gold Fine Wt</div>
-                  <div style="font-size: 16px; font-weight: bold; color: #FFD700;">${formData.paymentType === 'credit' ? ((items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.goldFineWeight) || 0)).toFixed(3) : (items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)).toFixed(3)} g</div>
+                  <div style="font-size: 16px; font-weight: bold; color: #FFD700;">${(savedVoucherData?.balanceSnapshot?.currentBalance?.goldFineWeight ?? (formData.paymentType === 'credit' ? ((items.filter(item => item.metalType === 'gold').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.goldFineWeight) || 0)) : (items.filter(item => item.metalType === 'gold').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)))).toFixed(3)} g</div>
                 </div>
                 <div style="background-color: #d4edda; padding: 15px; border-radius: 4px;">
                   <div style="color: #155724; margin-bottom: 5px; font-size: 12px; font-weight: bold;">Cur Bal Silver Fine Wt</div>
-                  <div style="font-size: 16px; font-weight: bold; color: #C0C0C0;">${formData.paymentType === 'credit' ? ((items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.silverFineWeight) || 0)).toFixed(3) : (items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)).toFixed(3)} g</div>
+                  <div style="font-size: 16px; font-weight: bold; color: #C0C0C0;">${(savedVoucherData?.balanceSnapshot?.currentBalance?.silverFineWeight ?? (formData.paymentType === 'credit' ? ((items.filter(item => item.metalType === 'silver').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.silverFineWeight) || 0)) : (items.filter(item => item.metalType === 'silver').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)))).toFixed(3)} g</div>
                 </div>
               </div>
               <div style="margin-top: 15px; padding: 15px; background-color: #e2e3e5; border-radius: 4px;">
@@ -2112,7 +2193,7 @@ export default function Billing() {
                 <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
                   <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Cur Bal Amount</div>
                   <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--color-primary)' }}>
-                    ₹{(((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)) + (formData.paymentType === 'credit' ? (parseFloat(selectedLedger?.balances?.creditBalance) || 0) : (parseFloat(selectedLedger?.balances?.cashBalance) || 0))).toFixed(2)}
+                    ₹{(((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)) + (formData.paymentType === 'credit' ? ((parseFloat(selectedLedger?.balances?.creditBalance) || 0) + (parseFloat(selectedLedger?.balances?.cashBalance) || 0)) : (parseFloat(selectedLedger?.balances?.cashBalance) || 0))).toFixed(2)}
                   </div>
                   <div style={{ fontSize: '10px', color: 'var(--color-muted)', marginTop: '3px' }}>Net + Old Balance</div>
                 </div>
@@ -2120,14 +2201,14 @@ export default function Billing() {
                 <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
                   <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Cur Bal Gold Fine Wt</div>
                   <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#FFD700' }}>
-                    {formData.paymentType === 'credit' ? ((items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.goldFineWeight) || 0)).toFixed(3) : (items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)).toFixed(3)}g
+                    {formData.paymentType === 'credit' ? ((items.filter(item => item.metalType === 'gold').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.goldFineWeight) || 0)).toFixed(3) : (parseFloat(selectedLedger?.balances?.goldFineWeight) || 0).toFixed(3)}g
                   </div>
                 </div>
 
                 <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
                   <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Cur Bal Silver Fine Wt</div>
                   <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#C0C0C0' }}>
-                    {formData.paymentType === 'credit' ? ((items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.silverFineWeight) || 0)).toFixed(3) : (items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)).toFixed(3)}g
+                    {formData.paymentType === 'credit' ? ((items.filter(item => item.metalType === 'silver').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.silverFineWeight) || 0)).toFixed(3) : (parseFloat(selectedLedger?.balances?.silverFineWeight) || 0).toFixed(3)}g
                   </div>
                 </div>
 
@@ -2162,12 +2243,17 @@ export default function Billing() {
                     fontSize: '14px'
                   }}>
                     {formData.paymentType === 'credit'
-                      ? (selectedLedger?.balances?.creditBalance ? `₹${parseFloat(selectedLedger.balances.creditBalance).toFixed(2)}` : '₹0.00')
+                      ? (() => {
+                        const creditBal = parseFloat(selectedLedger?.balances?.creditBalance) || 0;
+                        const cashBal = parseFloat(selectedLedger?.balances?.cashBalance) || 0;
+                        const totalBal = creditBal + cashBal;
+                        return totalBal > 0 ? `₹${totalBal.toFixed(2)} (Credit: ₹${creditBal.toFixed(2)} + Cash: ₹${cashBal.toFixed(2)})` : '₹0.00';
+                      })()
                       : (selectedLedger?.balances?.cashBalance ? `₹${parseFloat(selectedLedger.balances.cashBalance).toFixed(2)}` : '₹0.00')
                     }
                   </div>
                   <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
-                    {formData.paymentType === 'credit' ? '📋 Balance from previous credit bills' : '💰 Balance from cash bills only'}
+                    {formData.paymentType === 'credit' ? '📋 Balance from previous credit bills and cash bills' : '💰 Balance from cash bills only'}
                   </small>
                 </div>
 

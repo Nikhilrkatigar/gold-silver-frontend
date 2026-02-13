@@ -8,6 +8,77 @@ import { FiTrash2, FiArrowLeft, FiEye, FiX, FiPrinter, FiShare2, FiEdit2 } from 
 import { useAuth } from '../../context/AuthContext';
 import html2pdf from 'html2pdf.js';
 
+const toFiniteNumber = (value, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const pickFirstFinite = (...values) => {
+  for (const value of values) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return 0;
+};
+
+const getVoucherTotals = (voucher) => {
+  const items = voucher?.items || [];
+  const amountFromItems = items.reduce((sum, item) => sum + toFiniteNumber(item.amount), 0);
+  const stoneAmount = toFiniteNumber(voucher?.stoneAmount);
+  const fineAmount = toFiniteNumber(voucher?.fineAmount);
+  const voucherTotal = toFiniteNumber(voucher?.total, amountFromItems + stoneAmount + fineAmount);
+  const goldFineWeight = items
+    .filter((item) => item.metalType === 'gold')
+    .reduce((sum, item) => sum + toFiniteNumber(item.fineWeight), 0);
+  const silverFineWeight = items
+    .filter((item) => item.metalType === 'silver')
+    .reduce((sum, item) => sum + toFiniteNumber(item.fineWeight), 0);
+  const receiptGross = items.reduce((sum, item) => sum + toFiniteNumber(item.fineWeight), 0);
+
+  return { voucherTotal, goldFineWeight, silverFineWeight, receiptGross };
+};
+
+const getVoucherBalanceDetails = (voucher, ledger) => {
+  const { voucherTotal, goldFineWeight, silverFineWeight, receiptGross } = getVoucherTotals(voucher);
+  const oldAmount = pickFirstFinite(
+    voucher?.balanceSnapshot?.oldBalance?.totalAmount,
+    voucher?.oldBalance?.amount,
+    toFiniteNumber(ledger?.balances?.amount) - voucherTotal
+  );
+  const oldGold = pickFirstFinite(
+    voucher?.balanceSnapshot?.oldBalance?.goldFineWeight,
+    toFiniteNumber(ledger?.balances?.goldFineWeight) - goldFineWeight
+  );
+  const oldSilver = pickFirstFinite(
+    voucher?.balanceSnapshot?.oldBalance?.silverFineWeight,
+    toFiniteNumber(ledger?.balances?.silverFineWeight) - silverFineWeight
+  );
+  const currentAmount = pickFirstFinite(
+    voucher?.balanceSnapshot?.currentBalance?.amount,
+    voucher?.currentBalance?.amount,
+    ledger?.balances?.amount
+  );
+  const currentGold = pickFirstFinite(
+    voucher?.balanceSnapshot?.currentBalance?.goldFineWeight,
+    ledger?.balances?.goldFineWeight
+  );
+  const currentSilver = pickFirstFinite(
+    voucher?.balanceSnapshot?.currentBalance?.silverFineWeight,
+    ledger?.balances?.silverFineWeight
+  );
+
+  return {
+    oldAmount,
+    oldGold,
+    oldSilver,
+    currentAmount,
+    currentGold,
+    currentSilver,
+    voucherTotal,
+    receiptGross
+  };
+};
+
 export default function LedgerDetail() {
   const { user } = useAuth();
   const { id } = useParams();
@@ -126,13 +197,7 @@ export default function LedgerDetail() {
       return;
     }
 
-    // Calculate metal-specific totals
-    const goldTotal = voucher.items
-      ? voucher.items.filter(item => item.metalType === 'gold').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)
-      : 0;
-    const silverTotal = voucher.items
-      ? voucher.items.filter(item => item.metalType === 'silver').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)
-      : 0;
+    const balanceDetails = getVoucherBalanceDetails(voucher, ledger);
 
     // Otherwise use old format
     const printWindow = window.open('', '_blank');
@@ -268,15 +333,15 @@ export default function LedgerDetail() {
             <div style="font-weight: bold; margin-bottom: 10px;">Old Balance Details</div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
               <div>Old Bal Amt :</div>
-              <div>${((parseFloat(ledger?.balances?.amount || 0)) - (voucher.total || 0)).toFixed(2)}</div>
+              <div>${balanceDetails.oldAmount.toFixed(2)}</div>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
               <div>Old Bal Gold Fine Wt :</div>
-              <div style="color: #FFD700; font-weight: bold;">${((parseFloat(ledger?.balances?.goldFineWeight || 0)) - goldTotal).toFixed(3)} g</div>
+              <div style="color: #FFD700; font-weight: bold;">${balanceDetails.oldGold.toFixed(3)} g</div>
             </div>
             <div style="display: flex; justify-content: space-between;">
               <div>Old Bal Silver Fine Wt :</div>
-              <div style="color: #C0C0C0; font-weight: bold;">${((parseFloat(ledger?.balances?.silverFineWeight || 0)) - silverTotal).toFixed(3)} g</div>
+              <div style="color: #C0C0C0; font-weight: bold;">${balanceDetails.oldSilver.toFixed(3)} g</div>
             </div>
           </div>
 
@@ -285,15 +350,15 @@ export default function LedgerDetail() {
             <div style="font-weight: bold; margin-bottom: 10px;">Current Balance Details</div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
               <div>Cur Bal Amt :</div>
-              <div>${ledger?.balances?.amount?.toFixed(2) || '0.00'}</div>
+              <div>${balanceDetails.currentAmount.toFixed(2)}</div>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
               <div>Cur Bal Gold Fine Wt :</div>
-              <div style="color: #FFD700; font-weight: bold;">${(ledger?.balances?.goldFineWeight || 0).toFixed(3)} g</div>
+              <div style="color: #FFD700; font-weight: bold;">${balanceDetails.currentGold.toFixed(3)} g</div>
             </div>
             <div style="display: flex; justify-content: space-between;">
               <div>Cur Bal Silver Fine Wt :</div>
-              <div style="color: #C0C0C0; font-weight: bold;">${(ledger?.balances?.silverFineWeight || 0).toFixed(3)} g</div>
+              <div style="color: #C0C0C0; font-weight: bold;">${balanceDetails.currentSilver.toFixed(3)} g</div>
             </div>
           </div>
         </div>
@@ -485,18 +550,8 @@ export default function LedgerDetail() {
         return;
       }
 
-      // Calculate metal-specific totals
-      const goldTotal = voucher.items
-        ? voucher.items.filter(item => item.metalType === 'gold').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)
-        : 0;
-      const silverTotal = voucher.items
-        ? voucher.items.filter(item => item.metalType === 'silver').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)
-        : 0;
-
-      // Otherwise use old format
-      const voucherTotal = voucher.items
-        ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(voucher.stoneAmount) || 0)
-        : 0;
+      const balanceDetails = getVoucherBalanceDetails(voucher, ledger);
+      const voucherTotal = balanceDetails.voucherTotal;
 
       const voucherContent = document.createElement('div');
       voucherContent.innerHTML = `
@@ -618,15 +673,15 @@ export default function LedgerDetail() {
                 <div style="font-weight: bold; margin-bottom: 10px; font-size: 13px; color: #000000;">Old Balance Details</div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
                   <span>Old Bal Amount</span>
-                  <span style="color: #000000;">₹${((parseFloat(ledger?.balances?.amount || 0)) - (voucherTotal)).toFixed(2)}</span>
+                  <span style="color: #000000;">₹${balanceDetails.oldAmount.toFixed(2)}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
                   <span>Old Bal Gold Fine Wt</span>
-                  <span style="color: #FFD700; font-weight: bold;">${((parseFloat(ledger?.balances?.goldFineWeight || 0)) - goldTotal).toFixed(3)} g</span>
+                  <span style="color: #FFD700; font-weight: bold;">${balanceDetails.oldGold.toFixed(3)} g</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 12px; color: #333333;">
                   <span>Old Bal Silver Fine Wt</span>
-                  <span style="color: #C0C0C0; font-weight: bold;">${((parseFloat(ledger?.balances?.silverFineWeight || 0)) - silverTotal).toFixed(3)} g</span>
+                  <span style="color: #C0C0C0; font-weight: bold;">${balanceDetails.oldSilver.toFixed(3)} g</span>
                 </div>
               </div>
 
@@ -635,19 +690,19 @@ export default function LedgerDetail() {
                 <div style="font-weight: bold; margin-bottom: 10px; font-size: 13px; color: #000000;">Current Balance Details</div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
                   <span>Cur Bal Amount</span>
-                  <span style="color: #000000;">₹${ledger?.balances?.amount?.toFixed(2) || '0.00'}</span>
+                  <span style="color: #000000;">₹${balanceDetails.currentAmount.toFixed(2)}</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
                   <span>Cur Bal Gold Fine Wt</span>
-                  <span style="color: #FFD700; font-weight: bold;">${(ledger?.balances?.goldFineWeight || 0).toFixed(3)} g</span>
+                  <span style="color: #FFD700; font-weight: bold;">${balanceDetails.currentGold.toFixed(3)} g</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
                   <span>Cur Bal Silver Fine Wt</span>
-                  <span style="color: #C0C0C0; font-weight: bold;">${(ledger?.balances?.silverFineWeight || 0).toFixed(3)} g</span>
+                  <span style="color: #C0C0C0; font-weight: bold;">${balanceDetails.currentSilver.toFixed(3)} g</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; font-size: 12px; color: #333333; font-weight: bold; margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd;">
                   <span>Receipt Gross (Entry Fine)</span>
-                  <span>${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0).toFixed(3) : '0.000'} g</span>
+                  <span>${balanceDetails.receiptGross.toFixed(3)} g</span>
                 </div>
               </div>
             </div>
@@ -938,6 +993,9 @@ export default function LedgerDetail() {
     }, 0);
 
   const amountBalance = (ledger?.balances?.creditBalance || 0) + (ledger?.balances?.cashBalance || 0);
+  const previewBalanceDetails = previewType === 'voucher' && selectedItem
+    ? getVoucherBalanceDetails(selectedItem, ledger)
+    : null;
 
   return (
     <Layout>
@@ -1293,18 +1351,18 @@ export default function LedgerDetail() {
                       {/* Old Balance Details Box */}
                       <div style={{ border: '1px solid var(--border-color)', padding: '1rem', marginBottom: '1rem', backgroundColor: 'var(--bg-primary)' }}>
                         <div style={{ fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '0.95rem', color: 'var(--text-primary)' }}>Old Balance Details</div>
-                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Old Bal Amount: ₹{parseFloat(selectedItem.oldBalAmount || 0).toFixed(2)}</div>
-                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#FFD700', fontWeight: 500 }}>Old Bal Gold Fine Wt: {parseFloat(selectedItem.oldBalGoldFineWt || 0).toFixed(3)}g</div>
-                        <div style={{ fontSize: '0.9rem', color: '#C0C0C0', fontWeight: 500 }}>Old Bal Silver Fine Wt: {parseFloat(selectedItem.oldBalSilverFineWt || 0).toFixed(3)}g</div>
+                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Old Bal Amount: ₹{previewBalanceDetails?.oldAmount?.toFixed(2) || '0.00'}</div>
+                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#FFD700', fontWeight: 500 }}>Old Bal Gold Fine Wt: {previewBalanceDetails?.oldGold?.toFixed(3) || '0.000'}g</div>
+                        <div style={{ fontSize: '0.9rem', color: '#C0C0C0', fontWeight: 500 }}>Old Bal Silver Fine Wt: {previewBalanceDetails?.oldSilver?.toFixed(3) || '0.000'}g</div>
                       </div>
 
                       {/* Current Balance Details Box */}
                       <div style={{ border: '1px solid var(--border-color)', padding: '1rem', backgroundColor: 'var(--bg-primary)' }}>
                         <div style={{ fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '0.95rem', color: 'var(--text-primary)' }}>Current Balance Details</div>
-                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Cur Bal Amount: ₹{parseFloat(selectedItem.curBalAmount || 0).toFixed(2)}</div>
-                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#FFD700', fontWeight: 500 }}>Cur Bal Gold Fine Wt: {parseFloat(selectedItem.curBalGoldFineWt || 0).toFixed(3)}g</div>
-                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#C0C0C0', fontWeight: 500 }}>Cur Bal Silver Fine Wt: {parseFloat(selectedItem.curBalSilverFineWt || 0).toFixed(3)}g</div>
-                        <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>Receipt Gross (Entry Fine): {parseFloat(selectedItem.receiptGross || 0).toFixed(3)}g</div>
+                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Cur Bal Amount: ₹{previewBalanceDetails?.currentAmount?.toFixed(2) || '0.00'}</div>
+                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#FFD700', fontWeight: 500 }}>Cur Bal Gold Fine Wt: {previewBalanceDetails?.currentGold?.toFixed(3) || '0.000'}g</div>
+                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#C0C0C0', fontWeight: 500 }}>Cur Bal Silver Fine Wt: {previewBalanceDetails?.currentSilver?.toFixed(3) || '0.000'}g</div>
+                        <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>Receipt Gross (Entry Fine): {previewBalanceDetails?.receiptGross?.toFixed(3) || '0.000'}g</div>
                       </div>
                     </div>
 
