@@ -21,6 +21,15 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
     amount: items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
   };
 
+  // Calculate metal-specific totals
+  const goldTotal = items
+    .filter(item => item.metalType === 'gold')
+    .reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0);
+
+  const silverTotal = items
+    .filter(item => item.metalType === 'silver')
+    .reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0);
+
   const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.roundOff) || 0);
 
   return (
@@ -28,6 +37,9 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: '20px' }}>
         <h2 style={{ margin: '0', fontSize: '24px', fontWeight: 'bold' }}>{user?.shopName || 'ESTIMATE/ON APPROVAL'}</h2>
+        {user?.phoneNumber && (
+          <p style={{ margin: '2px 0', fontSize: '14px', color: '#666' }}>📞 {user.phoneNumber}</p>
+        )}
         <p style={{ margin: '5px 0', fontSize: '16px' }}>ESTIMATE/ON APPROVAL - Issue</p>
         {formData.invoiceType === 'gst' && (
           <div style={{ margin: '10px 0', padding: '5px 10px', backgroundColor: '#e8f5e9', border: '2px solid #4caf50', borderRadius: '4px', display: 'inline-block', fontSize: '14px', fontWeight: 'bold', color: '#2e7d32' }}>
@@ -194,41 +206,44 @@ const VoucherTemplate = ({ formData, items, ledgers, user }) => {
             <div>₹{((totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.roundOff) || 0)) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)}</div>
           </div>
 
-          {/* Old Balance Details Box */}
-          <div style={{ border: '1px solid var(--border-color)', padding: '10px', marginBottom: '10px', backgroundColor: 'var(--bg-primary)' }}>
-            <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '12px' }}>Old Balance Details ({formData.paymentType === 'credit' ? 'Credit Bill' : 'Cash Bill'})</div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
-              <div>Old Bal Amount</div>
-              <div>₹{formData.paymentType === 'credit' ? (ledger?.balances?.creditBalance?.toFixed(2) || '0.00') : (ledger?.balances?.cashBalance?.toFixed(2) || '0.00')}</div>
+          {/* Balance Details Section - Side by Side */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginBottom: '10px' }}>
+            {/* Old Balance Details Box */}
+            <div style={{ border: '1px solid var(--border-color)', padding: '10px', backgroundColor: 'var(--bg-primary)' }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '12px' }}>Old Balance Details</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
+                <div>Old Bal Amount</div>
+                <div>₹{formData.paymentType === 'credit' ? (ledger?.balances?.creditBalance?.toFixed(2) || '0.00') : (ledger?.balances?.cashBalance?.toFixed(2) || '0.00')}</div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
+                <div>Old Bal Gold Fine Wt</div>
+                <div style={{ color: '#FFD700', fontWeight: 'bold' }}>{formData.paymentType === 'credit' ? (ledger?.balances?.goldFineWeight?.toFixed(3) || '0.000') : '0.000'} g</div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                <div>Old Bal Silver Fine Wt</div>
+                <div style={{ color: '#C0C0C0', fontWeight: 'bold' }}>{formData.paymentType === 'credit' ? (ledger?.balances?.silverFineWeight?.toFixed(3) || '0.000') : '0.000'} g</div>
+              </div>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
-              <div>Old Bal Gold Fine Wt</div>
-              <div style={{ color: '#FFD700', fontWeight: 'bold' }}>{formData.paymentType === 'credit' ? (ledger?.balances?.goldFineWeight?.toFixed(3) || '0.000') : '0.000'} g</div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-              <div>Old Bal Silver Fine Wt</div>
-              <div style={{ color: '#C0C0C0', fontWeight: 'bold' }}>{formData.paymentType === 'credit' ? (ledger?.balances?.silverFineWeight?.toFixed(3) || '0.000') : '0.000'} g</div>
-            </div>
-          </div>
 
-          {/* Current Balance Details Box */}
-          <div style={{ border: '1px solid var(--border-color)', padding: '10px', marginBottom: '10px', backgroundColor: 'var(--bg-primary)' }}>
-            <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '12px' }}>Current Balance Details ({formData.paymentType === 'credit' ? 'Credit Bill' : 'Cash Bill'})</div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
-              <div>Cur Bal Amount</div>
-              <div>₹{formData.paymentType === 'credit' ? ((parseFloat(ledger?.balances?.creditBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))).toFixed(2) : ((parseFloat(ledger?.balances?.cashBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))).toFixed(2)}</div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
-              <div>Cur Bal Gold Fine Wt</div>
-              <div style={{ color: '#FFD700', fontWeight: 'bold' }}>{formData.paymentType === 'credit' ? ((parseFloat(ledger?.balances?.goldFineWeight || 0) + totals.fineWeight).toFixed(3)) : (totals.fineWeight).toFixed(3)} g</div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
-              <div>Cur Bal Silver Fine Wt</div>
-              <div style={{ color: '#C0C0C0', fontWeight: 'bold' }}>{formData.paymentType === 'credit' ? ((parseFloat(ledger?.balances?.silverFineWeight || 0) + totals.fineWeight).toFixed(3)) : (totals.fineWeight).toFixed(3)} g</div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 'bold' }}>
-              <div>Receipt Gross (Entry Fine)</div>
-              <div>{totals.fineWeight.toFixed(3)} g</div>
+            {/* Current Balance Details Box */}
+            <div style={{ border: '1px solid var(--border-color)', padding: '10px', backgroundColor: 'var(--bg-primary)' }}>
+              <div style={{ fontWeight: 'bold', marginBottom: '8px', fontSize: '12px' }}>Current Balance Details ({formData.paymentType === 'credit' ? 'Credit Bill' : 'Cash Bill'})</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
+                <div>Cur Bal Amount</div>
+                <div>₹{formData.paymentType === 'credit' ? ((parseFloat(ledger?.balances?.creditBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))).toFixed(2) : ((parseFloat(ledger?.balances?.cashBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))).toFixed(2)}</div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
+                <div>Cur Bal Gold Fine Wt</div>
+                <div style={{ color: '#FFD700', fontWeight: 'bold' }}>{formData.paymentType === 'credit' ? ((parseFloat(ledger?.balances?.goldFineWeight || 0) + goldTotal).toFixed(3)) : (goldTotal).toFixed(3)} g</div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
+                <div>Cur Bal Silver Fine Wt</div>
+                <div style={{ color: '#C0C0C0', fontWeight: 'bold' }}>{formData.paymentType === 'credit' ? ((parseFloat(ledger?.balances?.silverFineWeight || 0) + silverTotal).toFixed(3)) : (silverTotal).toFixed(3)} g</div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: 'bold' }}>
+                <div>Receipt Gross (Entry Fine)</div>
+                <div>{totals.fineWeight.toFixed(3)} g</div>
+              </div>
             </div>
           </div>
         </div>
@@ -691,6 +706,15 @@ export default function Billing() {
     const selectedLedger = ledgers.find(l => l._id === formData.ledgerId);
     const totals = calculateTotals();
 
+    // Calculate metal-specific totals for print
+    const goldTotal = items
+      .filter(item => item.metalType === 'gold')
+      .reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0);
+
+    const silverTotal = items
+      .filter(item => item.metalType === 'silver')
+      .reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0);
+
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
       toast.error('Please allow pop-ups to print');
@@ -704,140 +728,187 @@ export default function Billing() {
         <title>Voucher Print</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
-          table { width: 100%; border-collapse: collapse; }
-          th, td { border: 1px solid #000; padding: 8px; text-align: left; font-size: 12px; }
-          th { background-color: #f5f5f5; font-weight: bold; }
-          .header { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 10px; border-bottom: 2px solid #000; padding-bottom: 10px; }
-          .total-row { font-weight: bold; background-color: #f5f5f5; }
-          .amount-section { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px; }
-          .section-label { font-weight: bold; margin-bottom: 5px; margin-top: 10px; }
-          .voucher-container { max-width: 900px; margin: 0 auto; }
+          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+          th, td { border: 1px solid #000; padding: 5px; text-align: left; font-size: 12px; }
+          th { background-color: #f0f0f0; font-weight: bold; }
+          .total-row { font-weight: bold; background-color: #f0f0f0; }
+          .balance-box { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; background-color: #fafafa; }
+          .balance-label { font-weight: bold; margin-bottom: 8px; font-size: 12px; }
+          .balance-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; }
           @media print { body { margin: 0; padding: 10px; } }
         </style>
       </head>
       <body>
-        <div class="voucher-container">
-          <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px;">
-            <div style="font-size: 20px; font-weight: bold;">${user?.shopName || 'ESTIMATE/ON APPROVAL'}</div>
-            <div style="font-size: 14px; margin-top: 5px;">ESTIMATE/ON APPROVAL - Issue</div>
+        <div style="padding: 20px; font-family: Arial, sans-serif;">
+          <!-- Header -->
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="margin: 0; font-size: 24px; font-weight: bold;">${user?.shopName || 'ESTIMATE/ON APPROVAL'}</h2>
+            ${user?.phoneNumber ? `<p style="margin: 2px 0; font-size: 14px; color: #666;">📞 ${user.phoneNumber}</p>` : ''}
+            <p style="margin: 5px 0; font-size: 16px;">ESTIMATE/ON APPROVAL - Issue</p>
+            ${formData.invoiceType === 'gst' ? '<div style="margin: 10px 0; padding: 5px 10px; background-color: #e8f5e9; border: 2px solid #4caf50; border-radius: 4px; display: inline-block; font-size: 14px; font-weight: bold; color: #2e7d32;">📄 GST INVOICE</div>' : ''}
           </div>
 
-          <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+          <!-- Top Info -->
+          <div style="display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px;">
             <div>
-              <div>Name : <strong>${selectedLedger?.name || 'N/A'}</strong></div>
-              <div>Voucher No : <strong>${formData.voucherNumber}</strong></div>
+              <div>Customer Name</div>
+              <div style="font-weight: bold;">${selectedLedger?.name || 'N/A'}</div>
             </div>
             <div style="text-align: right;">
-              <div>Date : ${new Date(formData.date).toLocaleDateString('en-IN')}</div>
-              <div>Page No : 1/1</div>
+              <div>Voucher No</div>
+              <div style="font-weight: bold;">${formData.voucherNumber}</div>
             </div>
           </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 14px;">
+            <div>Date: ${new Date(formData.date).toLocaleDateString('en-IN')}</div>
+            <div>Time: ${new Date(formData.date).toLocaleTimeString('en-IN')}</div>
+          </div>
 
-          <table style="margin-bottom: 20px;">
+          <!-- Items Table -->
+          <table>
             <thead>
               <tr>
-                <th style="width: 5%;">Sr</th>
-                <th style="width: 15%;">Item Name</th>
-                <th style="width: 5%;">Pcs</th>
-                <th style="width: 10%;">Gross</th>
-                <th style="width: 10%;">Less</th>
-                <th style="width: 10%;">Net Wt</th>
-                <th style="width: 10%;">Melting</th>
-                <th style="width: 10%;">Wastage</th>
-                <th style="width: 10%;">Fine Wt</th>
-                <th style="width: 10%;">Lab Rt</th>
-                <th style="width: 10%;">Amount</th>
+                <th>Sr</th>
+                <th>Item Name</th>
+                <th>Metal</th>
+                <th>Pcs</th>
+                <th>Gross (g)</th>
+                <th>Less (g)</th>
+                <th>Net (g)</th>
+                <th>Wastage</th>
+                <th>Fine (g)</th>
+                <th>Labour (₹)</th>
+                <th>Amount (₹)</th>
               </tr>
             </thead>
             <tbody>
               ${items.map((item, index) => `
                 <tr>
-                  <td>${index + 1}</td>
+                  <td style="text-align: center;">${index + 1}</td>
                   <td>${item.itemName}</td>
-                  <td>${item.pieces}</td>
-                  <td>${parseFloat(item.grossWeight || 0).toFixed(3)}</td>
-                  <td>${parseFloat(item.lessWeight || 0).toFixed(3)}</td>
-                  <td>${parseFloat(item.netWeight || 0).toFixed(3)}</td>
-                  <td>${parseFloat(item.melting || 0).toFixed(3)}</td>
-                  <td>${parseFloat(item.wastage || 0).toFixed(3)}</td>
-                  <td>${parseFloat(item.fineWeight || 0).toFixed(3)}</td>
-                  <td>${parseFloat(item.labourRate || 0).toFixed(2)}</td>
-                  <td>${parseFloat(item.amount || 0).toFixed(2)}</td>
+                  <td style="text-align: center; color: ${item.metalType === 'gold' ? '#FFD700' : '#C0C0C0'}; font-weight: bold;">${item.metalType === 'gold' ? 'GOLD' : 'SILVER'}</td>
+                  <td style="text-align: center;">${item.pieces}</td>
+                  <td style="text-align: right;">${parseFloat(item.grossWeight).toFixed(3)}</td>
+                  <td style="text-align: right;">${parseFloat(item.lessWeight).toFixed(3)}</td>
+                  <td style="text-align: right;">${parseFloat(item.netWeight).toFixed(3)}</td>
+                  <td style="text-align: right;">${parseFloat(item.wastage).toFixed(3)}</td>
+                  <td style="text-align: right;">${parseFloat(item.fineWeight).toFixed(3)}</td>
+                  <td style="text-align: right;">${parseFloat(item.labourRate).toFixed(2)}</td>
+                  <td style="text-align: right;">${parseFloat(item.amount).toFixed(2)}</td>
                 </tr>
               `).join('')}
               <tr class="total-row">
-                <td colspan="2">Total</td>
-                <td>${totals.pieces}</td>
-                <td>${totals.grossWeight.toFixed(3)}</td>
-                <td>${totals.lessWeight.toFixed(3)}</td>
-                <td>${totals.netWeight.toFixed(3)}</td>
-                <td></td>
-                <td></td>
-                <td>${totals.fineWeight.toFixed(3)}</td>
-                <td>${totals.labourRate.toFixed(2)}</td>
-                <td>${totals.amount.toFixed(2)}</td>
+                <td colspan="3" style="text-align: center;">TOTAL</td>
+                <td style="text-align: center;">${totals.pieces}</td>
+                <td style="text-align: right;">${totals.grossWeight.toFixed(3)}</td>
+                <td style="text-align: right;">${totals.lessWeight.toFixed(3)}</td>
+                <td style="text-align: right;">${totals.netWeight.toFixed(3)}</td>
+                <td style="text-align: right;">${totals.wastage.toFixed(3)}</td>
+                <td style="text-align: right;">${totals.fineWeight.toFixed(3)}</td>
+                <td style="text-align: right;">${totals.labourRate.toFixed(2)}</td>
+                <td style="text-align: right;">${totals.amount.toFixed(2)}</td>
               </tr>
             </tbody>
           </table>
 
-          <div class="amount-section">
+          <!-- Amount Summary and Rates -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; font-size: 14px;">
             <div>
-              <div class="section-label">Stone Amount :</div>
-              <div>${parseFloat(formData.stoneAmount || 0).toFixed(2)}</div>
-              
-              <div class="section-label">Labour :</div>
-              <div>${totals.labourRate.toFixed(2)}</div>
-            </div>
-
-            <div>
-              <div class="section-label">Gold Rate :</div>
-              <div>${parseFloat(formData.goldRate || 0).toFixed(2)}</div>
-
-              <div class="section-label">Silver Rate :</div>
-              <div>${parseFloat(formData.silverRate || 0).toFixed(2)}</div>
-              
-              <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <div>
-                  <div class="section-label">Issue</div>
-                  <div>${parseFloat(formData.issueGross || 0).toFixed(3)}</div>
-                </div>
-                <div>
-                  <div class="section-label">Receipt Gross (g)</div>
-                  <div>${(items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)).toFixed(3)}</div>
-                </div>
+              <div style="font-weight: bold; margin-bottom: 5px;">Amount Summary</div>
+              <div style="display: flex; justify-content: space-between;">
+                <div>Labour Amount:</div>
+                <div>₹${totals.labourRate.toFixed(2)}</div>
               </div>
-
-              <div style="margin-top: 15px; border-top: 1px solid #ccc; padding-top: 10px;">
-                <div class="section-label">Cash Received :</div>
-                <div>${parseFloat(formData.cashReceived || 0).toFixed(2)}</div>
-
-                <div class="section-label" style="margin-top: 10px;">Net Balance :</div>
-                <div>${((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)}</div>
+              <div style="display: flex; justify-content: space-between;">
+                <div>Stone Amount:</div>
+                <div>₹${parseFloat(formData.stoneAmount || 0).toFixed(2)}</div>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-weight: bold; margin-top: 5px; padding-top: 5px; border-top: 1px solid #ddd;">
+                <div>Grand Total:</div>
+                <div style="color: #e74c3c;">₹${totals.amount.toFixed(2)}</div>
               </div>
             </div>
+            <div>
+              <div style="font-weight: bold; margin-bottom: 5px;">Rates</div>
+              <div style="display: flex; justify-content: space-between;">
+                <div>Gold Rate:</div>
+                <div>₹${parseFloat(formData.goldRate || 0).toFixed(2)}/g</div>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <div>Silver Rate:</div>
+                <div>₹${parseFloat(formData.silverRate || 0).toFixed(2)}/g</div>
+              </div>
+            </div>
+          </div>
 
-            <div style="margin-top: 10px; padding-top: 5px;">
-              <div class="section-label">Old Bal Amount :</div>
-              <div>${formData.paymentType === 'credit' ? (parseFloat(selectedLedger?.balances?.creditBalance || 0).toFixed(2)) : (parseFloat(selectedLedger?.balances?.cashBalance || 0).toFixed(2))}</div>
+          <!-- Balance Details Section -->
+          <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #000;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <div>Cash Received</div>
+              <div>₹${parseFloat(formData.cashReceived || 0).toFixed(2)}</div>
+            </div>
+            ${parseFloat(formData.roundOff || 0) !== 0 ? `
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <div>Round Off</div>
+                <div style="color: ${parseFloat(formData.roundOff) > 0 ? '#27ae60' : '#e74c3c'};">₹${parseFloat(formData.roundOff || 0).toFixed(2)}</div>
+              </div>
+            ` : ''}
+            <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: bold;">
+              <div>Net Balance</div>
+              <div>₹${((totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.roundOff) || 0)) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)}</div>
+            </div>
 
-              <div class="section-label">Old Bal Gold Fine Wt :</div>
-              <div>${formData.paymentType === 'credit' ? parseFloat(selectedLedger?.balances?.goldFineWeight || 0).toFixed(3) : '0.000'}</div>
+            <!-- Rates and Cash Received Section -->
+            <div style="margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; background-color: #f9f9f9;">
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <div style="font-weight: bold;">Gold Rate:</div>
+                <div>₹${parseFloat(formData.goldRate || 0).toFixed(2)}/g</div>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                <div style="font-weight: bold;">Silver Rate:</div>
+                <div>₹${parseFloat(formData.silverRate || 0).toFixed(2)}/g</div>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-top: 10px; padding-top: 10px; border-top: 1px solid #ddd;">
+                <div style="font-weight: bold;">Cash Received:</div>
+                <div style="font-weight: bold; color: #27ae60;">₹${parseFloat(formData.cashReceived || 0).toFixed(2)}</div>
+              </div>
+            </div>
 
-              <div class="section-label">Old Bal Silver Fine Wt :</div>
-              <div>${formData.paymentType === 'credit' ? parseFloat(selectedLedger?.balances?.silverFineWeight || 0).toFixed(3) : '0.000'}</div>
+            <!-- Old Balance Details Box -->
+            <div class="balance-box">
+              <div class="balance-label">Old Balance Details</div>
+              <div class="balance-row">
+                <div>Old Bal Amount</div>
+                <div>₹${formData.paymentType === 'credit' ? (selectedLedger?.balances?.creditBalance?.toFixed(2) || '0.00') : (selectedLedger?.balances?.cashBalance?.toFixed(2) || '0.00')}</div>
+              </div>
+              <div class="balance-row">
+                <div>Old Bal Gold Fine Wt</div>
+                <div style="color: #FFD700; font-weight: bold;">${formData.paymentType === 'credit' ? (selectedLedger?.balances?.goldFineWeight?.toFixed(3) || '0.000') : '0.000'} g</div>
+              </div>
+              <div class="balance-row">
+                <div>Old Bal Silver Fine Wt</div>
+                <div style="color: #C0C0C0; font-weight: bold;">${formData.paymentType === 'credit' ? (selectedLedger?.balances?.silverFineWeight?.toFixed(3) || '0.000') : '0.000'} g</div>
+              </div>
+            </div>
 
-              <div style="margin-top: 10px; border-top: 1px solid #ccc; padding-top: 10px;">
-                <div class="section-label">Cur Bal Amount :</div>
-                <div>${(((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)) + (formData.paymentType === 'credit' ? (parseFloat(selectedLedger?.balances?.creditBalance) || 0) : (parseFloat(selectedLedger?.balances?.cashBalance) || 0))).toFixed(2)}</div>
-
-                <div class="section-label" style="margin-top: 10px;">Bill Type :</div>
-                <div>${formData.paymentType === 'credit' ? '📋 Credit Bill' : '💰 Cash Bill'}</div>
-
-                <div class="section-label">Cur Bal Gold Fine Wt :</div>
-                <div>${formData.paymentType === 'credit' ? ((items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.goldFineWeight) || 0)).toFixed(3) : (items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)).toFixed(3)}</div>
-
-                <div class="section-label">Cur Bal Silver Fine Wt :</div>
-                <div>${formData.paymentType === 'credit' ? ((items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.silverFineWeight) || 0)).toFixed(3) : (items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)).toFixed(3)}</div>
+            <!-- Current Balance Details Box -->
+            <div class="balance-box">
+              <div class="balance-label">Current Balance Details (${formData.paymentType === 'credit' ? 'Credit Bill' : 'Cash Bill'})</div>
+              <div class="balance-row">
+                <div>Cur Bal Amount</div>
+                <div>₹${formData.paymentType === 'credit' ? ((parseFloat(selectedLedger?.balances?.creditBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))).toFixed(2) : ((parseFloat(selectedLedger?.balances?.cashBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))).toFixed(2)}</div>
+              </div>
+              <div class="balance-row">
+                <div>Cur Bal Gold Fine Wt</div>
+                <div style="color: #FFD700; font-weight: bold;">${formData.paymentType === 'credit' ? ((parseFloat(selectedLedger?.balances?.goldFineWeight || 0) + goldTotal).toFixed(3)) : (goldTotal).toFixed(3)} g</div>
+              </div>
+              <div class="balance-row">
+                <div>Cur Bal Silver Fine Wt</div>
+                <div style="color: #C0C0C0; font-weight: bold;">${formData.paymentType === 'credit' ? ((parseFloat(selectedLedger?.balances?.silverFineWeight || 0) + silverTotal).toFixed(3)) : (silverTotal).toFixed(3)} g</div>
+              </div>
+              <div class="balance-row" style="font-weight: bold;">
+                <div>Receipt Gross (Entry Fine)</div>
+                <div>${totals.fineWeight.toFixed(3)} g</div>
               </div>
             </div>
           </div>

@@ -126,6 +126,14 @@ export default function LedgerDetail() {
       return;
     }
 
+    // Calculate metal-specific totals
+    const goldTotal = voucher.items
+      ? voucher.items.filter(item => item.metalType === 'gold').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)
+      : 0;
+    const silverTotal = voucher.items
+      ? voucher.items.filter(item => item.metalType === 'silver').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)
+      : 0;
+
     // Otherwise use old format
     const printWindow = window.open('', '_blank');
     const voucherHTML = `
@@ -153,6 +161,7 @@ export default function LedgerDetail() {
         <div class="voucher-container">
           <div style="text-align: center; margin-bottom: 20px; border-bottom: 2px solid #000; padding-bottom: 10px;">
             <div class="shop-name">${user?.shopName || 'ESTIMATE/ON APPROVAL'}</div>
+            ${user?.phoneNumber ? `<div style="font-size: 12px; margin-top: 2px; color: #666;">📞 ${user.phoneNumber}</div>` : ''}
             <div style="font-size: 14px; margin-top: 5px;">ESTIMATE/ON APPROVAL - Issue</div>
           </div>
 
@@ -172,11 +181,11 @@ export default function LedgerDetail() {
               <tr>
                 <th style="width: 5%;">Sr</th>
                 <th style="width: 15%;">Item Name</th>
+                <th style="width: 8%;">Metal</th>
                 <th style="width: 5%;">Pcs</th>
                 <th style="width: 10%;">Gross</th>
                 <th style="width: 10%;">Less</th>
                 <th style="width: 10%;">Net Wt</th>
-                <th style="width: 10%;">Melting</th>
                 <th style="width: 10%;">Wastage</th>
                 <th style="width: 10%;">Fine Wt</th>
                 <th style="width: 10%;">Lab Rt</th>
@@ -188,11 +197,11 @@ export default function LedgerDetail() {
                 <tr>
                   <td>${index + 1}</td>
                   <td>${item.itemName}</td>
+                  <td style="text-align: center; color: ${item.metalType === 'gold' ? '#FFD700' : '#C0C0C0'}; font-weight: bold;">${item.metalType === 'gold' ? 'GOLD' : 'SILVER'}</td>
                   <td>${item.pieces}</td>
                   <td>${parseFloat(item.grossWeight).toFixed(3)}</td>
                   <td>${parseFloat(item.lessWeight).toFixed(3)}</td>
                   <td>${parseFloat(item.netWeight).toFixed(3)}</td>
-                  <td>${parseFloat(item.melting).toFixed(3)}</td>
                   <td>${parseFloat(item.wastage).toFixed(3)}</td>
                   <td>${parseFloat(item.fineWeight).toFixed(3)}</td>
                   <td>${parseFloat(item.labourRate).toFixed(2)}</td>
@@ -200,12 +209,11 @@ export default function LedgerDetail() {
                 </tr>
               `).join('') || ''}
               <tr class="total-row">
-                <td colspan="2">Total</td>
+                <td colspan="3">Total</td>
                 <td>${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseInt(item.pieces) || 0), 0) : 0}</td>
                 <td>${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.grossWeight) || 0), 0).toFixed(3) : '0.000'}</td>
                 <td>${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.lessWeight) || 0), 0).toFixed(3) : '0.000'}</td>
                 <td>${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0).toFixed(3) : '0.000'}</td>
-                <td></td>
                 <td></td>
                 <td>${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0).toFixed(3) : '0.000'}</td>
                 <td>${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.labourRate) || 0), 0).toFixed(2) : '0.00'}</td>
@@ -239,6 +247,9 @@ export default function LedgerDetail() {
               <div style="font-weight: bold; margin-bottom: 5px; margin-top: 10px;">Silver Rate :</div>
               <div>${parseFloat(voucher.silverRate || 0).toFixed(2)}</div>
               
+              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 10px;">Cash Received :</div>
+              <div style="color: #27ae60; font-weight: bold;">${parseFloat(voucher.cashReceived || 0).toFixed(2)}</div>
+              
               <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <div>
                   <div style="font-weight: bold; margin-bottom: 5px;">Issue</div>
@@ -249,18 +260,40 @@ export default function LedgerDetail() {
                   <div>${parseFloat(voucher.receipt?.gross || 0).toFixed(3)}</div>
                 </div>
               </div>
+            </div>
+          </div>
 
-              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 15px;">Old Bal Amt :</div>
-              <div>${ledger?.balances?.amount?.toFixed(2) || '0.00'}</div>
-
-              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 10px;">Old Bal Fine Wt :</div>
-              <div>${(((ledger?.balances?.goldFineWeight || 0) + (ledger?.balances?.silverFineWeight || 0))).toFixed(3)}</div>
-
-              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 15px;">Cur Bal Amt :</div>
+          <!-- Old Balance Details Box -->
+          <div style="border: 1px solid #000; padding: 10px; margin-top: 15px; margin-bottom: 10px;">
+            <div style="font-weight: bold; margin-bottom: 10px;">Old Balance Details</div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <div>Old Bal Amt :</div>
               <div>${((parseFloat(ledger?.balances?.amount || 0)) - (voucher.total || 0)).toFixed(2)}</div>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <div>Old Bal Gold Fine Wt :</div>
+              <div style="color: #FFD700; font-weight: bold;">${((parseFloat(ledger?.balances?.goldFineWeight || 0)) - goldTotal).toFixed(3)} g</div>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <div>Old Bal Silver Fine Wt :</div>
+              <div style="color: #C0C0C0; font-weight: bold;">${((parseFloat(ledger?.balances?.silverFineWeight || 0)) - silverTotal).toFixed(3)} g</div>
+            </div>
+          </div>
 
-              <div style="font-weight: bold; margin-bottom: 5px; margin-top: 10px;">Cur Bal Net Wt :</div>
-              <div>${((((ledger?.balances?.goldFineWeight || 0) + (ledger?.balances?.silverFineWeight || 0))) - (voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0) : 0)).toFixed(3)}</div>
+          <!-- Current Balance Details Box -->
+          <div style="border: 1px solid #000; padding: 10px; margin-bottom: 10px;">
+            <div style="font-weight: bold; margin-bottom: 10px;">Current Balance Details</div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <div>Cur Bal Amt :</div>
+              <div>${ledger?.balances?.amount?.toFixed(2) || '0.00'}</div>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+              <div>Cur Bal Gold Fine Wt :</div>
+              <div style="color: #FFD700; font-weight: bold;">${(ledger?.balances?.goldFineWeight || 0).toFixed(3)} g</div>
+            </div>
+            <div style="display: flex; justify-content: space-between;">
+              <div>Cur Bal Silver Fine Wt :</div>
+              <div style="color: #C0C0C0; font-weight: bold;">${(ledger?.balances?.silverFineWeight || 0).toFixed(3)} g</div>
             </div>
           </div>
         </div>
@@ -452,6 +485,14 @@ export default function LedgerDetail() {
         return;
       }
 
+      // Calculate metal-specific totals
+      const goldTotal = voucher.items
+        ? voucher.items.filter(item => item.metalType === 'gold').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)
+        : 0;
+      const silverTotal = voucher.items
+        ? voucher.items.filter(item => item.metalType === 'silver').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)
+        : 0;
+
       // Otherwise use old format
       const voucherTotal = voucher.items
         ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(voucher.stoneAmount) || 0)
@@ -463,6 +504,7 @@ export default function LedgerDetail() {
           <!-- Header -->
           <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #333; padding-bottom: 20px;">
             <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #000000;">${user?.shopName || 'ESTIMATE/ON APPROVAL'}</h1>
+            ${user?.phoneNumber ? `<p style="margin: 2px 0; font-size: 14px; color: #666;">📞 ${user.phoneNumber}</p>` : ''}
             <p style="margin: 8px 0 0 0; font-size: 16px; color: #333333;">ESTIMATE/ON APPROVAL - ISSUE</p>
           </div>
 
@@ -569,41 +611,44 @@ export default function LedgerDetail() {
               <span>₹${(voucherTotal - (parseFloat(voucher.cashReceived || 0))).toFixed(2)}</span>
             </div>
 
-            <!-- Old Balance Details Box -->
-            <div style="border: 1px solid #000; padding: 15px; margin-bottom: 15px; background-color: #ffffff;">
-              <div style="font-weight: bold; margin-bottom: 10px; font-size: 13px; color: #000000;">Old Balance Details</div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
-                <span>Old Bal Amount</span>
-                <span style="color: #000000;">₹${ledger?.balances?.amount?.toFixed(2) || '0.00'}</span>
+            <!-- Balance Details Section - Side by Side -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+              <!-- Old Balance Details Box -->
+              <div style="border: 1px solid #000; padding: 15px; background-color: #ffffff;">
+                <div style="font-weight: bold; margin-bottom: 10px; font-size: 13px; color: #000000;">Old Balance Details</div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
+                  <span>Old Bal Amount</span>
+                  <span style="color: #000000;">₹${((parseFloat(ledger?.balances?.amount || 0)) - (voucherTotal)).toFixed(2)}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
+                  <span>Old Bal Gold Fine Wt</span>
+                  <span style="color: #FFD700; font-weight: bold;">${((parseFloat(ledger?.balances?.goldFineWeight || 0)) - goldTotal).toFixed(3)} g</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #333333;">
+                  <span>Old Bal Silver Fine Wt</span>
+                  <span style="color: #C0C0C0; font-weight: bold;">${((parseFloat(ledger?.balances?.silverFineWeight || 0)) - silverTotal).toFixed(3)} g</span>
+                </div>
               </div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
-                <span>Old Bal Gold Fine Wt</span>
-                <span style="color: #FFD700; font-weight: bold;">${(ledger?.balances?.goldFineWeight || 0).toFixed(3)} g</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; font-size: 12px; color: #333333;">
-                <span>Old Bal Silver Fine Wt</span>
-                <span style="color: #C0C0C0; font-weight: bold;">${(ledger?.balances?.silverFineWeight || 0).toFixed(3)} g</span>
-              </div>
-            </div>
 
-            <!-- Current Balance Details Box -->
-            <div style="border: 1px solid #000; padding: 15px; background-color: #ffffff;">
-              <div style="font-weight: bold; margin-bottom: 10px; font-size: 13px; color: #000000;">Current Balance Details</div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
-                <span>Cur Bal Amount</span>
-                <span style="color: #000000;">₹${((parseFloat(ledger?.balances?.amount || 0)) - (voucherTotal)).toFixed(2)}</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
-                <span>Cur Bal Gold Fine Wt</span>
-                <span style="color: #FFD700; font-weight: bold;">${((parseFloat(ledger?.balances?.goldFineWeight || 0)) - (voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0) : 0)).toFixed(3)} g</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
-                <span>Cur Bal Silver Fine Wt</span>
-                <span style="color: #C0C0C0; font-weight: bold;">${((parseFloat(ledger?.balances?.silverFineWeight || 0)) - (voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0) : 0)).toFixed(3)} g</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; font-size: 12px; color: #333333; font-weight: bold; margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd;">
-                <span>Receipt Gross (Entry Fine)</span>
-                <span>${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0).toFixed(3) : '0.000'} g</span>
+              <!-- Current Balance Details Box -->
+              <div style="border: 1px solid #000; padding: 15px; background-color: #ffffff;">
+                <div style="font-weight: bold; margin-bottom: 10px; font-size: 13px; color: #000000;">Current Balance Details</div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
+                  <span>Cur Bal Amount</span>
+                  <span style="color: #000000;">₹${ledger?.balances?.amount?.toFixed(2) || '0.00'}</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
+                  <span>Cur Bal Gold Fine Wt</span>
+                  <span style="color: #FFD700; font-weight: bold;">${(ledger?.balances?.goldFineWeight || 0).toFixed(3)} g</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
+                  <span>Cur Bal Silver Fine Wt</span>
+                  <span style="color: #C0C0C0; font-weight: bold;">${(ledger?.balances?.silverFineWeight || 0).toFixed(3)} g</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #333333; font-weight: bold; margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd;">
+                  <span>Receipt Gross (Entry Fine)</span>
+                  <span>${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0).toFixed(3) : '0.000'} g</span>
+                </div>
               </div>
             </div>
           </div>
