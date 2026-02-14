@@ -4,6 +4,8 @@ import { karigarAPI, stockAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import { FiTrash2, FiEye, FiPrinter, FiX, FiArrowLeft, FiChevronRight } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
+import { SkeletonCard, SkeletonStat, SkeletonTable } from '../../components/Skeleton';
+import PullToRefresh from '../../components/PullToRefresh';
 
 export default function Karigar() {
   const { user } = useAuth();
@@ -17,7 +19,7 @@ export default function Karigar() {
   const [searchInput, setSearchInput] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [karigarSearch, setKarigarSearch] = useState('');
-  
+
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
     type: 'given',
@@ -104,7 +106,7 @@ export default function Karigar() {
       toast.error('Please enter a Karigar name');
       return;
     }
-    
+
     setFormData(prev => ({
       ...prev,
       itemName: trimmedName
@@ -284,14 +286,17 @@ export default function Karigar() {
     const receivedSilver = karigarTxns
       .filter(t => t.type === 'received' && t.metalType === 'silver')
       .reduce((sum, t) => sum + parseFloat(t.fineWeight), 0);
-    
+    const totalCharge = karigarTxns
+      .reduce((sum, t) => sum + (parseFloat(t.chargeAmount) || 0), 0);
+
     return {
       givenGold,
       givenSilver,
       receivedGold,
       receivedSilver,
       balanceGold: receivedGold - givenGold,
-      balanceSilver: receivedSilver - givenSilver
+      balanceSilver: receivedSilver - givenSilver,
+      totalCharge
     };
   };
 
@@ -307,7 +312,7 @@ export default function Karigar() {
           {/* Current Stock Display */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
+            gridTemplateColumns: '1fr 1fr 1fr',
             gap: '16px',
             marginBottom: '32px',
             padding: '16px',
@@ -334,6 +339,17 @@ export default function Karigar() {
               <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Silver Stock</div>
               <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#c0c0c0', marginTop: '4px' }}>
                 {currentStock.silver.toFixed(3)} g
+              </div>
+            </div>
+            <div style={{
+              padding: '12px',
+              background: 'var(--bg-primary)',
+              borderRadius: '6px',
+              border: '1px solid var(--border-color)'
+            }}>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Total Charges</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10b981', marginTop: '4px' }}>
+                ₹{transactions.reduce((sum, t) => sum + (parseFloat(t.chargeAmount) || 0), 0).toFixed(2)}
               </div>
             </div>
           </div>
@@ -393,7 +409,7 @@ export default function Karigar() {
                   autoComplete="off"
                   required
                 />
-                
+
                 {/* Dropdown */}
                 {showDropdown && (formData.type === 'received' || searchInput) && (
                   <div style={{
@@ -563,7 +579,7 @@ export default function Karigar() {
                   const filteredKarigars = uniqueNames.filter(name =>
                     name.toLowerCase().includes(karigarSearch.toLowerCase())
                   );
-                  
+
                   return (
                     <>
                       {karigarSearch && (
@@ -571,7 +587,7 @@ export default function Karigar() {
                           Found {filteredKarigars.length} result{filteredKarigars.length !== 1 ? 's' : ''}
                         </div>
                       )}
-                      
+
                       {filteredKarigars.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
                           No Karigars match your search
@@ -691,6 +707,10 @@ export default function Karigar() {
                     <div style={{ padding: '12px', background: 'var(--bg-primary)', borderRadius: '6px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '4px' }}>Silver Balance</div>
                       <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#c0c0c0' }}>{stats.balanceSilver.toFixed(3)}g</div>
+                    </div>
+                    <div style={{ padding: '12px', background: 'var(--bg-primary)', borderRadius: '6px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '4px' }}>Total Charge</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#10b981' }}>₹{stats.totalCharge.toFixed(2)}</div>
                     </div>
                   </>
                 );

@@ -53,19 +53,10 @@ const getVoucherBalanceDetails = (voucher, ledger) => {
     voucher?.balanceSnapshot?.oldBalance?.silverFineWeight,
     toFiniteNumber(ledger?.balances?.silverFineWeight) - silverFineWeight
   );
-  const currentAmount = pickFirstFinite(
-    voucher?.balanceSnapshot?.currentBalance?.amount,
-    voucher?.currentBalance?.amount,
-    ledger?.balances?.amount
-  );
-  const currentGold = pickFirstFinite(
-    voucher?.balanceSnapshot?.currentBalance?.goldFineWeight,
-    ledger?.balances?.goldFineWeight
-  );
-  const currentSilver = pickFirstFinite(
-    voucher?.balanceSnapshot?.currentBalance?.silverFineWeight,
-    ledger?.balances?.silverFineWeight
-  );
+  // Always use current ledger balance for display (not historical balance snapshot)
+  const currentAmount = toFiniteNumber(ledger?.balances?.cashBalance || ledger?.balances?.amount);
+  const currentGold = toFiniteNumber(ledger?.balances?.goldFineWeight);
+  const currentSilver = toFiniteNumber(ledger?.balances?.silverFineWeight);
 
   return {
     oldAmount,
@@ -330,37 +321,22 @@ export default function LedgerDetail() {
 
           <!-- Old Balance Details Box -->
           <div style="border: 1px solid #000; padding: 10px; margin-top: 15px; margin-bottom: 10px;">
-            <div style="font-weight: bold; margin-bottom: 10px;">Old Balance Details</div>
+            <div style="font-weight: bold; margin-bottom: 10px;">Customer Balance</div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-              <div>Old Bal Amt :</div>
-              <div>${balanceDetails.oldAmount.toFixed(2)}</div>
+              <div>Fine Gold</div>
+              <div style="color: #FFD700; font-weight: bold;">${(-balanceDetails.currentGold).toFixed(3)} g</div>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-              <div>Old Bal Gold Fine Wt :</div>
-              <div style="color: #FFD700; font-weight: bold;">${balanceDetails.oldGold.toFixed(3)} g</div>
+              <div>Fine Silver</div>
+              <div style="color: #C0C0C0; font-weight: bold;">${(-balanceDetails.currentSilver).toFixed(3)} g</div>
             </div>
             <div style="display: flex; justify-content: space-between;">
-              <div>Old Bal Silver Fine Wt :</div>
-              <div style="color: #C0C0C0; font-weight: bold;">${balanceDetails.oldSilver.toFixed(3)} g</div>
+              <div>Cash Balance</div>
+              <div style="font-weight: bold;">₹${(-balanceDetails.currentAmount).toFixed(2)}</div>
             </div>
           </div>
 
-          <!-- Current Balance Details Box -->
-          <div style="border: 1px solid #000; padding: 10px; margin-bottom: 10px;">
-            <div style="font-weight: bold; margin-bottom: 10px;">Current Balance Details</div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-              <div>Cur Bal Amt :</div>
-              <div>${balanceDetails.currentAmount.toFixed(2)}</div>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-              <div>Cur Bal Gold Fine Wt :</div>
-              <div style="color: #FFD700; font-weight: bold;">${balanceDetails.currentGold.toFixed(3)} g</div>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <div>Cur Bal Silver Fine Wt :</div>
-              <div style="color: #C0C0C0; font-weight: bold;">${balanceDetails.currentSilver.toFixed(3)} g</div>
-            </div>
-          </div>
+
         </div>
         <script>
           window.print();
@@ -667,43 +643,20 @@ export default function LedgerDetail() {
             </div>
 
             <!-- Balance Details Section - Side by Side -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
-              <!-- Old Balance Details Box -->
-              <div style="border: 1px solid #000; padding: 15px; background-color: #ffffff;">
-                <div style="font-weight: bold; margin-bottom: 10px; font-size: 13px; color: #000000;">Old Balance Details</div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
-                  <span>Old Bal Amount</span>
-                  <span style="color: #000000;">₹${balanceDetails.oldAmount.toFixed(2)}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
-                  <span>Old Bal Gold Fine Wt</span>
-                  <span style="color: #FFD700; font-weight: bold;">${balanceDetails.oldGold.toFixed(3)} g</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #333333;">
-                  <span>Old Bal Silver Fine Wt</span>
-                  <span style="color: #C0C0C0; font-weight: bold;">${balanceDetails.oldSilver.toFixed(3)} g</span>
-                </div>
+            <!-- Customer Profile Balance -->
+            <div style="border: 1px solid #000; padding: 15px; background-color: #ffffff;">
+              <div style="font-weight: bold; margin-bottom: 10px; font-size: 13px; color: #000000;">Customer Balance</div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
+                <span>Fine Gold</span>
+                <span style="color: #FFD700; font-weight: bold;">${(-balanceDetails.currentGold).toFixed(3)} g</span>
               </div>
-
-              <!-- Current Balance Details Box -->
-              <div style="border: 1px solid #000; padding: 15px; background-color: #ffffff;">
-                <div style="font-weight: bold; margin-bottom: 10px; font-size: 13px; color: #000000;">Current Balance Details</div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
-                  <span>Cur Bal Amount</span>
-                  <span style="color: #000000;">₹${balanceDetails.currentAmount.toFixed(2)}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
-                  <span>Cur Bal Gold Fine Wt</span>
-                  <span style="color: #FFD700; font-weight: bold;">${balanceDetails.currentGold.toFixed(3)} g</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
-                  <span>Cur Bal Silver Fine Wt</span>
-                  <span style="color: #C0C0C0; font-weight: bold;">${balanceDetails.currentSilver.toFixed(3)} g</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 12px; color: #333333; font-weight: bold; margin-top: 8px; padding-top: 8px; border-top: 1px solid #ddd;">
-                  <span>Receipt Gross (Entry Fine)</span>
-                  <span>${balanceDetails.receiptGross.toFixed(3)} g</span>
-                </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
+                <span>Fine Silver</span>
+                <span style="color: #C0C0C0; font-weight: bold;">${(-balanceDetails.currentSilver).toFixed(3)} g</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 12px; color: #333333;">
+                <span>Cash Balance</span>
+                <span style="font-weight: bold;">₹${(-balanceDetails.currentAmount).toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -1348,21 +1301,12 @@ export default function LedgerDetail() {
                         </div>
                       </div>
 
-                      {/* Old Balance Details Box */}
-                      <div style={{ border: '1px solid var(--border-color)', padding: '1rem', marginBottom: '1rem', backgroundColor: 'var(--bg-primary)' }}>
-                        <div style={{ fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '0.95rem', color: 'var(--text-primary)' }}>Old Balance Details</div>
-                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Old Bal Amount: ₹{previewBalanceDetails?.oldAmount?.toFixed(2) || '0.00'}</div>
-                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#FFD700', fontWeight: 500 }}>Old Bal Gold Fine Wt: {previewBalanceDetails?.oldGold?.toFixed(3) || '0.000'}g</div>
-                        <div style={{ fontSize: '0.9rem', color: '#C0C0C0', fontWeight: 500 }}>Old Bal Silver Fine Wt: {previewBalanceDetails?.oldSilver?.toFixed(3) || '0.000'}g</div>
-                      </div>
-
-                      {/* Current Balance Details Box */}
+                      {/* Customer Balance Box */}
                       <div style={{ border: '1px solid var(--border-color)', padding: '1rem', backgroundColor: 'var(--bg-primary)' }}>
-                        <div style={{ fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '0.95rem', color: 'var(--text-primary)' }}>Current Balance Details</div>
-                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--text-primary)' }}>Cur Bal Amount: ₹{previewBalanceDetails?.currentAmount?.toFixed(2) || '0.00'}</div>
-                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#FFD700', fontWeight: 500 }}>Cur Bal Gold Fine Wt: {previewBalanceDetails?.currentGold?.toFixed(3) || '0.000'}g</div>
-                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#C0C0C0', fontWeight: 500 }}>Cur Bal Silver Fine Wt: {previewBalanceDetails?.currentSilver?.toFixed(3) || '0.000'}g</div>
-                        <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>Receipt Gross (Entry Fine): {previewBalanceDetails?.receiptGross?.toFixed(3) || '0.000'}g</div>
+                        <div style={{ fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '0.95rem', color: 'var(--text-primary)' }}>Customer Balance</div>
+                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#FFD700', fontWeight: 500 }}>Fine Gold: {(-previewBalanceDetails?.currentGold)?.toFixed(3) || '0.000'} g</div>
+                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#C0C0C0', fontWeight: 500 }}>Fine Silver: {(-previewBalanceDetails?.currentSilver)?.toFixed(3) || '0.000'} g</div>
+                        <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>Cash Balance: ₹{(-previewBalanceDetails?.currentAmount)?.toFixed(2) || '0.00'}</div>
                       </div>
                     </div>
 

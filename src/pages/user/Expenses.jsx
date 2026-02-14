@@ -5,6 +5,8 @@ import { toast } from 'react-toastify';
 import { FiSave, FiTrash2, FiDollarSign } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { format } from 'date-fns';
+import { SkeletonCard, SkeletonStat, SkeletonTable } from '../../components/Skeleton';
+import PullToRefresh from '../../components/PullToRefresh';
 
 const EXPENSE_CATEGORIES = [
     { value: 'petrol', label: 'Petrol' },
@@ -33,6 +35,7 @@ export default function Expenses() {
         category: '',
         paymentMethod: ''
     });
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         fetchExpenses();
@@ -41,6 +44,7 @@ export default function Expenses() {
 
     const fetchExpenses = async () => {
         try {
+            setLoading(true);
             const params = {};
             if (filters.startDate) params.startDate = filters.startDate;
             if (filters.endDate) params.endDate = filters.endDate;
@@ -51,6 +55,8 @@ export default function Expenses() {
             setExpenses(response.data.expenses);
         } catch (error) {
             toast.error('Failed to load expenses');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -163,37 +169,138 @@ export default function Expenses() {
         return expenses.reduce((sum, expense) => sum + parseFloat(expense.amount), 0);
     };
 
+    const handleRefresh = async () => {
+        await Promise.all([fetchExpenses(), calculateCashInHand()]);
+    };
+
     return (
         <Layout>
-            <div>
-                <h1 style={{ marginBottom: '2rem' }}>Business Expenses</h1>
+            <PullToRefresh onRefresh={handleRefresh}>
+                <div className="fade-in">
+                    <h1 style={{ marginBottom: '2rem' }}>Business Expenses</h1>
 
-                {/* Cash in Hand Display */}
-                <div className="card" style={{ marginBottom: '2rem', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <div>
-                            <div style={{ fontSize: '0.875rem', opacity: 0.9 }}>Cash in Hand</div>
-                            <div style={{ fontSize: '2rem', fontWeight: 700, marginTop: '0.5rem' }}>
-                                ₹{cashInHand.toFixed(2)}
+                    {/* Total Expenses Display */}
+                    {loading ? (
+                        <SkeletonStat count={1} />
+                    ) : (
+                        <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: '1fr',
+                            gap: '16px',
+                            marginBottom: '32px',
+                            padding: '16px',
+                            background: 'var(--bg-secondary)',
+                            borderRadius: '8px'
+                        }}>
+                            <div style={{
+                                padding: '12px',
+                                background: 'var(--bg-primary)',
+                                borderRadius: '6px',
+                                border: '1px solid var(--border-color)'
+                            }}>
+                                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Total Expenses</div>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#667eea', marginTop: '4px' }}>
+                                    ₹{getTotalExpenses().toFixed(2)}
+                                </div>
                             </div>
                         </div>
-                        <FiDollarSign size={48} style={{ opacity: 0.3 }} />
-                    </div>
-                </div>
+                    )}
 
-                {/* Add Expense Form */}
-                <div className="card" style={{ marginBottom: '2rem' }}>
-                    <h2 style={{ marginBottom: '1.5rem' }}>Add New Expense</h2>
-                    <form onSubmit={handleSubmit}>
-                        <div className="grid grid-2">
+                    {/* Add Expense Form */}
+                    <div className="card" style={{ marginBottom: '2rem' }}>
+                        <h2 style={{ marginBottom: '1.5rem' }}>Add New Expense</h2>
+                        <form onSubmit={handleSubmit}>
+                            <div className="grid grid-2">
+                                <div className="input-group">
+                                    <label className="input-label">Date</label>
+                                    <input
+                                        type="date"
+                                        className="input"
+                                        value={formData.date}
+                                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                        required
+                                    />
+                                </div>
+
+                                <div className="input-group">
+                                    <label className="input-label">Category</label>
+                                    <select
+                                        className="input"
+                                        value={formData.category}
+                                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                        required
+                                    >
+                                        {EXPENSE_CATEGORIES.map(cat => (
+                                            <option key={cat.value} value={cat.value}>{cat.label}</option>
+                                        ))}
+                                    </select>
+                                </div>
+
+                                <div className="input-group">
+                                    <label className="input-label">Amount (₹)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        className="input"
+                                        value={formData.amount}
+                                        onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                                        required
+                                        min="0.01"
+                                    />
+                                </div>
+
+                                <div className="input-group">
+                                    <label className="input-label">Payment Method</label>
+                                    <select
+                                        className="input"
+                                        value={formData.paymentMethod}
+                                        onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                                        required
+                                    >
+                                        <option value="cash">Cash</option>
+                                        <option value="online">Online</option>
+                                    </select>
+                                </div>
+                            </div>
+
                             <div className="input-group">
-                                <label className="input-label">Date</label>
+                                <label className="input-label">Description (Optional)</label>
+                                <textarea
+                                    className="input"
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    rows="3"
+                                    placeholder="Add notes about this expense..."
+                                ></textarea>
+                            </div>
+
+                            <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%' }}>
+                                <FiSave /> Add Expense
+                            </button>
+                        </form>
+                    </div>
+
+                    {/* Filters */}
+                    <div className="card" style={{ marginBottom: '2rem' }}>
+                        <h3 style={{ marginBottom: '1rem' }}>Filters</h3>
+                        <div className="grid grid-4">
+                            <div className="input-group">
+                                <label className="input-label">Start Date</label>
                                 <input
                                     type="date"
                                     className="input"
-                                    value={formData.date}
-                                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                    required
+                                    value={filters.startDate}
+                                    onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                                />
+                            </div>
+
+                            <div className="input-group">
+                                <label className="input-label">End Date</label>
+                                <input
+                                    type="date"
+                                    className="input"
+                                    value={filters.endDate}
+                                    onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
                                 />
                             </div>
 
@@ -201,10 +308,10 @@ export default function Expenses() {
                                 <label className="input-label">Category</label>
                                 <select
                                     className="input"
-                                    value={formData.category}
-                                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                    required
+                                    value={filters.category}
+                                    onChange={(e) => setFilters({ ...filters, category: e.target.value })}
                                 >
+                                    <option value="">All Categories</option>
                                     {EXPENSE_CATEGORIES.map(cat => (
                                         <option key={cat.value} value={cat.value}>{cat.label}</option>
                                     ))}
@@ -212,164 +319,83 @@ export default function Expenses() {
                             </div>
 
                             <div className="input-group">
-                                <label className="input-label">Amount (₹)</label>
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    className="input"
-                                    value={formData.amount}
-                                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                                    required
-                                    min="0.01"
-                                />
-                            </div>
-
-                            <div className="input-group">
                                 <label className="input-label">Payment Method</label>
                                 <select
                                     className="input"
-                                    value={formData.paymentMethod}
-                                    onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
-                                    required
+                                    value={filters.paymentMethod}
+                                    onChange={(e) => setFilters({ ...filters, paymentMethod: e.target.value })}
                                 >
+                                    <option value="">All Methods</option>
                                     <option value="cash">Cash</option>
                                     <option value="online">Online</option>
                                 </select>
                             </div>
                         </div>
 
-                        <div className="input-group">
-                            <label className="input-label">Description (Optional)</label>
-                            <textarea
-                                className="input"
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                rows="3"
-                                placeholder="Add notes about this expense..."
-                            ></textarea>
-                        </div>
-
-                        <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%' }}>
-                            <FiSave /> Add Expense
+                        <button onClick={handleClearFilters} className="btn btn-secondary" style={{ marginTop: '1rem' }}>
+                            Clear Filters
                         </button>
-                    </form>
-                </div>
-
-                {/* Filters */}
-                <div className="card" style={{ marginBottom: '2rem' }}>
-                    <h3 style={{ marginBottom: '1rem' }}>Filters</h3>
-                    <div className="grid grid-4">
-                        <div className="input-group">
-                            <label className="input-label">Start Date</label>
-                            <input
-                                type="date"
-                                className="input"
-                                value={filters.startDate}
-                                onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-                            />
-                        </div>
-
-                        <div className="input-group">
-                            <label className="input-label">End Date</label>
-                            <input
-                                type="date"
-                                className="input"
-                                value={filters.endDate}
-                                onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-                            />
-                        </div>
-
-                        <div className="input-group">
-                            <label className="input-label">Category</label>
-                            <select
-                                className="input"
-                                value={filters.category}
-                                onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-                            >
-                                <option value="">All Categories</option>
-                                {EXPENSE_CATEGORIES.map(cat => (
-                                    <option key={cat.value} value={cat.value}>{cat.label}</option>
-                                ))}
-                            </select>
-                        </div>
-
-                        <div className="input-group">
-                            <label className="input-label">Payment Method</label>
-                            <select
-                                className="input"
-                                value={filters.paymentMethod}
-                                onChange={(e) => setFilters({ ...filters, paymentMethod: e.target.value })}
-                            >
-                                <option value="">All Methods</option>
-                                <option value="cash">Cash</option>
-                                <option value="online">Online</option>
-                            </select>
-                        </div>
                     </div>
 
-                    <button onClick={handleClearFilters} className="btn btn-secondary" style={{ marginTop: '1rem' }}>
-                        Clear Filters
-                    </button>
-                </div>
-
-                {/* Expenses List */}
-                {expenses.length > 0 && (
-                    <div className="card">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-                            <h2>Expense History</h2>
-                            <div style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--color-danger)' }}>
-                                Total: ₹{getTotalExpenses().toFixed(2)}
+                    {/* Expenses List */}
+                    {expenses.length > 0 && (
+                        <div className="card">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+                                <h2>Expense History</h2>
+                                <div style={{ fontSize: '1.25rem', fontWeight: 600, color: 'var(--color-danger)' }}>
+                                    Total: ₹{getTotalExpenses().toFixed(2)}
+                                </div>
+                            </div>
+                            <div className="table-container">
+                                <table className="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Category</th>
+                                            <th>Description</th>
+                                            <th>Payment</th>
+                                            <th>Amount</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {expenses.map((expense) => (
+                                            <tr key={expense._id}>
+                                                <td>{format(new Date(expense.date), 'dd MMM yyyy')}</td>
+                                                <td className="text-capitalize">
+                                                    <span className="badge badge-info">
+                                                        {EXPENSE_CATEGORIES.find(c => c.value === expense.category)?.label || expense.category}
+                                                    </span>
+                                                </td>
+                                                <td>{expense.description || '-'}</td>
+                                                <td>
+                                                    <span className={`badge ${expense.paymentMethod === 'cash' ? 'badge-warning' : 'badge-success'}`}>
+                                                        {expense.paymentMethod === 'cash' ? '💵 Cash' : '💳 Online'}
+                                                    </span>
+                                                </td>
+                                                <td style={{ fontWeight: 600, color: 'var(--color-danger)' }}>₹{parseFloat(expense.amount).toFixed(2)}</td>
+                                                <td>
+                                                    <button onClick={() => handleDeleteExpense(expense._id)} className="btn btn-sm btn-danger">
+                                                        <FiTrash2 />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
-                        <div className="table-container">
-                            <table className="table">
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Category</th>
-                                        <th>Description</th>
-                                        <th>Payment</th>
-                                        <th>Amount</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {expenses.map((expense) => (
-                                        <tr key={expense._id}>
-                                            <td>{format(new Date(expense.date), 'dd MMM yyyy')}</td>
-                                            <td className="text-capitalize">
-                                                <span className="badge badge-info">
-                                                    {EXPENSE_CATEGORIES.find(c => c.value === expense.category)?.label || expense.category}
-                                                </span>
-                                            </td>
-                                            <td>{expense.description || '-'}</td>
-                                            <td>
-                                                <span className={`badge ${expense.paymentMethod === 'cash' ? 'badge-warning' : 'badge-success'}`}>
-                                                    {expense.paymentMethod === 'cash' ? '💵 Cash' : '💳 Online'}
-                                                </span>
-                                            </td>
-                                            <td style={{ fontWeight: 600, color: 'var(--color-danger)' }}>₹{parseFloat(expense.amount).toFixed(2)}</td>
-                                            <td>
-                                                <button onClick={() => handleDeleteExpense(expense._id)} className="btn btn-sm btn-danger">
-                                                    <FiTrash2 />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                )}
+                    )}
 
-                {expenses.length === 0 && (
-                    <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
-                        <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📊</div>
-                        <h3>No Expenses Found</h3>
-                        <p style={{ color: 'var(--text-secondary)' }}>Add your first expense using the form above</p>
-                    </div>
-                )}
-            </div>
-        </Layout>
+                    {expenses.length === 0 && (
+                        <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
+                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📊</div>
+                            <h3>No Expenses Found</h3>
+                            <p style={{ color: 'var(--text-secondary)' }}>Add your first expense using the form above</p>
+                        </div>
+                    )}
+                </div>
+            </PullToRefresh>
+        </Layout >
     );
 }

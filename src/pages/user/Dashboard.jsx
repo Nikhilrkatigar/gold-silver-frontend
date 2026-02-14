@@ -10,18 +10,23 @@ export default function UserDashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDueCredits();
-    fetchLedgersAndTransactions();
+    const fetchAllData = async () => {
+      await Promise.all([
+        fetchDueCredits(),
+        fetchLedgersAndTransactions()
+      ]);
+      setLoading(false);
+    };
+    fetchAllData();
   }, []);
 
   const fetchLedgersAndTransactions = async () => {
     try {
       // Fetch all ledgers
       const ledgersRes = await ledgerAPI.getAll();
-      
+
       if (!Array.isArray(ledgersRes.data.ledgers) || ledgersRes.data.ledgers.length === 0) {
         setTodayTransactions([]);
-        setLoading(false);
         return;
       }
 
@@ -33,7 +38,7 @@ export default function UserDashboard() {
       for (const ledger of ledgersRes.data.ledgers) {
         try {
           const transRes = await ledgerAPI.getTransactions(ledger._id, {});
-          
+
           // Process today's transactions for this ledger
           if (Array.isArray(transRes.data.transactions)) {
             transRes.data.transactions
@@ -111,19 +116,35 @@ export default function UserDashboard() {
       setTodayTransactions(transactions);
     } catch (error) {
       console.error('Error in fetchLedgersAndTransactions:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
   const fetchDueCredits = async () => {
     try {
-      const response = await voucherAPI.getDueCredits();
-      setDueCredits(response.data.dueCredits);
+      // Fetch all ledgers and filter those with outstanding credit balance
+      const ledgersRes = await ledgerAPI.getAll();
+      
+      if (Array.isArray(ledgersRes.data.ledgers)) {
+        const dueLedgers = ledgersRes.data.ledgers
+          .filter(ledger => {
+            const creditBalance = parseFloat(ledger.balances?.creditBalance) || 0;
+            return creditBalance > 0; // Only show ledgers with positive credit balance
+          })
+          .map(ledger => ({
+            name: ledger.name,
+            phoneNumber: ledger.phoneNumber,
+            balanceAmount: parseFloat(ledger.balances?.creditBalance) || 0,
+            goldFineWeight: parseFloat(ledger.balances?.goldFineWeight) || 0,
+            silverFineWeight: parseFloat(ledger.balances?.silverFineWeight) || 0
+          }));
+        
+        setDueCredits(dueLedgers);
+      } else {
+        setDueCredits([]);
+      }
     } catch (error) {
-      toast.error('Failed to load due credits');
-    } finally {
-      setLoading(false);
+      console.error('Failed to load due credits:', error);
+      setDueCredits([]);
     }
   };
 
@@ -145,7 +166,7 @@ export default function UserDashboard() {
         {/* Today's Transaction Summary */}
         <div style={{ marginBottom: '3rem' }}>
           <h1 style={{ marginBottom: '1.5rem' }}>Today's Transactions</h1>
-          
+
           {todayTransactions.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
               <p className="text-muted">No transactions today</p>
@@ -167,7 +188,7 @@ export default function UserDashboard() {
                       <tr key={index} style={{ borderBottom: '1px solid var(--border-color)' }}>
                         <td style={{ padding: '12px' }}>
                           <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-                            {format(new Date(transaction.date), 'HH:mm:ss')}
+                            {format(new Date(transaction.date), 'hh:mm:ss a')}
                           </span>
                         </td>
                         <td style={{ padding: '12px' }}>
@@ -206,41 +227,6 @@ export default function UserDashboard() {
           )}
         </div>
 
-        {/* Credit Bills Due Today */}
-        <div>
-          <h1 style={{ marginBottom: '1.5rem' }}>Credit Bills Due</h1>
-
-          {dueCredits.length === 0 ? (
-            <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
-              <p className="text-muted">No credit bills due today</p>
-            </div>
-          ) : (
-            <div className="table-container">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Customer Name</th>
-                    <th>Phone Number</th>
-                    <th>Amount Balance</th>
-                    <th>Gold Fine Weight</th>
-                    <th>Silver Fine Weight</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {dueCredits.map((credit, index) => (
-                    <tr key={index}>
-                      <td>{credit.name}</td>
-                      <td>{credit.phoneNumber}</td>
-                      <td>₹{credit.balanceAmount?.toFixed(2) || '0.00'}</td>
-                      <td>{credit.goldFineWeight?.toFixed(3) || '0.000'} g</td>
-                      <td>{credit.silverFineWeight?.toFixed(3) || '0.000'} g</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
       </div>
     </Layout>
   );

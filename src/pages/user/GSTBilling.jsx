@@ -4,7 +4,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import { ledgerAPI, voucherAPI } from '../../services/api';
 import { toast } from 'react-toastify';
-import { FiPlus, FiX, FiSave, FiPrinter, FiDownload } from 'react-icons/fi';
+import { FiPlus, FiX, FiSave, FiPrinter, FiDownload, FiRefreshCw, FiShare2 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { isValidGSTFormat, calculateGST, extractStateFromGST, determineGSTType } from '../../utils/gstCalculations';
 import html2pdf from 'html2pdf.js';
@@ -477,6 +477,7 @@ export default function GSTBilling() {
   const [items, setItems] = useState([]);
   const [selectedLedger, setSelectedLedger] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [editingVoucherId, setEditingVoucherId] = useState(null);
   const [showAddLedgerModal, setShowAddLedgerModal] = useState(false);
   const [addingLedger, setAddingLedger] = useState(false);
@@ -761,6 +762,18 @@ export default function GSTBilling() {
       return { ...acc, amount: acc.amount + amount };
     }, { amount: 0 });
   }, [items]);
+
+  const handleRefresh = async () => {
+    setIsLoading(true);
+    try {
+      await fetchLedgers();
+      toast.success('Data refreshed!');
+    } catch (error) {
+      toast.error('Failed to refresh data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -1123,7 +1136,33 @@ export default function GSTBilling() {
   return (
     <Layout>
       <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-        <h1 style={{ marginBottom: '20px', color: 'var(--color-text)' }}>📄 GST Tax Invoice</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '10px' }}>
+          <h1 style={{ marginBottom: 0, color: 'var(--color-text)' }}>📄 GST Tax Invoice</h1>
+          
+          {/* Manual Refresh Button */}
+          <button
+            type="button"
+            onClick={handleRefresh}
+            disabled={isLoading}
+            style={{
+              padding: '8px 12px',
+              backgroundColor: isLoading ? '#95a5a6' : 'var(--color-primary)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: isLoading ? 'not-allowed' : 'pointer',
+              fontWeight: 'bold',
+              fontSize: '14px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              transition: 'all 0.3s'
+            }}
+            title="Refresh data"
+          >
+            <FiRefreshCw style={{ animation: isLoading ? 'spin 1s linear infinite' : 'none' }} />
+          </button>
+        </div>
 
         <form onSubmit={handleSubmit} style={{
           backgroundColor: 'var(--bg-primary)',

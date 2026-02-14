@@ -3,10 +3,12 @@ import { useSearchParams } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import { ledgerAPI, voucherAPI, settlementAPI } from '../../services/api';
 import { toast } from 'react-toastify';
-import { FiPlus, FiX, FiSave, FiPrinter, FiShare2 } from 'react-icons/fi';
+import { FiPlus, FiX, FiSave, FiPrinter, FiShare2, FiRefreshCw } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import html2pdf from 'html2pdf.js';
 import { isValidGSTFormat, extractStateFromGST, calculateGST } from '../../utils/gstCalculations';
+import PullToRefresh from '../../components/PullToRefresh';
+import { SkeletonTable, SkeletonStat } from '../../components/Skeleton';
 
 // Voucher Print Template Component
 const VoucherTemplate = ({ formData, items, ledgers, user, voucherData }) => {
@@ -309,6 +311,7 @@ export default function Billing() {
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
   const [selectedLedger, setSelectedLedger] = useState(null);
   const [savedVoucherData, setSavedVoucherData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     fetchLedgers();
@@ -463,6 +466,7 @@ export default function Billing() {
   }, [formData.goldRate, formData.silverRate]);
 
   const fetchLedgers = async () => {
+    setIsLoading(true);
     try {
       const response = await ledgerAPI.getAll({ type: 'regular' });
       if (response?.data?.ledgers) {
@@ -471,7 +475,14 @@ export default function Billing() {
     } catch (error) {
       console.error('Error fetching ledgers:', error);
       toast.error('Failed to load ledgers');
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    await fetchLedgers();
+    toast.success('Data refreshed!');
   };
 
   const handleAddLedgerSubmit = async (e) => {
@@ -1327,58 +1338,95 @@ export default function Billing() {
 
   return (
     <Layout>
-      <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '15px' }}>
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '15px' }} className="fade-in">
           <h1 style={{ color: 'var(--color-primary)', marginBottom: 0, margin: 0 }}>{editingVoucherId ? '✏️ Edit Voucher' : '📋 Create Voucher'}</h1>
 
-          {/* GST Billing Mode Selector - Only show for GST-enabled users */}
-          {user?.gstEnabled && (
-            <div style={{
-              display: 'flex',
-              gap: '10px',
-              backgroundColor: 'var(--bg-secondary)',
-              padding: '8px',
-              borderRadius: '6px',
-              border: '1px solid var(--border-color)'
-            }}>
-              <button
-                onClick={() => window.location.href = '/billing'}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: editingVoucherId || !editingVoucherId ? 'var(--color-primary)' : 'transparent',
-                  color: editingVoucherId || !editingVoucherId ? '#fff' : 'var(--color-text)',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                  fontSize: '13px',
-                  transition: 'all 0.3s'
-                }}
-              >
-                Normal Billing
-              </button>
-              <button
-                onClick={() => window.location.href = '/gst-billing'}
-                style={{
-                  padding: '8px 16px',
-                  backgroundColor: '#27ae60',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                  fontSize: '13px',
-                  transition: 'all 0.3s'
-                }}
-              >
-                📄 GST Billing
-              </button>
-            </div>
-          )}
+          {/* GST Billing Mode Selector & Refresh Button */}
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            {/* Manual Refresh Button */}
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={isLoading}
+              style={{
+                padding: '8px 12px',
+                backgroundColor: isLoading ? '#95a5a6' : 'var(--color-primary)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                fontWeight: 'bold',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.3s'
+              }}
+              title="Refresh data (or pull down to refresh)"
+            >
+              <FiRefreshCw style={{ animation: isLoading ? 'spin 1s linear infinite' : 'none' }} />
+            </button>
+
+            {/* GST Billing Mode Selector - Only show for GST-enabled users */}
+            {user?.gstEnabled && (
+              <div style={{
+                display: 'flex',
+                gap: '10px',
+                backgroundColor: 'var(--bg-secondary)',
+                padding: '8px',
+                borderRadius: '6px',
+                border: '1px solid var(--border-color)'
+              }}>
+                <button
+                  onClick={() => window.location.href = '/billing'}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: editingVoucherId || !editingVoucherId ? 'var(--color-primary)' : 'transparent',
+                    color: editingVoucherId || !editingVoucherId ? '#fff' : 'var(--color-text)',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    fontSize: '13px',
+                    transition: 'all 0.3s'
+                  }}
+                >
+                  Normal Billing
+                </button>
+                <button
+                  onClick={() => window.location.href = '/gst-billing'}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#27ae60',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    fontSize: '13px',
+                    transition: 'all 0.3s'
+                  }}
+                >
+                  📄 GST Billing
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
+        {/* Loading State */}
+        {isLoading && (
+          <div style={{ marginBottom: '30px' }}>
+            <SkeletonStat count={3} />
+            <SkeletonTable rows={5} columns={5} />
+          </div>
+        )}
+
         {/* Customer Selection */}
-        <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
+        {!isLoading && (
+          <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }} className="fade-in">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
             <h3 style={{ marginTop: 0, marginBottom: 0 }}>Select Customer</h3>
             <button
@@ -1479,10 +1527,12 @@ export default function Billing() {
               </div>
             )}
           </div>
-        </div>
+            </div>
+        )}
 
         {/* Voucher Details */}
-        <form onSubmit={handleSubmit} style={{ marginBottom: '30px' }}>
+        {!isLoading && (
+          <form onSubmit={handleSubmit} style={{ marginBottom: '30px' }} className="fade-in">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px', marginBottom: '20px' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Voucher Number</label>
@@ -2381,6 +2431,7 @@ export default function Billing() {
             </button>
           </div>
         </form>
+        )}
 
         {/* Add Customer Modal */}
         {showAddLedgerModal && (
@@ -2479,6 +2530,7 @@ export default function Billing() {
           </div>
         )}
       </div>
+      </PullToRefresh>
     </Layout>
   );
 }
