@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import { karigarAPI, stockAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import { FiTrash2, FiEye, FiPrinter, FiX, FiArrowLeft, FiChevronRight } from 'react-icons/fi';
@@ -19,6 +20,13 @@ export default function Karigar() {
   const [searchInput, setSearchInput] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [karigarSearch, setKarigarSearch] = useState('');
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    danger: false
+  });
 
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
@@ -168,16 +176,23 @@ export default function Karigar() {
   };
 
   const handleDeleteTransaction = async (transactionId) => {
-    if (!confirm('Delete this transaction? (Stock will be reversed)')) return;
-
-    try {
-      await karigarAPI.delete(transactionId);
-      toast.success('Transaction deleted successfully');
-      fetchTransactions();
-      fetchStock();
-    } catch (error) {
-      toast.error('Failed to delete transaction');
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Transaction',
+      message: 'Delete this transaction? Stock will be reversed.',
+      danger: true,
+      confirmText: 'Delete',
+      onConfirm: async () => {
+        try {
+          await karigarAPI.delete(transactionId);
+          toast.success('Transaction deleted successfully');
+          fetchTransactions();
+          fetchStock();
+        } catch (error) {
+          toast.error('Failed to delete transaction');
+        }
+      }
+    });
   };
 
   const handlePreviewTransaction = (transaction) => {
@@ -954,6 +969,17 @@ export default function Karigar() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        danger={confirmDialog.danger}
+        confirmText={confirmDialog.confirmText || 'Confirm'}
+        cancelText="Cancel"
+        onConfirm={confirmDialog.onConfirm}
+        onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+      />
     </Layout>
   );
 }

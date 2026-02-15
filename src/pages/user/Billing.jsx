@@ -634,8 +634,8 @@ export default function Billing() {
           toast.error(`Item ${i + 1}: Item name is required`);
           return;
         }
-        if (!item.grossWeight || parseFloat(item.grossWeight) <= 0) {
-          toast.error(`Item ${i + 1}: Gross weight must be greater than 0`);
+        if (item.grossWeight === '' || item.grossWeight === null || item.grossWeight === undefined) {
+          toast.error(`Item ${i + 1}: Gross weight is required`);
           return;
         }
       }

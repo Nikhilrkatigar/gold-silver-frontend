@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import { ledgerAPI, voucherAPI, settlementAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
@@ -81,6 +82,13 @@ export default function LedgerDetail() {
   const [showPreview, setShowPreview] = useState(false);
   const [previewType, setPreviewType] = useState(null); // 'voucher' or 'settlement'
   const [selectedItem, setSelectedItem] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+    danger: false
+  });
 
   useEffect(() => {
     fetchLedgerDetails();
@@ -120,48 +128,44 @@ export default function LedgerDetail() {
   };
 
   const handleRecalculateBalance = async () => {
-    if (!confirm('This will recalculate the balance from all transactions. Continue?')) return;
-
-    try {
-      const response = await ledgerAPI.recalculateBalance(id);
-      setLedger(response.data.ledger);
-      toast.success('Balance recalculated successfully');
-      fetchLedgerDetails();
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to recalculate balance');
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Recalculate Balance',
+      message: 'This will recalculate the balance from all transactions. Continue?',
+      danger: false,
+      confirmText: 'Recalculate',
+      onConfirm: async () => {
+        try {
+          const response = await ledgerAPI.recalculateBalance(id);
+          setLedger(response.data.ledger);
+          toast.success('Balance recalculated successfully');
+          fetchLedgerDetails();
+        } catch (error) {
+          toast.error(error.response?.data?.message || 'Failed to recalculate balance');
+        }
+      }
+    });
   };
 
   const handleDeleteVoucher = async (voucherId) => {
     const voucher = transactions.find(t => t._id === voucherId);
-    const isCancelled = voucher?.status === 'cancelled';
 
-    try {
-      if (!isCancelled) {
-        // First, cancel the voucher
-        const confirmCancel = confirm('Cancel this voucher?');
-        if (!confirmCancel) return;
-
-        await fetch(`http://localhost:5000/api/voucher/${voucherId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'cancelled', cancelledReason: 'Cancelled from ledger' })
-        });
-        toast.success('Voucher cancelled successfully!');
-      } else {
-        // Voucher already cancelled, now offer to delete
-        const confirmDelete = confirm('This voucher is already cancelled. Permanently delete it? This cannot be undone!');
-        if (confirmDelete) {
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Voucher',
+      message: 'Permanently delete this voucher? This cannot be undone!',
+      danger: true,
+      confirmText: 'Delete',
+      onConfirm: async () => {
+        try {
           await voucherAPI.delete(voucherId);
           toast.success('Voucher deleted successfully!');
-        } else {
-          return;
+          fetchLedgerDetails();
+        } catch (error) {
+          toast.error('Failed to delete voucher');
         }
       }
-      fetchLedgerDetails();
-    } catch (error) {
-      toast.error('Failed to process voucher action');
-    }
+    });
   };
 
   const handlePreviewVoucher = (voucher) => {
@@ -480,28 +484,42 @@ export default function LedgerDetail() {
   };
 
   const handleDeleteSettlement = async (settlementId) => {
-    if (!confirm('Delete this settlement?')) return;
-
-    try {
-      // Settlement vouchers are now stored in Voucher collection, not Settlement collection
-      await voucherAPI.delete(settlementId);
-      toast.success('Settlement deleted successfully');
-      fetchLedgerDetails();
-    } catch (error) {
-      toast.error('Failed to delete settlement');
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete Settlement',
+      message: 'Permanently delete this settlement?',
+      danger: true,
+      confirmText: 'Delete',
+      onConfirm: async () => {
+        try {
+          // Settlement vouchers are now stored in Voucher collection, not Settlement collection
+          await voucherAPI.delete(settlementId);
+          toast.success('Settlement deleted successfully');
+          fetchLedgerDetails();
+        } catch (error) {
+          toast.error('Failed to delete settlement');
+        }
+      }
+    });
   };
 
   const handleDeleteAllVouchers = async () => {
-    if (!confirm('Delete ALL vouchers for this ledger? This cannot be undone!')) return;
-
-    try {
-      await ledgerAPI.deleteAllVouchers(id);
-      toast.success('All vouchers deleted successfully');
-      fetchLedgerDetails();
-    } catch (error) {
-      toast.error('Failed to delete vouchers');
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: 'Delete All Vouchers',
+      message: 'Delete ALL vouchers for this ledger? This cannot be undone!',
+      danger: true,
+      confirmText: 'Delete All',
+      onConfirm: async () => {
+        try {
+          await ledgerAPI.deleteAllVouchers(id);
+          toast.success('All vouchers deleted successfully');
+          fetchLedgerDetails();
+        } catch (error) {
+          toast.error('Failed to delete vouchers');
+        }
+      }
+    });
   };
 
   const downloadPDF = (blob, fileName) => {
@@ -1151,7 +1169,7 @@ export default function LedgerDetail() {
                           <button
                             onClick={() => isSettlementType ? handleDeleteSettlement(txn._id) : handleDeleteVoucher(txn._id)}
                             className="btn btn-sm btn-danger"
-                            title={isSettlementType ? 'Delete Settlement' : 'Cancel/Delete Voucher'}
+                            title={isSettlementType ? 'Delete Settlement' : 'Delete Voucher'}
                           >
                             <FiTrash2 />
                           </button>
@@ -1419,6 +1437,17 @@ export default function LedgerDetail() {
             </div>
           </div>
         )}
+
+        <ConfirmDialog
+          isOpen={confirmDialog.isOpen}
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          danger={confirmDialog.danger}
+          confirmText={confirmDialog.confirmText || 'Confirm'}
+          cancelText="Cancel"
+          onConfirm={confirmDialog.onConfirm}
+          onClose={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+        />
       </div>
     </Layout>
   );
