@@ -647,12 +647,6 @@ export default function Billing() {
         return;
       }
 
-      // Only fine adjustment modes support negative values to reduce fine balance.
-      if (['add_cash', 'money_to_gold', 'money_to_silver'].includes(formData.paymentType) && settlementValue < 0) {
-        toast.error('Please enter a positive amount');
-        return;
-      }
-
       if (formData.paymentType === 'money_to_gold' && (parseFloat(formData.goldRate) || 0) <= 0) {
         toast.error('Gold rate must be greater than 0 for money conversion');
         return;
@@ -2055,7 +2049,7 @@ export default function Billing() {
                       }}
                     />
                     <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
-                      This amount will be subtracted from current balance
+                      Positive value: subtract from balance | Negative value: add to balance (allowed)
                     </small>
                   </div>
                 )}
