@@ -14,6 +14,11 @@ const toFiniteNumber = (value, fallback = 0) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const formatSignedCurrency = (value) => {
+  const amount = toFiniteNumber(value);
+  return `${amount > 0 ? '+' : ''}${amount.toFixed(2)}`;
+};
+
 const pickFirstFinite = (...values) => {
   for (const value of values) {
     const parsed = Number(value);
@@ -336,7 +341,7 @@ export default function LedgerDetail() {
             </div>
             <div style="display: flex; justify-content: space-between;">
               <div>Cash Balance</div>
-              <div style="font-weight: bold;">₹${(-balanceDetails.currentAmount).toFixed(2)}</div>
+              <div style="font-weight: bold;">${formatSignedCurrency(-balanceDetails.currentAmount)}</div>
             </div>
           </div>
 
@@ -454,11 +459,11 @@ export default function LedgerDetail() {
             </div>
             <div class="detail-item">
               <div class="label">Metal Rate</div>
-              <div class="value">${metalRate !== null ? '₹' + parseFloat(metalRate).toFixed(2) : 'N/A'}</div>
+              <div class="value">${metalRate !== null ? '' + parseFloat(metalRate).toFixed(2) : 'N/A'}</div>
             </div>
             <div class="detail-item">
               <div class="label">Settlement Amount</div>
-              <div class="value" style="font-weight: bold; font-size: 1.3rem;">₹${parseFloat(amount || 0).toFixed(2)}</div>
+              <div class="value" style="font-weight: bold; font-size: 1.3rem;">${parseFloat(amount || 0).toFixed(2)}</div>
             </div>
           </div>
         </div>
@@ -586,8 +591,8 @@ export default function LedgerDetail() {
                 <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold; color: #000000;">Less (g)</th>
                 <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold; color: #000000;">Net (g)</th>
                 <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold; color: #000000;">Fine (g)</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold; color: #000000;">Labour (₹)</th>
-                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold; color: #000000;">Amount (₹)</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold; color: #000000;">Labour ()</th>
+                <th style="border: 1px solid #ddd; padding: 10px; text-align: right; font-weight: bold; color: #000000;">Amount ()</th>
               </tr>
             </thead>
             <tbody>
@@ -624,15 +629,15 @@ export default function LedgerDetail() {
               <h3 style="margin: 0 0 15px 0; font-size: 14px; font-weight: bold; color: #333;">Amount Summary</h3>
               <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                 <span>Labour Amount:</span>
-                <strong>₹${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.labourRate) || 0), 0).toFixed(2) : '0.00'}</strong>
+                <strong>${voucher.items ? voucher.items.reduce((sum, item) => sum + (parseFloat(item.labourRate) || 0), 0).toFixed(2) : '0.00'}</strong>
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                 <span>Stone Amount:</span>
-                <strong>₹${parseFloat(voucher.stoneAmount || 0).toFixed(2)}</strong>
+                <strong>${parseFloat(voucher.stoneAmount || 0).toFixed(2)}</strong>
               </div>
               <div style="display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 2px solid #ddd; font-size: 16px; font-weight: bold; color: #000000;">
                 <span>Grand Total:</span>
-                <span style="color: #d32f2f;">₹${voucherTotal.toFixed(2)}</span>
+                <span style="color: #d32f2f;">${voucherTotal.toFixed(2)}</span>
               </div>
             </div>
 
@@ -640,11 +645,11 @@ export default function LedgerDetail() {
               <h3 style="margin: 0 0 15px 0; font-size: 14px; font-weight: bold; color: #000000;">Rates</h3>
               <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #333333;">
                 <span>Gold Rate:</span>
-                <strong style="color: #000000;">₹${parseFloat(voucher.goldRate || 0).toFixed(2)}/g</strong>
+                <strong style="color: #000000;">${parseFloat(voucher.goldRate || 0).toFixed(2)}/g</strong>
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 12px; color: #333333;">
                 <span>Silver Rate:</span>
-                <strong style="color: #000000;">₹${parseFloat(voucher.silverRate || 0).toFixed(2)}/g</strong>
+                <strong style="color: #000000;">${parseFloat(voucher.silverRate || 0).toFixed(2)}/g</strong>
               </div>
             </div>
           </div>
@@ -653,11 +658,11 @@ export default function LedgerDetail() {
           <div style="margin-top: 30px; margin-bottom: 30px;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; font-weight: bold; color: #000000;">
               <span>Cash Received</span>
-              <span>₹${parseFloat(voucher.cashReceived || 0).toFixed(2)}</span>
+              <span>${parseFloat(voucher.cashReceived || 0).toFixed(2)}</span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 14px; font-weight: bold; color: #d32f2f;">
               <span>Net Balance</span>
-              <span>₹${(voucherTotal - (parseFloat(voucher.cashReceived || 0))).toFixed(2)}</span>
+              <span>${(voucherTotal - (parseFloat(voucher.cashReceived || 0))).toFixed(2)}</span>
             </div>
 
             <!-- Balance Details Section - Side by Side -->
@@ -674,7 +679,7 @@ export default function LedgerDetail() {
               </div>
               <div style="display: flex; justify-content: space-between; font-size: 12px; color: #333333;">
                 <span>Cash Balance</span>
-                <span style="font-weight: bold;">₹${(-balanceDetails.currentAmount).toFixed(2)}</span>
+                <span style="font-weight: bold;">${formatSignedCurrency(-balanceDetails.currentAmount)}</span>
               </div>
             </div>
           </div>
@@ -730,7 +735,7 @@ export default function LedgerDetail() {
               });
             } else {
               downloadPDF(blob, fileName);
-              const whatsappText = `Check out this voucher for ${ledger?.name}. Voucher #${voucher.voucherNumber}. Amount: ₹${voucherTotal.toFixed(2)}`;
+              const whatsappText = `Check out this voucher for ${ledger?.name}. Voucher #${voucher.voucherNumber}. Amount: ${voucherTotal.toFixed(2)}`;
               const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
 
               toast.info(
@@ -795,7 +800,7 @@ export default function LedgerDetail() {
               </div>
               <div>
                 <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Metal Rate</div>
-                <div style="font-size: 16px; font-weight: 600; color: #000000;">${metalRate !== null ? '₹' + parseFloat(metalRate).toFixed(2) + '/g' : 'N/A'}</div>
+                <div style="font-size: 16px; font-weight: 600; color: #000000;">${metalRate !== null ? '' + parseFloat(metalRate).toFixed(2) + '/g' : 'N/A'}</div>
               </div>
               <div>
                 <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Fine Given</div>
@@ -803,7 +808,7 @@ export default function LedgerDetail() {
               </div>
               <div>
                 <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Settlement Amount</div>
-                <div style="font-size: 16px; font-weight: 600; color: #d32f2f;">₹${parseFloat(amount || 0).toFixed(2)}</div>
+                <div style="font-size: 16px; font-weight: 600; color: #d32f2f;">${parseFloat(amount || 0).toFixed(2)}</div>
               </div>
             </div>
 
@@ -874,7 +879,7 @@ export default function LedgerDetail() {
               });
             } else {
               downloadPDF(blob, fileName);
-              const whatsappText = `Settlement Receipt for ${ledger?.name}. Amount: ₹${parseFloat(settlement.amount).toFixed(2)}`;
+              const whatsappText = `Settlement Receipt for ${ledger?.name}. Amount: ${parseFloat(settlement.amount).toFixed(2)}`;
               const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(whatsappText)}`;
 
               toast.info(
@@ -964,6 +969,10 @@ export default function LedgerDetail() {
     }, 0);
 
   const amountBalance = (ledger?.balances?.creditBalance || 0) + (ledger?.balances?.cashBalance || 0);
+  const displayCashBalance = -pickFirstFinite(
+    ledger?.balances?.cashBalance,
+    ledger?.balances?.creditBalance
+  );
   const previewBalanceDetails = previewType === 'voucher' && selectedItem
     ? getVoucherBalanceDetails(selectedItem, ledger)
     : null;
@@ -1043,9 +1052,9 @@ export default function LedgerDetail() {
                 <div style={{
                   fontSize: '1.2rem',
                   fontWeight: 600,
-                  color: ledger?.balances?.cashBalance > 0 ? 'red' : ledger?.balances?.cashBalance < 0 ? 'green' : undefined
+                  color: displayCashBalance < 0 ? 'red' : displayCashBalance > 0 ? 'green' : undefined
                 }}>
-                  {ledger?.balances?.cashBalance > 0 ? '-' : ledger?.balances?.cashBalance < 0 ? '+' : ''}₹{Math.abs(ledger?.balances?.cashBalance)?.toFixed(2) || '0.00'}
+                  {formatSignedCurrency(displayCashBalance)}
                 </div>
               </div>
             </div>
@@ -1126,7 +1135,7 @@ export default function LedgerDetail() {
                           ? `SET-${txn._id.substring(0, 6).toUpperCase()} (${txn.paymentType})`
                           : txn.voucherNumber}
                       </td>
-                      <td>₹{txn.total?.toFixed(2) || txn.amount?.toFixed(2) || '0.00'}</td>
+                      <td>{txn.total?.toFixed(2) || txn.amount?.toFixed(2) || '0.00'}</td>
                       <td style={{ textAlign: 'center' }}>
                         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
                           {!isSettlementType && txn.type === 'voucher' && (
@@ -1218,13 +1227,13 @@ export default function LedgerDetail() {
                       {selectedItem.goldRate && (
                         <div>
                           <div className="text-muted" style={{ fontSize: '0.875rem' }}>Gold Rate</div>
-                          <div>₹{parseFloat(selectedItem.goldRate).toFixed(2)}</div>
+                          <div>{parseFloat(selectedItem.goldRate).toFixed(2)}</div>
                         </div>
                       )}
                       {selectedItem.silverRate && (
                         <div>
                           <div className="text-muted" style={{ fontSize: '0.875rem' }}>Silver Rate</div>
-                          <div>₹{parseFloat(selectedItem.silverRate).toFixed(2)}</div>
+                          <div>{parseFloat(selectedItem.silverRate).toFixed(2)}</div>
                         </div>
                       )}
                     </div>
@@ -1254,14 +1263,14 @@ export default function LedgerDetail() {
                                   <td>{item.pieces}</td>
                                   <td>{parseFloat(item.netWeight).toFixed(3)}</td>
                                   <td>{parseFloat(item.fineWeight).toFixed(3)}</td>
-                                  <td>₹{parseFloat(item.amount).toFixed(2)}</td>
+                                  <td>{parseFloat(item.amount).toFixed(2)}</td>
                                 </tr>
                               ))}
                               <tr style={{ fontWeight: 'bold', backgroundColor: 'var(--bg-hover)' }}>
                                 <td colSpan="3">Total</td>
                                 <td>{selectedItem.items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0).toFixed(3)}</td>
                                 <td>{selectedItem.items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0).toFixed(3)}</td>
-                                <td>₹{selectedItem.items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)}</td>
+                                <td>{selectedItem.items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0).toFixed(2)}</td>
                               </tr>
                             </tbody>
                           </table>
@@ -1274,20 +1283,20 @@ export default function LedgerDetail() {
                         {selectedItem.stoneAmount && (
                           <div>
                             <div className="text-muted" style={{ fontSize: '0.875rem' }}>Stone Amount</div>
-                            <div>₹{parseFloat(selectedItem.stoneAmount).toFixed(2)}</div>
+                            <div>{parseFloat(selectedItem.stoneAmount).toFixed(2)}</div>
                           </div>
                         )}
                         {selectedItem.fineAmount && (
                           <div style={{ marginTop: '0.5rem' }}>
                             <div className="text-muted" style={{ fontSize: '0.875rem' }}>Fine Amount</div>
-                            <div>₹{parseFloat(selectedItem.fineAmount).toFixed(2)}</div>
+                            <div>{parseFloat(selectedItem.fineAmount).toFixed(2)}</div>
                           </div>
                         )}
                       </div>
                       <div>
                         <div className="text-muted" style={{ fontSize: '0.875rem' }}>Total Amount</div>
                         <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>
-                          ₹{selectedItem.total?.toFixed(2) || (
+                          {selectedItem.total?.toFixed(2) || (
                             (selectedItem.items?.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) || 0) +
                             (parseFloat(selectedItem.stoneAmount) || 0) +
                             (parseFloat(selectedItem.fineAmount) || 0)
@@ -1303,12 +1312,12 @@ export default function LedgerDetail() {
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
                         <div>
                           <div className="text-muted" style={{ fontSize: '0.875rem' }}>Cash Received</div>
-                          <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>₹{parseFloat(selectedItem.cashReceived || 0).toFixed(2)}</div>
+                          <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>{parseFloat(selectedItem.cashReceived || 0).toFixed(2)}</div>
                         </div>
                         <div>
                           <div className="text-muted" style={{ fontSize: '0.875rem' }}>Net Balance</div>
                           <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>
-                            ₹{(
+                            {(
                               (selectedItem.total?.toFixed(2) || (
                                 (selectedItem.items?.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) || 0) +
                                 (parseFloat(selectedItem.stoneAmount) || 0) +
@@ -1324,7 +1333,7 @@ export default function LedgerDetail() {
                         <div style={{ fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '0.95rem', color: 'var(--text-primary)' }}>Customer Balance</div>
                         <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#FFD700', fontWeight: 500 }}>Fine Gold: {(-previewBalanceDetails?.currentGold)?.toFixed(3) || '0.000'} g</div>
                         <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#C0C0C0', fontWeight: 500 }}>Fine Silver: {(-previewBalanceDetails?.currentSilver)?.toFixed(3) || '0.000'} g</div>
-                        <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>Cash Balance: ₹{(-previewBalanceDetails?.currentAmount)?.toFixed(2) || '0.00'}</div>
+                        <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>Cash Balance: {formatSignedCurrency(-previewBalanceDetails?.currentAmount)}</div>
                       </div>
                     </div>
 
@@ -1406,7 +1415,7 @@ export default function LedgerDetail() {
                           </div>
                           <div>
                             <div className="text-muted" style={{ fontSize: '0.875rem' }}>Rate</div>
-                            <div>{metalRate !== null ? `₹${parseFloat(metalRate).toFixed(2)}` : 'N/A'}</div>
+                            <div>{metalRate !== null ? `${parseFloat(metalRate).toFixed(2)}` : 'N/A'}</div>
                           </div>
                           <div>
                             <div className="text-muted" style={{ fontSize: '0.875rem' }}>Fine Given</div>
@@ -1414,7 +1423,7 @@ export default function LedgerDetail() {
                           </div>
                           <div>
                             <div className="text-muted" style={{ fontSize: '0.875rem' }}>Amount</div>
-                            <div style={{ fontSize: '1.15rem', fontWeight: 700 }}>₹{parseFloat(amount || 0).toFixed(2)}</div>
+                            <div style={{ fontSize: '1.15rem', fontWeight: 700 }}>{parseFloat(amount || 0).toFixed(2)}</div>
                           </div>
                         </div>
                       );
@@ -1452,3 +1461,5 @@ export default function LedgerDetail() {
     </Layout>
   );
 }
+
+

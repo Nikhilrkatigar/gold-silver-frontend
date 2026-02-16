@@ -128,7 +128,7 @@ export default function AccountInfo() {
       <div style={{ maxWidth: '800px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <h1 style={{ margin: 0 }}>Account Information</h1>
-          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>v2.6.1</span>
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>v2.7</span>
         </div>
 
         <div className="card" style={{ marginBottom: '1.5rem' }}>
@@ -317,6 +317,7 @@ export default function AccountInfo() {
                     border: `2px solid ${isActive ? 'var(--color-primary)' : 'var(--border-color)'}`,
                     borderRadius: '8px',
                     background: isActive ? 'rgba(245, 158, 11, 0.1)' : 'transparent',
+                    color: 'var(--color-text)',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
                     display: 'flex',
@@ -326,7 +327,7 @@ export default function AccountInfo() {
                   }}
                 >
                   <Icon size={24} color={isActive ? 'var(--color-primary)' : 'var(--text-secondary)'} />
-                  <span style={{ fontWeight: isActive ? 600 : 400 }}>{option.label}</span>
+                  <span style={{ fontWeight: isActive ? 600 : 400, color: 'var(--color-text)' }}>{option.label}</span>
                 </button>
               );
             })}

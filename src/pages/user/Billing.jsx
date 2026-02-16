@@ -33,24 +33,24 @@ const VoucherTemplate = ({ formData, items, ledgers, user, voucherData }) => {
     .reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0);
 
   // Use saved balance snapshot if available (for viewing saved vouchers), otherwise use calculated values
-  const oldBalanceAmount = voucherData?.balanceSnapshot?.oldBalance?.totalAmount ?? 
+  const oldBalanceAmount = voucherData?.balanceSnapshot?.oldBalance?.totalAmount ??
     (formData.paymentType === 'credit' ? (ledger?.balances?.creditBalance || 0) : (ledger?.balances?.cashBalance || 0));
-  
-  const oldBalanceGold = voucherData?.balanceSnapshot?.oldBalance?.goldFineWeight ?? 
+
+  const oldBalanceGold = voucherData?.balanceSnapshot?.oldBalance?.goldFineWeight ??
     (ledger?.balances?.goldFineWeight || 0);
-  
-  const oldBalanceSilver = voucherData?.balanceSnapshot?.oldBalance?.silverFineWeight ?? 
+
+  const oldBalanceSilver = voucherData?.balanceSnapshot?.oldBalance?.silverFineWeight ??
     (ledger?.balances?.silverFineWeight || 0);
 
-  const curBalanceAmount = voucherData?.balanceSnapshot?.currentBalance?.amount ?? 
-    (formData.paymentType === 'credit' 
+  const curBalanceAmount = voucherData?.balanceSnapshot?.currentBalance?.amount ??
+    (formData.paymentType === 'credit'
       ? ((parseFloat(ledger?.balances?.creditBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)))
       : ((parseFloat(ledger?.balances?.cashBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))));
 
-  const curBalanceGold = voucherData?.balanceSnapshot?.currentBalance?.goldFineWeight ?? 
+  const curBalanceGold = voucherData?.balanceSnapshot?.currentBalance?.goldFineWeight ??
     (formData.paymentType === 'credit' ? ((parseFloat(ledger?.balances?.goldFineWeight || 0) + goldTotal)) : (parseFloat(ledger?.balances?.goldFineWeight) || 0));
-  
-  const curBalanceSilver = voucherData?.balanceSnapshot?.currentBalance?.silverFineWeight ?? 
+
+  const curBalanceSilver = voucherData?.balanceSnapshot?.currentBalance?.silverFineWeight ??
     (formData.paymentType === 'credit' ? ((parseFloat(ledger?.balances?.silverFineWeight || 0) + silverTotal)) : (parseFloat(ledger?.balances?.silverFineWeight) || 0));
 
   const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.roundOff) || 0);
@@ -706,8 +706,8 @@ export default function Billing() {
         silverFineWeight: silverBalance
       },
       currentBalance: {
-        amount: formData.paymentType === 'credit' 
-          ? netBalanceOfThisBill + creditBalance + cashBalance 
+        amount: formData.paymentType === 'credit'
+          ? netBalanceOfThisBill + creditBalance + cashBalance
           : netBalanceOfThisBill + cashBalance,
         goldFineWeight: formData.paymentType === 'credit' ? goldBalance + goldAddedInThisBill : goldBalance,
         silverFineWeight: formData.paymentType === 'credit' ? silverBalance + silverAddedInThisBill : silverBalance
@@ -779,26 +779,26 @@ export default function Billing() {
       .reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0);
 
     // Use saved balance snapshot if available, otherwise calculate
-    const oldBalanceAmount = savedVoucherData?.balanceSnapshot?.oldBalance?.totalAmount ?? 
-      (formData.paymentType === 'credit' 
+    const oldBalanceAmount = savedVoucherData?.balanceSnapshot?.oldBalance?.totalAmount ??
+      (formData.paymentType === 'credit'
         ? (selectedLedger?.balances?.creditBalance || 0) + (selectedLedger?.balances?.cashBalance || 0)
         : (selectedLedger?.balances?.cashBalance || 0));
-    
-    const oldBalanceGold = savedVoucherData?.balanceSnapshot?.oldBalance?.goldFineWeight ?? 
+
+    const oldBalanceGold = savedVoucherData?.balanceSnapshot?.oldBalance?.goldFineWeight ??
       (formData.paymentType === 'credit' ? (selectedLedger?.balances?.goldFineWeight || 0) : 0);
-    
-    const oldBalanceSilver = savedVoucherData?.balanceSnapshot?.oldBalance?.silverFineWeight ?? 
+
+    const oldBalanceSilver = savedVoucherData?.balanceSnapshot?.oldBalance?.silverFineWeight ??
       (formData.paymentType === 'credit' ? (selectedLedger?.balances?.silverFineWeight || 0) : 0);
 
-    const curBalanceAmount = savedVoucherData?.balanceSnapshot?.currentBalance?.amount ?? 
-      (formData.paymentType === 'credit' 
+    const curBalanceAmount = savedVoucherData?.balanceSnapshot?.currentBalance?.amount ??
+      (formData.paymentType === 'credit'
         ? ((parseFloat(selectedLedger?.balances?.creditBalance || 0) + parseFloat(selectedLedger?.balances?.cashBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)))
         : ((parseFloat(selectedLedger?.balances?.cashBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))));
 
-    const curBalanceGold = savedVoucherData?.balanceSnapshot?.currentBalance?.goldFineWeight ?? 
+    const curBalanceGold = savedVoucherData?.balanceSnapshot?.currentBalance?.goldFineWeight ??
       (formData.paymentType === 'credit' ? ((parseFloat(selectedLedger?.balances?.goldFineWeight || 0) + goldTotal)) : goldTotal);
-    
-    const curBalanceSilver = savedVoucherData?.balanceSnapshot?.currentBalance?.silverFineWeight ?? 
+
+    const curBalanceSilver = savedVoucherData?.balanceSnapshot?.currentBalance?.silverFineWeight ??
       (formData.paymentType === 'credit' ? ((parseFloat(selectedLedger?.balances?.silverFineWeight || 0) + silverTotal)) : silverTotal);
 
     const printWindow = window.open('', '_blank');
@@ -1334,1196 +1334,1196 @@ export default function Billing() {
     <Layout>
       <PullToRefresh onRefresh={handleRefresh}>
         <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '15px' }} className="fade-in">
-          <h1 style={{ color: 'var(--color-primary)', marginBottom: 0, margin: 0 }}>{editingVoucherId ? '✏️ Edit Voucher' : '📋 Create Voucher'}</h1>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '15px' }} className="fade-in">
+            <h1 style={{ color: 'var(--color-primary)', marginBottom: 0, margin: 0 }}>{editingVoucherId ? '✏️ Edit Voucher' : '📋 Create Voucher'}</h1>
 
-          {/* GST Billing Mode Selector & Refresh Button */}
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            {/* Manual Refresh Button */}
-            <button
-              type="button"
-              onClick={handleRefresh}
-              disabled={isLoading}
-              style={{
-                padding: '8px 12px',
-                backgroundColor: isLoading ? '#95a5a6' : 'var(--color-primary)',
-                color: '#fff',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: isLoading ? 'not-allowed' : 'pointer',
-                fontWeight: 'bold',
-                fontSize: '14px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.3s'
-              }}
-              title="Refresh data (or pull down to refresh)"
-            >
-              <FiRefreshCw style={{ animation: isLoading ? 'spin 1s linear infinite' : 'none' }} />
-            </button>
+            {/* GST Billing Mode Selector & Refresh Button */}
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              {/* Manual Refresh Button */}
+              <button
+                type="button"
+                onClick={handleRefresh}
+                disabled={isLoading}
+                style={{
+                  padding: '8px 12px',
+                  backgroundColor: isLoading ? '#95a5a6' : 'var(--color-primary)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: isLoading ? 'not-allowed' : 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.3s'
+                }}
+                title="Refresh data (or pull down to refresh)"
+              >
+                <FiRefreshCw style={{ animation: isLoading ? 'spin 1s linear infinite' : 'none' }} />
+              </button>
 
-            {/* GST Billing Mode Selector - Only show for GST-enabled users */}
-            {user?.gstEnabled && (
-              <div style={{
-                display: 'flex',
-                gap: '10px',
-                backgroundColor: 'var(--bg-secondary)',
-                padding: '8px',
-                borderRadius: '6px',
-                border: '1px solid var(--border-color)'
-              }}>
+              {/* GST Billing Mode Selector - Only show for GST-enabled users */}
+              {user?.gstEnabled && (
+                <div style={{
+                  display: 'flex',
+                  gap: '10px',
+                  backgroundColor: 'var(--bg-secondary)',
+                  padding: '8px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-color)'
+                }}>
+                  <button
+                    onClick={() => window.location.href = '/billing'}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: editingVoucherId || !editingVoucherId ? 'var(--color-primary)' : 'transparent',
+                      color: editingVoucherId || !editingVoucherId ? '#fff' : 'var(--color-text)',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '13px',
+                      transition: 'all 0.3s'
+                    }}
+                  >
+                    Normal Billing
+                  </button>
+                  <button
+                    onClick={() => window.location.href = '/gst-billing'}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: '#27ae60',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '13px',
+                      transition: 'all 0.3s'
+                    }}
+                  >
+                    📄 GST Billing
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Loading State */}
+          {isLoading && (
+            <div style={{ marginBottom: '30px' }}>
+              <SkeletonStat count={3} />
+              <SkeletonTable rows={5} columns={5} />
+            </div>
+          )}
+
+          {/* Customer Selection */}
+          {!isLoading && (
+            <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }} className="fade-in">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
+                <h3 style={{ marginTop: 0, marginBottom: 0 }}>Select Customer</h3>
                 <button
-                  onClick={() => window.location.href = '/billing'}
+                  type="button"
+                  onClick={() => {
+                    setLedgerFormData({
+                      name: '',
+                      phoneNumber: '',
+                      hasGST: false,
+                      gstNumber: '',
+                      stateCode: ''
+                    });
+                    setShowAddLedgerModal(true);
+                  }}
                   style={{
-                    padding: '8px 16px',
-                    backgroundColor: editingVoucherId || !editingVoucherId ? 'var(--color-primary)' : 'transparent',
-                    color: editingVoucherId || !editingVoucherId ? '#fff' : 'var(--color-text)',
+                    padding: '8px 15px',
+                    backgroundColor: 'var(--color-primary)',
+                    color: 'white',
                     border: 'none',
                     borderRadius: '4px',
                     cursor: 'pointer',
-                    fontWeight: 'bold',
-                    fontSize: '13px',
-                    transition: 'all 0.3s'
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '5px',
+                    fontSize: '13px'
                   }}
                 >
-                  Normal Billing
-                </button>
-                <button
-                  onClick={() => window.location.href = '/gst-billing'}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: '#27ae60',
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontWeight: 'bold',
-                    fontSize: '13px',
-                    transition: 'all 0.3s'
-                  }}
-                >
-                  📄 GST Billing
+                  <FiPlus /> Add Customer
                 </button>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* Loading State */}
-        {isLoading && (
-          <div style={{ marginBottom: '30px' }}>
-            <SkeletonStat count={3} />
-            <SkeletonTable rows={5} columns={5} />
-          </div>
-        )}
+              <div style={{ position: 'relative', maxWidth: '500px' }} data-customer-dropdown>
+                <input
+                  type="text"
+                  placeholder="Search or select customer..."
+                  value={customerSearch}
+                  onChange={(e) => {
+                    setCustomerSearch(e.target.value);
+                    setShowCustomerDropdown(true);
+                  }}
+                  onFocus={() => setShowCustomerDropdown(true)}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: '4px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--color-text)',
+                    boxSizing: 'border-box',
+                    fontSize: '13px'
+                  }}
+                />
 
-        {/* Customer Selection */}
-        {!isLoading && (
-          <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }} className="fade-in">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
-            <h3 style={{ marginTop: 0, marginBottom: 0 }}>Select Customer</h3>
-            <button
-              type="button"
-              onClick={() => {
-                setLedgerFormData({
-                  name: '',
-                  phoneNumber: '',
-                  hasGST: false,
-                  gstNumber: '',
-                  stateCode: ''
-                });
-                setShowAddLedgerModal(true);
-              }}
-              style={{
-                padding: '8px 15px',
-                backgroundColor: 'var(--color-primary)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                fontSize: '13px'
-              }}
-            >
-              <FiPlus /> Add Customer
-            </button>
-          </div>
+                {showCustomerDropdown && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    backgroundColor: 'var(--bg-primary)',
+                    border: '1px solid var(--border-color)',
+                    borderTop: 'none',
+                    borderRadius: '0 0 4px 4px',
+                    maxHeight: '250px',
+                    overflowY: 'auto',
+                    zIndex: 10,
+                    boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+                  }}>
+                    {ledgers
+                      .filter(ledger => ledger.name.toLowerCase().includes(customerSearch.toLowerCase()))
+                      .map(ledger => (
+                        <div
+                          key={ledger._id}
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, ledgerId: ledger._id }));
+                            setCustomerSearch(ledger.name);
+                            setShowCustomerDropdown(false);
+                          }}
+                          style={{
+                            padding: '12px 10px',
+                            borderBottom: '1px solid var(--border-color)',
+                            cursor: 'pointer',
+                            backgroundColor: formData.ledgerId === ledger._id ? 'var(--bg-hover)' : 'transparent',
+                            transition: 'background-color 0.2s',
+                            fontSize: '13px'
+                          }}
+                        >
+                          <div style={{ fontWeight: formData.ledgerId === ledger._id ? 'bold' : 'normal' }}>
+                            {ledger.name}
+                          </div>
+                          {ledger.phoneNumber && (
+                            <div style={{ fontSize: '11px', color: 'var(--color-muted)', marginTop: '2px' }}>
+                              {ledger.phoneNumber}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
-          <div style={{ position: 'relative', maxWidth: '500px' }} data-customer-dropdown>
-            <input
-              type="text"
-              placeholder="Search or select customer..."
-              value={customerSearch}
-              onChange={(e) => {
-                setCustomerSearch(e.target.value);
-                setShowCustomerDropdown(true);
-              }}
-              onFocus={() => setShowCustomerDropdown(true)}
-              style={{
-                width: '100%',
-                padding: '10px',
-                borderRadius: '4px',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--bg-primary)',
-                color: 'var(--color-text)',
-                boxSizing: 'border-box',
-                fontSize: '13px'
-              }}
-            />
+          {/* Voucher Details */}
+          {!isLoading && (
+            <form onSubmit={handleSubmit} style={{ marginBottom: '30px' }} className="fade-in">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px', marginBottom: '20px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Voucher Number</label>
+                  <input
+                    type="text"
+                    required
+                    value={formData.voucherNumber}
+                    onChange={(e) => setFormData(prev => ({ ...prev, voucherNumber: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--color-text)',
+                      boxSizing: 'border-box',
+                      fontSize: '13px'
+                    }}
+                  />
+                </div>
 
-            {showCustomerDropdown && (
-              <div style={{
-                position: 'absolute',
-                top: '100%',
-                left: 0,
-                right: 0,
-                backgroundColor: 'var(--bg-primary)',
-                border: '1px solid var(--border-color)',
-                borderTop: 'none',
-                borderRadius: '0 0 4px 4px',
-                maxHeight: '250px',
-                overflowY: 'auto',
-                zIndex: 10,
-                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-              }}>
-                {ledgers
-                  .filter(ledger => ledger.name.toLowerCase().includes(customerSearch.toLowerCase()))
-                  .map(ledger => (
-                    <div
-                      key={ledger._id}
-                      onClick={() => {
-                        setFormData(prev => ({ ...prev, ledgerId: ledger._id }));
-                        setCustomerSearch(ledger.name);
-                        setShowCustomerDropdown(false);
-                      }}
-                      style={{
-                        padding: '12px 10px',
-                        borderBottom: '1px solid var(--border-color)',
-                        cursor: 'pointer',
-                        backgroundColor: formData.ledgerId === ledger._id ? 'var(--bg-hover)' : 'transparent',
-                        transition: 'background-color 0.2s',
-                        fontSize: '13px'
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={formData.date}
+                    onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--color-text)',
+                      boxSizing: 'border-box',
+                      fontSize: '13px'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Gold Rate (₹/g)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.goldRate}
+                    onChange={(e) => setFormData(prev => ({ ...prev, goldRate: e.target.value }))}
+                    placeholder="0"
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--color-text)',
+                      boxSizing: 'border-box',
+                      fontSize: '13px'
+                    }}
+                  />
+                  <small style={{ display: 'block', marginTop: '2px', color: 'var(--color-muted)', fontSize: '10px' }}>
+                    (negative allowed)
+                  </small>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Silver Rate (₹/g)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.silverRate}
+                    onChange={(e) => setFormData(prev => ({ ...prev, silverRate: e.target.value }))}
+                    placeholder="0"
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--color-text)',
+                      boxSizing: 'border-box',
+                      fontSize: '13px'
+                    }}
+                  />
+                  <small style={{ display: 'block', marginTop: '2px', color: 'var(--color-muted)', fontSize: '10px' }}>
+                    (negative allowed)
+                  </small>
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Stone Amount (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.stoneAmount}
+                    onChange={(e) => setFormData(prev => ({ ...prev, stoneAmount: e.target.value }))}
+                    placeholder="0.00"
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--color-text)',
+                      boxSizing: 'border-box',
+                      fontSize: '13px'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Issue Gross (g)</label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    value={formData.issueGross}
+                    onChange={(e) => setFormData(prev => ({ ...prev, issueGross: e.target.value }))}
+                    placeholder="0.000"
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--color-text)',
+                      boxSizing: 'border-box',
+                      fontSize: '13px'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Receipt Gross (g)</label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    value={formData.receiptGross}
+                    onChange={(e) => setFormData(prev => ({ ...prev, receiptGross: e.target.value }))}
+                    placeholder="0.000"
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--color-text)',
+                      boxSizing: 'border-box',
+                      fontSize: '13px'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Cash Received (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.cashReceived}
+                    onChange={(e) => setFormData(prev => ({ ...prev, cashReceived: e.target.value }))}
+                    placeholder="0.00"
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--color-text)',
+                      boxSizing: 'border-box',
+                      fontSize: '13px'
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Round Off (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.roundOff}
+                    onChange={(e) => setFormData(prev => ({ ...prev, roundOff: e.target.value }))}
+                    placeholder="0.00"
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--color-text)',
+                      boxSizing: 'border-box',
+                      fontSize: '13px'
+                    }}
+                  />
+                  <small style={{ display: 'block', marginTop: '2px', color: 'var(--color-muted)', fontSize: '10px' }}>
+                    (adjustment for final amount - positive or negative)
+                  </small>
+                </div>
+
+                <div>
+                  <div className="input-group">
+                    <label className="input-label">Payment Type</label>
+                    <select
+                      className="input"
+                      value={formData.paymentType}
+                      onChange={(e) => {
+                        setFormData({ ...formData, paymentType: e.target.value });
+                        setItems([]);
                       }}
                     >
-                      <div style={{ fontWeight: formData.ledgerId === ledger._id ? 'bold' : 'normal' }}>
-                        {ledger.name}
-                      </div>
-                      {ledger.phoneNumber && (
-                        <div style={{ fontSize: '11px', color: 'var(--color-muted)', marginTop: '2px' }}>
-                          {ledger.phoneNumber}
+                      <optgroup label="Billing">
+                        <option value="cash">💵 Cash Bill (No Balance)</option>
+                        <option value="credit">💳 Credit Bill (Tracks Balance)</option>
+                      </optgroup>
+                      <optgroup label="Settlement">
+                        <option value="add_cash">💰 Add Cash to Balance</option>
+                        <option value="add_gold">🟡 Add Gold Fine Weight</option>
+                        <option value="add_silver">⚪ Add Silver Fine Weight</option>
+                        <option value="money_to_gold">💵➔🟡 Money to Gold Fine</option>
+                        <option value="money_to_silver">💵➔⚪ Money to Silver Fine</option>
+                      </optgroup>
+                    </select>
+                  </div><small style={{ display: 'block', marginTop: '2px', color: 'var(--color-muted)', fontSize: '10px' }}>
+                    {['add_cash', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'].includes(formData.paymentType) ? 'Settlement: Enter amount to adjust balance' : (formData.paymentType === 'credit' ? 'On Balance' : 'Immediate')}
+                  </small>
+                </div>
+              </div>
+
+              {/* Items Section - Only show for cash and credit payment types */}
+              {!['add_cash', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'].includes(formData.paymentType) && (
+                <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                  <h3>Items</h3>
+
+                  <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
+                    <button type="button" onClick={() => addRow('gold')} style={{
+                      padding: '10px 15px',
+                      backgroundColor: '#FFD700',
+                      color: '#000',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold'
+                    }}>
+                      <FiPlus /> Add Gold Item
+                    </button>
+                    <button type="button" onClick={() => addRow('silver')} style={{
+                      padding: '10px 15px',
+                      backgroundColor: '#C0C0C0',
+                      color: '#000',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold'
+                    }}>
+                      <FiPlus /> Add Silver Item
+                    </button>
+                  </div>
+
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                      fontSize: '14px'
+                    }}>
+                      <thead>
+                        <tr style={{ backgroundColor: 'var(--bg-primary)', borderBottom: '2px solid var(--border-color)' }}>
+                          <th style={{ padding: '10px', textAlign: 'left', borderRight: '1px solid var(--border-color)' }}>Item Name *</th>
+                          <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Metal</th>
+                          <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Pcs</th>
+                          <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Gross (g) *</th>
+                          <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Less (g)</th>
+                          <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Melting %</th>
+                          <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Wastage (g)</th>
+                          <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Labour (₹)</th>
+                          <th style={{ padding: '10px', textAlign: 'center' }}>Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {items.map((item, index) => (
+                          <tr key={index} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
+                              <input
+                                type="text"
+                                required
+                                value={item.itemName}
+                                onChange={(e) => updateItem(index, 'itemName', e.target.value)}
+                                placeholder="Item name *"
+                                style={{
+                                  width: '100%',
+                                  padding: '5px',
+                                  borderRadius: '4px',
+                                  border: !item.itemName || item.itemName.trim() === '' ? '2px solid #ff4757' : '1px solid var(--border-color)',
+                                  backgroundColor: 'var(--bg-primary)',
+                                  color: 'var(--color-text)',
+                                  boxSizing: 'border-box'
+                                }}
+                              />
+                            </td>
+                            <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)', textAlign: 'center' }}>
+                              <span style={{
+                                padding: '5px 10px',
+                                borderRadius: '4px',
+                                backgroundColor: item.metalType === 'gold' ? '#FFD700' : '#C0C0C0',
+                                color: '#000',
+                                fontWeight: 'bold'
+                              }}>{item.metalType === 'gold' ? 'GOLD' : 'SILVER'}</span>
+                            </td>
+                            <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
+                              <input
+                                type="number"
+                                min="1"
+                                value={item.pieces}
+                                onChange={(e) => updateItem(index, 'pieces', e.target.value)}
+                                style={{
+                                  width: '100%',
+                                  padding: '5px',
+                                  borderRadius: '4px',
+                                  border: '1px solid var(--border-color)',
+                                  backgroundColor: 'var(--bg-primary)',
+                                  color: 'var(--color-text)',
+                                  boxSizing: 'border-box',
+                                  textAlign: 'center'
+                                }}
+                              />
+                            </td>
+                            <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
+                              <input
+                                type="number"
+                                step="0.001"
+                                required
+                                value={item.grossWeight}
+                                onChange={(e) => {
+                                  updateItem(index, 'grossWeight', e.target.value);
+                                  calculateItem(index);
+                                }}
+                                placeholder="0.000 *"
+                                style={{
+                                  width: '100%',
+                                  padding: '5px',
+                                  borderRadius: '4px',
+                                  border: !item.grossWeight || parseFloat(item.grossWeight) <= 0 ? '2px solid #ff4757' : '1px solid var(--border-color)',
+                                  backgroundColor: 'var(--bg-primary)',
+                                  color: 'var(--color-text)',
+                                  boxSizing: 'border-box',
+                                  textAlign: 'right'
+                                }}
+                              />
+                            </td>
+                            <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
+                              <input
+                                type="number"
+                                step="0.001"
+                                value={item.lessWeight}
+                                onChange={(e) => {
+                                  updateItem(index, 'lessWeight', e.target.value);
+                                  calculateItem(index);
+                                }}
+                                placeholder="0.000"
+                                style={{
+                                  width: '100%',
+                                  padding: '5px',
+                                  borderRadius: '4px',
+                                  border: '1px solid var(--border-color)',
+                                  backgroundColor: 'var(--bg-primary)',
+                                  color: 'var(--color-text)',
+                                  boxSizing: 'border-box',
+                                  textAlign: 'right'
+                                }}
+                              />
+                            </td>
+                            <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
+                              <input
+                                type="number"
+                                step="0.1"
+                                min="0"
+                                max="100"
+                                value={item.melting}
+                                onChange={(e) => {
+                                  updateItem(index, 'melting', e.target.value);
+                                  calculateItem(index);
+                                }}
+                                placeholder="0.0"
+                                style={{
+                                  width: '100%',
+                                  padding: '5px',
+                                  borderRadius: '4px',
+                                  border: '1px solid var(--border-color)',
+                                  backgroundColor: 'var(--bg-primary)',
+                                  color: 'var(--color-text)',
+                                  boxSizing: 'border-box',
+                                  textAlign: 'right'
+                                }}
+                              />
+                            </td>
+                            <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
+                              <input
+                                type="number"
+                                step="0.001"
+                                value={item.wastage}
+                                onChange={(e) => {
+                                  updateItem(index, 'wastage', e.target.value);
+                                  calculateItem(index);
+                                }}
+                                placeholder="0.000"
+                                style={{
+                                  width: '100%',
+                                  padding: '5px',
+                                  borderRadius: '4px',
+                                  border: '1px solid var(--border-color)',
+                                  backgroundColor: 'var(--bg-primary)',
+                                  color: 'var(--color-text)',
+                                  boxSizing: 'border-box',
+                                  textAlign: 'right'
+                                }}
+                              />
+                            </td>
+                            <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
+                              <input
+                                type="number"
+                                step="0.01"
+                                value={item.labourRate}
+                                onChange={(e) => {
+                                  updateItem(index, 'labourRate', e.target.value);
+                                  calculateItem(index);
+                                }}
+                                placeholder="0.00"
+                                style={{
+                                  width: '100%',
+                                  padding: '5px',
+                                  borderRadius: '4px',
+                                  border: '1px solid var(--border-color)',
+                                  backgroundColor: 'var(--bg-primary)',
+                                  color: 'var(--color-text)',
+                                  boxSizing: 'border-box',
+                                  textAlign: 'right'
+                                }}
+                              />
+                            </td>
+                            <td style={{ padding: '10px', textAlign: 'center' }}>
+                              <button
+                                type="button"
+                                onClick={() => deleteRow(index)}
+                                style={{
+                                  padding: '5px 10px',
+                                  backgroundColor: '#ff4757',
+                                  color: 'white',
+                                  border: 'none',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                <FiX /> Delete
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div style={{ marginTop: '10px', padding: '10px', backgroundColor: 'rgba(255, 71, 87, 0.1)', borderLeft: '3px solid #ff4757', borderRadius: '4px', fontSize: '12px', color: 'var(--color-text)' }}>
+                    <strong>Required fields:</strong> Item Name and Gross Weight marked with * (red border if empty)
+                  </div>
+
+                  {items.length > 0 && (
+                    <div style={{ marginTop: '20px', padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
+                      <h4 style={{ marginTop: 0 }}>Summary</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', fontSize: '14px' }}>
+                        <div>
+                          <strong>Total Pieces:</strong> {calculateTotals().pieces}
                         </div>
-                      )}
+                        <div>
+                          <strong>Total Gross:</strong> {calculateTotals().grossWeight.toFixed(3)}g
+                        </div>
+                        <div>
+                          <strong>Total Net:</strong> {calculateTotals().netWeight.toFixed(3)}g
+                        </div>
+                        <div>
+                          <strong>Total Fine:</strong> {calculateTotals().fineWeight.toFixed(3)}g
+                        </div>
+                        <div>
+                          <strong>Total Labour:</strong> ₹{calculateTotals().labourRate.toFixed(2)}
+                        </div>
+                        <div style={{ fontWeight: 'bold', color: 'var(--color-primary)', fontSize: '16px' }}>
+                          <strong>Total Amount:</strong> ₹{(calculateTotals().amount + (parseFloat(formData.stoneAmount) || 0)).toFixed(2)}
+                        </div>
+                      </div>
                     </div>
-                  ))}
-              </div>
-            )}
-          </div>
-            </div>
-        )}
+                  )}
+                </div>
+              )}
 
-        {/* Voucher Details */}
-        {!isLoading && (
-          <form onSubmit={handleSubmit} style={{ marginBottom: '30px' }} className="fade-in">
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px', marginBottom: '20px' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Voucher Number</label>
-              <input
-                type="text"
-                required
-                value={formData.voucherNumber}
-                onChange={(e) => setFormData(prev => ({ ...prev, voucherNumber: e.target.value }))}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: 'var(--bg-primary)',
-                  color: 'var(--color-text)',
-                  boxSizing: 'border-box',
-                  fontSize: '13px'
-                }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Date</label>
-              <input
-                type="date"
-                required
-                value={formData.date}
-                onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: 'var(--bg-primary)',
-                  color: 'var(--color-text)',
-                  boxSizing: 'border-box',
-                  fontSize: '13px'
-                }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Gold Rate (₹/g)</label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.goldRate}
-                onChange={(e) => setFormData(prev => ({ ...prev, goldRate: e.target.value }))}
-                placeholder="0"
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: 'var(--bg-primary)',
-                  color: 'var(--color-text)',
-                  boxSizing: 'border-box',
-                  fontSize: '13px'
-                }}
-              />
-              <small style={{ display: 'block', marginTop: '2px', color: 'var(--color-muted)', fontSize: '10px' }}>
-                (negative allowed)
-              </small>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Silver Rate (₹/g)</label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.silverRate}
-                onChange={(e) => setFormData(prev => ({ ...prev, silverRate: e.target.value }))}
-                placeholder="0"
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: 'var(--bg-primary)',
-                  color: 'var(--color-text)',
-                  boxSizing: 'border-box',
-                  fontSize: '13px'
-                }}
-              />
-              <small style={{ display: 'block', marginTop: '2px', color: 'var(--color-muted)', fontSize: '10px' }}>
-                (negative allowed)
-              </small>
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Stone Amount (₹)</label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.stoneAmount}
-                onChange={(e) => setFormData(prev => ({ ...prev, stoneAmount: e.target.value }))}
-                placeholder="0.00"
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: 'var(--bg-primary)',
-                  color: 'var(--color-text)',
-                  boxSizing: 'border-box',
-                  fontSize: '13px'
-                }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Issue Gross (g)</label>
-              <input
-                type="number"
-                step="0.001"
-                value={formData.issueGross}
-                onChange={(e) => setFormData(prev => ({ ...prev, issueGross: e.target.value }))}
-                placeholder="0.000"
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: 'var(--bg-primary)',
-                  color: 'var(--color-text)',
-                  boxSizing: 'border-box',
-                  fontSize: '13px'
-                }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Receipt Gross (g)</label>
-              <input
-                type="number"
-                step="0.001"
-                value={formData.receiptGross}
-                onChange={(e) => setFormData(prev => ({ ...prev, receiptGross: e.target.value }))}
-                placeholder="0.000"
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: 'var(--bg-primary)',
-                  color: 'var(--color-text)',
-                  boxSizing: 'border-box',
-                  fontSize: '13px'
-                }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Cash Received (₹)</label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.cashReceived}
-                onChange={(e) => setFormData(prev => ({ ...prev, cashReceived: e.target.value }))}
-                placeholder="0.00"
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: 'var(--bg-primary)',
-                  color: 'var(--color-text)',
-                  boxSizing: 'border-box',
-                  fontSize: '13px'
-                }}
-              />
-            </div>
-
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Round Off (₹)</label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.roundOff}
-                onChange={(e) => setFormData(prev => ({ ...prev, roundOff: e.target.value }))}
-                placeholder="0.00"
-                style={{
-                  width: '100%',
-                  padding: '8px',
-                  borderRadius: '4px',
-                  border: '1px solid var(--border-color)',
-                  backgroundColor: 'var(--bg-primary)',
-                  color: 'var(--color-text)',
-                  boxSizing: 'border-box',
-                  fontSize: '13px'
-                }}
-              />
-              <small style={{ display: 'block', marginTop: '2px', color: 'var(--color-muted)', fontSize: '10px' }}>
-                (adjustment for final amount - positive or negative)
-              </small>
-            </div>
-
-            <div>
-              <div className="input-group">
-                <label className="input-label">Payment Type</label>
-                <select
-                  className="input"
-                  value={formData.paymentType}
-                  onChange={(e) => {
-                    setFormData({ ...formData, paymentType: e.target.value });
-                    setItems([]);
-                  }}
-                >
-                  <optgroup label="Billing">
-                    <option value="cash">💵 Cash Bill (No Balance)</option>
-                    <option value="credit">💳 Credit Bill (Tracks Balance)</option>
-                  </optgroup>
-                  <optgroup label="Settlement">
-                    <option value="add_cash">💰 Add Cash to Balance</option>
-                    <option value="add_gold">🟡 Add Gold Fine Weight</option>
-                    <option value="add_silver">⚪ Add Silver Fine Weight</option>
-                    <option value="money_to_gold">💵➔🟡 Money to Gold Fine</option>
-                    <option value="money_to_silver">💵➔⚪ Money to Silver Fine</option>
-                  </optgroup>
-                </select>
-              </div><small style={{ display: 'block', marginTop: '2px', color: 'var(--color-muted)', fontSize: '10px' }}>
-                {['add_cash', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'].includes(formData.paymentType) ? 'Settlement: Enter amount to adjust balance' : (formData.paymentType === 'credit' ? 'On Balance' : 'Immediate')}
-              </small>
-            </div>
-          </div>
-
-          {/* Items Section - Only show for cash and credit payment types */}
-          {!['add_cash', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'].includes(formData.paymentType) && (
-            <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
-              <h3>Items</h3>
-
-              <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
-                <button type="button" onClick={() => addRow('gold')} style={{
-                  padding: '10px 15px',
-                  backgroundColor: '#FFD700',
-                  color: '#000',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}>
-                  <FiPlus /> Add Gold Item
-                </button>
-                <button type="button" onClick={() => addRow('silver')} style={{
-                  padding: '10px 15px',
-                  backgroundColor: '#C0C0C0',
-                  color: '#000',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold'
-                }}>
-                  <FiPlus /> Add Silver Item
-                </button>
-              </div>
-
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{
-                  width: '100%',
-                  borderCollapse: 'collapse',
-                  fontSize: '14px'
-                }}>
-                  <thead>
-                    <tr style={{ backgroundColor: 'var(--bg-primary)', borderBottom: '2px solid var(--border-color)' }}>
-                      <th style={{ padding: '10px', textAlign: 'left', borderRight: '1px solid var(--border-color)' }}>Item Name *</th>
-                      <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Metal</th>
-                      <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Pcs</th>
-                      <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Gross (g) *</th>
-                      <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Less (g)</th>
-                      <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Melting %</th>
-                      <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Wastage (g)</th>
-                      <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Labour (₹)</th>
-                      <th style={{ padding: '10px', textAlign: 'center' }}>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((item, index) => (
-                      <tr key={index} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                        <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
-                          <input
-                            type="text"
-                            required
-                            value={item.itemName}
-                            onChange={(e) => updateItem(index, 'itemName', e.target.value)}
-                            placeholder="Item name *"
-                            style={{
-                              width: '100%',
-                              padding: '5px',
-                              borderRadius: '4px',
-                              border: !item.itemName || item.itemName.trim() === '' ? '2px solid #ff4757' : '1px solid var(--border-color)',
-                              backgroundColor: 'var(--bg-primary)',
-                              color: 'var(--color-text)',
-                              boxSizing: 'border-box'
-                            }}
-                          />
-                        </td>
-                        <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)', textAlign: 'center' }}>
-                          <span style={{
-                            padding: '5px 10px',
+              {/* Settlement Section - Show for add_cash, add_gold, add_silver, money_to_gold, money_to_silver */}
+              {['add_cash', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'].includes(formData.paymentType) && (
+                <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', border: '2px solid var(--color-primary)' }}>
+                  <h3 style={{ marginTop: 0, color: 'var(--color-primary)' }}>
+                    {formData.paymentType === 'add_cash' && '💰 Add Cash to Balance'}
+                    {formData.paymentType === 'add_gold' && '🟡 Add Gold Fine Weight'}
+                    {formData.paymentType === 'add_silver' && '⚪ Add Silver Fine Weight'}
+                    {formData.paymentType === 'money_to_gold' && '💵➔🟡 Money to Gold Fine'}
+                    {formData.paymentType === 'money_to_silver' && '💵➔⚪ Money to Silver Fine'}
+                  </h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+                    {formData.paymentType === 'add_cash' && (
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Amount to Add (₹)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={formData.cashReceived}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, cashReceived: e.target.value }))}
+                          placeholder="Enter amount"
+                          style={{
+                            width: '100%',
+                            padding: '10px',
                             borderRadius: '4px',
-                            backgroundColor: item.metalType === 'gold' ? '#FFD700' : '#C0C0C0',
-                            color: '#000',
-                            fontWeight: 'bold'
-                          }}>{item.metalType === 'gold' ? 'GOLD' : 'SILVER'}</span>
-                        </td>
-                        <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
-                          <input
-                            type="number"
-                            min="1"
-                            value={item.pieces}
-                            onChange={(e) => updateItem(index, 'pieces', e.target.value)}
-                            style={{
-                              width: '100%',
-                              padding: '5px',
-                              borderRadius: '4px',
-                              border: '1px solid var(--border-color)',
-                              backgroundColor: 'var(--bg-primary)',
-                              color: 'var(--color-text)',
-                              boxSizing: 'border-box',
-                              textAlign: 'center'
-                            }}
-                          />
-                        </td>
-                        <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
-                          <input
-                            type="number"
-                            step="0.001"
-                            required
-                            value={item.grossWeight}
-                            onChange={(e) => {
-                              updateItem(index, 'grossWeight', e.target.value);
-                              calculateItem(index);
-                            }}
-                            placeholder="0.000 *"
-                            style={{
-                              width: '100%',
-                              padding: '5px',
-                              borderRadius: '4px',
-                              border: !item.grossWeight || parseFloat(item.grossWeight) <= 0 ? '2px solid #ff4757' : '1px solid var(--border-color)',
-                              backgroundColor: 'var(--bg-primary)',
-                              color: 'var(--color-text)',
-                              boxSizing: 'border-box',
-                              textAlign: 'right'
-                            }}
-                          />
-                        </td>
-                        <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
-                          <input
-                            type="number"
-                            step="0.001"
-                            value={item.lessWeight}
-                            onChange={(e) => {
-                              updateItem(index, 'lessWeight', e.target.value);
-                              calculateItem(index);
-                            }}
-                            placeholder="0.000"
-                            style={{
-                              width: '100%',
-                              padding: '5px',
-                              borderRadius: '4px',
-                              border: '1px solid var(--border-color)',
-                              backgroundColor: 'var(--bg-primary)',
-                              color: 'var(--color-text)',
-                              boxSizing: 'border-box',
-                              textAlign: 'right'
-                            }}
-                          />
-                        </td>
-                        <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
-                          <input
-                            type="number"
-                            step="0.1"
-                            min="0"
-                            max="100"
-                            value={item.melting}
-                            onChange={(e) => {
-                              updateItem(index, 'melting', e.target.value);
-                              calculateItem(index);
-                            }}
-                            placeholder="0.0"
-                            style={{
-                              width: '100%',
-                              padding: '5px',
-                              borderRadius: '4px',
-                              border: '1px solid var(--border-color)',
-                              backgroundColor: 'var(--bg-primary)',
-                              color: 'var(--color-text)',
-                              boxSizing: 'border-box',
-                              textAlign: 'right'
-                            }}
-                          />
-                        </td>
-                        <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
-                          <input
-                            type="number"
-                            step="0.001"
-                            value={item.wastage}
-                            onChange={(e) => {
-                              updateItem(index, 'wastage', e.target.value);
-                              calculateItem(index);
-                            }}
-                            placeholder="0.000"
-                            style={{
-                              width: '100%',
-                              padding: '5px',
-                              borderRadius: '4px',
-                              border: '1px solid var(--border-color)',
-                              backgroundColor: 'var(--bg-primary)',
-                              color: 'var(--color-text)',
-                              boxSizing: 'border-box',
-                              textAlign: 'right'
-                            }}
-                          />
-                        </td>
-                        <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={item.labourRate}
-                            onChange={(e) => {
-                              updateItem(index, 'labourRate', e.target.value);
-                              calculateItem(index);
-                            }}
-                            placeholder="0.00"
-                            style={{
-                              width: '100%',
-                              padding: '5px',
-                              borderRadius: '4px',
-                              border: '1px solid var(--border-color)',
-                              backgroundColor: 'var(--bg-primary)',
-                              color: 'var(--color-text)',
-                              boxSizing: 'border-box',
-                              textAlign: 'right'
-                            }}
-                          />
-                        </td>
-                        <td style={{ padding: '10px', textAlign: 'center' }}>
-                          <button
-                            type="button"
-                            onClick={() => deleteRow(index)}
-                            style={{
-                              padding: '5px 10px',
-                              backgroundColor: '#ff4757',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '4px',
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <FiX /> Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              <div style={{ marginTop: '10px', padding: '10px', backgroundColor: 'rgba(255, 71, 87, 0.1)', borderLeft: '3px solid #ff4757', borderRadius: '4px', fontSize: '12px', color: 'var(--color-text)' }}>
-                <strong>Required fields:</strong> Item Name and Gross Weight marked with * (red border if empty)
-              </div>
-
-              {items.length > 0 && (
-                <div style={{ marginTop: '20px', padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
-                  <h4 style={{ marginTop: 0 }}>Summary</h4>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', fontSize: '14px' }}>
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--color-text)',
+                            boxSizing: 'border-box',
+                            fontSize: '14px'
+                          }}
+                        />
+                        <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
+                          Positive value: subtract from balance | Negative value: add to balance (allowed)
+                        </small>
+                      </div>
+                    )}
+                    {formData.paymentType === 'add_gold' && (
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Gold Fine Weight to Add (g)</label>
+                        <input
+                          type="number"
+                          step="0.001"
+                          value={formData.cashReceived}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, cashReceived: e.target.value }))}
+                          placeholder="Enter weight"
+                          style={{
+                            width: '100%',
+                            padding: '10px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--color-text)',
+                            boxSizing: 'border-box',
+                            fontSize: '14px'
+                          }}
+                        />
+                        <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
+                          This weight will be added to customer's gold balance
+                        </small>
+                      </div>
+                    )}
+                    {formData.paymentType === 'add_silver' && (
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Silver Fine Weight to Add (g)</label>
+                        <input
+                          type="number"
+                          step="0.001"
+                          value={formData.cashReceived}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, cashReceived: e.target.value }))}
+                          placeholder="Enter weight"
+                          style={{
+                            width: '100%',
+                            padding: '10px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--color-text)',
+                            boxSizing: 'border-box',
+                            fontSize: '14px'
+                          }}
+                        />
+                        <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
+                          This weight will be added to customer's silver balance
+                        </small>
+                      </div>
+                    )}
+                    {formData.paymentType === 'money_to_gold' && (
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Cash Payment (₹)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={formData.cashReceived}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, cashReceived: e.target.value }))}
+                          placeholder="Enter amount"
+                          style={{
+                            width: '100%',
+                            padding: '10px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--color-text)',
+                            boxSizing: 'border-box',
+                            fontSize: '14px'
+                          }}
+                        />
+                        <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
+                          Customer pays to settle gold fine dues at ₹{parseFloat(formData.goldRate || 0).toFixed(2)}/g rate
+                        </small>
+                      </div>
+                    )}
+                    {formData.paymentType === 'money_to_silver' && (
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Cash Payment (₹)</label>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={formData.cashReceived}
+                          onChange={(e) => setFormData((prev) => ({ ...prev, cashReceived: e.target.value }))}
+                          placeholder="Enter amount"
+                          style={{
+                            width: '100%',
+                            padding: '10px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--color-text)',
+                            boxSizing: 'border-box',
+                            fontSize: '14px'
+                          }}
+                        />
+                        <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
+                          Customer pays to settle silver fine dues at ₹{parseFloat(formData.silverRate || 0).toFixed(2)}/g rate
+                        </small>
+                      </div>
+                    )}
+                    {(formData.paymentType === 'money_to_gold' || formData.paymentType === 'money_to_silver') && (
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Calculated Fine Weight</label>
+                        <div style={{
+                          padding: '10px',
+                          borderRadius: '4px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: 'var(--bg-primary)',
+                          color: 'var(--color-text)',
+                          minHeight: '38px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          fontWeight: 'bold',
+                          fontSize: '14px'
+                        }}>
+                          {formData.paymentType === 'money_to_gold' &&
+                            `${((parseFloat(formData.cashReceived) || 0) / (parseFloat(formData.goldRate) || 1)).toFixed(3)}g`}
+                          {formData.paymentType === 'money_to_silver' &&
+                            `${((parseFloat(formData.cashReceived) || 0) / (parseFloat(formData.silverRate) || 1)).toFixed(3)}g`}
+                        </div>
+                      </div>
+                    )}
                     <div>
-                      <strong>Total Pieces:</strong> {calculateTotals().pieces}
+                      <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Current Balance</label>
+                      <div style={{
+                        padding: '10px',
+                        borderRadius: '4px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--color-text)',
+                        minHeight: '38px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontWeight: 'bold',
+                        fontSize: '14px'
+                      }}>
+                        {formData.paymentType === 'add_cash' && `₹${(selectedLedger?.balances?.cashBalance !== undefined ? selectedLedger.balances.cashBalance : (selectedLedger?.balances?.creditBalance || 0))}`}
+                        {formData.paymentType === 'add_gold' && `${(selectedLedger?.balances?.goldFineWeight || 0).toFixed(3)}g`}
+                        {formData.paymentType === 'add_silver' && `${(selectedLedger?.balances?.silverFineWeight || 0).toFixed(3)}g`}
+                        {formData.paymentType === 'money_to_gold' && `Cash: ₹${(selectedLedger?.balances?.cashBalance !== undefined ? selectedLedger.balances.cashBalance : (selectedLedger?.balances?.creditBalance || 0)).toFixed(2)} | Gold: ${(selectedLedger?.balances?.goldFineWeight || 0).toFixed(3)}g`}
+                        {formData.paymentType === 'money_to_silver' && `Cash: ₹${(selectedLedger?.balances?.cashBalance !== undefined ? selectedLedger.balances.cashBalance : (selectedLedger?.balances?.creditBalance || 0)).toFixed(2)} | Silver: ${(selectedLedger?.balances?.silverFineWeight || 0).toFixed(3)}g`}
+                      </div>
                     </div>
                     <div>
-                      <strong>Total Gross:</strong> {calculateTotals().grossWeight.toFixed(3)}g
-                    </div>
-                    <div>
-                      <strong>Total Net:</strong> {calculateTotals().netWeight.toFixed(3)}g
-                    </div>
-                    <div>
-                      <strong>Total Fine:</strong> {calculateTotals().fineWeight.toFixed(3)}g
-                    </div>
-                    <div>
-                      <strong>Total Labour:</strong> ₹{calculateTotals().labourRate.toFixed(2)}
-                    </div>
-                    <div style={{ fontWeight: 'bold', color: 'var(--color-primary)', fontSize: '16px' }}>
-                      <strong>Total Amount:</strong> ₹{(calculateTotals().amount + (parseFloat(formData.stoneAmount) || 0)).toFixed(2)}
+                      <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>New Balance</label>
+                      <div style={{
+                        padding: '10px',
+                        borderRadius: '4px',
+                        border: '2px solid var(--color-primary)',
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--color-primary)',
+                        minHeight: '38px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontWeight: 'bold',
+                        fontSize: '14px'
+                      }}>
+                        {formData.paymentType === 'add_cash' && `₹${((selectedLedger?.balances?.cashBalance !== undefined ? selectedLedger.balances.cashBalance : (selectedLedger?.balances?.creditBalance || 0)) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)}`}
+                        {formData.paymentType === 'add_gold' && `${((selectedLedger?.balances?.goldFineWeight || 0) - (parseFloat(formData.cashReceived) || 0)).toFixed(3)}g`}
+                        {formData.paymentType === 'add_silver' && `${((selectedLedger?.balances?.silverFineWeight || 0) - (parseFloat(formData.cashReceived) || 0)).toFixed(3)}g`}
+                        {formData.paymentType === 'money_to_gold' && `Cash: ₹${(selectedLedger?.balances?.cashBalance !== undefined ? selectedLedger.balances.cashBalance : (selectedLedger?.balances?.creditBalance || 0)).toFixed(2)} | Gold: ${((selectedLedger?.balances?.goldFineWeight || 0) - ((parseFloat(formData.cashReceived) || 0) / (parseFloat(formData.goldRate) || 1))).toFixed(3)}g`}
+                        {formData.paymentType === 'money_to_silver' && `Cash: ₹${(selectedLedger?.balances?.cashBalance !== undefined ? selectedLedger.balances.cashBalance : (selectedLedger?.balances?.creditBalance || 0)).toFixed(2)} | Silver: ${((selectedLedger?.balances?.silverFineWeight || 0) - ((parseFloat(formData.cashReceived) || 0) / (parseFloat(formData.silverRate) || 1))).toFixed(3)}g`}
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
-            </div>
-          )}
 
-          {/* Settlement Section - Show for add_cash, add_gold, add_silver, money_to_gold, money_to_silver */}
-          {['add_cash', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'].includes(formData.paymentType) && (
-            <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', border: '2px solid var(--color-primary)' }}>
-              <h3 style={{ marginTop: 0, color: 'var(--color-primary)' }}>
-                {formData.paymentType === 'add_cash' && '💰 Add Cash to Balance'}
-                {formData.paymentType === 'add_gold' && '🟡 Add Gold Fine Weight'}
-                {formData.paymentType === 'add_silver' && '⚪ Add Silver Fine Weight'}
-                {formData.paymentType === 'money_to_gold' && '💵➔🟡 Money to Gold Fine'}
-                {formData.paymentType === 'money_to_silver' && '💵➔⚪ Money to Silver Fine'}
-              </h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
-                {formData.paymentType === 'add_cash' && (
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Amount to Add (₹)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formData.cashReceived}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, cashReceived: e.target.value }))}
-                      placeholder="Enter amount"
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        borderRadius: '4px',
-                        border: '1px solid var(--border-color)',
-                        backgroundColor: 'var(--bg-primary)',
-                        color: 'var(--color-text)',
-                        boxSizing: 'border-box',
-                        fontSize: '14px'
-                      }}
-                    />
-                    <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
-                      Positive value: subtract from balance | Negative value: add to balance (allowed)
-                    </small>
-                  </div>
-                )}
-                {formData.paymentType === 'add_gold' && (
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Gold Fine Weight to Add (g)</label>
-                    <input
-                      type="number"
-                      step="0.001"
-                      value={formData.cashReceived}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, cashReceived: e.target.value }))}
-                      placeholder="Enter weight"
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        borderRadius: '4px',
-                        border: '1px solid var(--border-color)',
-                        backgroundColor: 'var(--bg-primary)',
-                        color: 'var(--color-text)',
-                        boxSizing: 'border-box',
-                        fontSize: '14px'
-                      }}
-                    />
-                    <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
-                      This weight will be added to customer's gold balance
-                    </small>
-                  </div>
-                )}
-                {formData.paymentType === 'add_silver' && (
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Silver Fine Weight to Add (g)</label>
-                    <input
-                      type="number"
-                      step="0.001"
-                      value={formData.cashReceived}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, cashReceived: e.target.value }))}
-                      placeholder="Enter weight"
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        borderRadius: '4px',
-                        border: '1px solid var(--border-color)',
-                        backgroundColor: 'var(--bg-primary)',
-                        color: 'var(--color-text)',
-                        boxSizing: 'border-box',
-                        fontSize: '14px'
-                      }}
-                    />
-                    <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
-                      This weight will be added to customer's silver balance
-                    </small>
-                  </div>
-                )}
-                {formData.paymentType === 'money_to_gold' && (
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Cash Payment (₹)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formData.cashReceived}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, cashReceived: e.target.value }))}
-                      placeholder="Enter amount"
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        borderRadius: '4px',
-                        border: '1px solid var(--border-color)',
-                        backgroundColor: 'var(--bg-primary)',
-                        color: 'var(--color-text)',
-                        boxSizing: 'border-box',
-                        fontSize: '14px'
-                      }}
-                    />
-                    <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
-                      Customer pays to settle gold fine dues at ₹{parseFloat(formData.goldRate || 0).toFixed(2)}/g rate
-                    </small>
-                  </div>
-                )}
-                {formData.paymentType === 'money_to_silver' && (
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Cash Payment (₹)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={formData.cashReceived}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, cashReceived: e.target.value }))}
-                      placeholder="Enter amount"
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        borderRadius: '4px',
-                        border: '1px solid var(--border-color)',
-                        backgroundColor: 'var(--bg-primary)',
-                        color: 'var(--color-text)',
-                        boxSizing: 'border-box',
-                        fontSize: '14px'
-                      }}
-                    />
-                    <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
-                      Customer pays to settle silver fine dues at ₹{parseFloat(formData.silverRate || 0).toFixed(2)}/g rate
-                    </small>
-                  </div>
-                )}
-                {(formData.paymentType === 'money_to_gold' || formData.paymentType === 'money_to_silver') && (
-                  <div>
-                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Calculated Fine Weight</label>
-                    <div style={{
-                      padding: '10px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-primary)',
-                      color: 'var(--color-text)',
-                      minHeight: '38px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      fontWeight: 'bold',
-                      fontSize: '14px'
-                    }}>
-                      {formData.paymentType === 'money_to_gold' &&
-                        `${((parseFloat(formData.cashReceived) || 0) / (parseFloat(formData.goldRate) || 1)).toFixed(3)}g`}
-                      {formData.paymentType === 'money_to_silver' &&
-                        `${((parseFloat(formData.cashReceived) || 0) / (parseFloat(formData.silverRate) || 1)).toFixed(3)}g`}
+              {/* Balance Summary Section - Now after Items, before Narration - Only for billing types */}
+              {!['add_cash', 'add_gold', 'add_silver'].includes(formData.paymentType) && (
+                <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
+                  <h3 style={{ marginTop: 0 }}>Balance Summary</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', fontSize: '14px' }}>
+                    <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
+                      <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Net Balance</div>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--color-primary)' }}>
+                        ₹{((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)}
+                      </div>
+                      <div style={{ fontSize: '10px', color: 'var(--color-muted)', marginTop: '3px' }}>Total - Cash Received</div>
+                    </div>
+
+                    <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
+                      <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Cur Bal Amount</div>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--color-primary)' }}>
+                        ₹{(((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)) + (formData.paymentType === 'credit' ? ((parseFloat(selectedLedger?.balances?.creditBalance) || 0) + (parseFloat(selectedLedger?.balances?.cashBalance) || 0)) : (parseFloat(selectedLedger?.balances?.cashBalance) || 0))).toFixed(2)}
+                      </div>
+                      <div style={{ fontSize: '10px', color: 'var(--color-muted)', marginTop: '3px' }}>Net + Old Balance</div>
+                    </div>
+
+                    <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
+                      <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Cur Bal Gold Fine Wt</div>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#FFD700' }}>
+                        {formData.paymentType === 'credit' ? ((items.filter(item => item.metalType === 'gold').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.goldFineWeight) || 0)).toFixed(3) : (parseFloat(selectedLedger?.balances?.goldFineWeight) || 0).toFixed(3)}g
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
+                      <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Cur Bal Silver Fine Wt</div>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#C0C0C0' }}>
+                        {formData.paymentType === 'credit' ? ((items.filter(item => item.metalType === 'silver').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.silverFineWeight) || 0)).toFixed(3) : (parseFloat(selectedLedger?.balances?.silverFineWeight) || 0).toFixed(3)}g
+                      </div>
+                    </div>
+
+                    <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
+                      <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Receipt Gross</div>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--color-primary)' }}>
+                        {(items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)).toFixed(3)}g
+                      </div>
+                      <div style={{ fontSize: '10px', color: 'var(--color-muted)', marginTop: '3px' }}>Entry Fine</div>
                     </div>
                   </div>
-                )}
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Current Balance</label>
-                  <div style={{
-                    padding: '10px',
-                    borderRadius: '4px',
-                    border: '1px solid var(--border-color)',
-                    backgroundColor: 'var(--bg-primary)',
-                    color: 'var(--color-text)',
-                    minHeight: '38px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    fontWeight: 'bold',
-                    fontSize: '14px'
-                  }}>
-                    {formData.paymentType === 'add_cash' && `₹${(selectedLedger?.balances?.cashBalance !== undefined ? selectedLedger.balances.cashBalance : (selectedLedger?.balances?.creditBalance || 0))}`}
-                    {formData.paymentType === 'add_gold' && `${(selectedLedger?.balances?.goldFineWeight || 0).toFixed(3)}g`}
-                    {formData.paymentType === 'add_silver' && `${(selectedLedger?.balances?.silverFineWeight || 0).toFixed(3)}g`}
-                    {formData.paymentType === 'money_to_gold' && `Cash: ₹${(selectedLedger?.balances?.cashBalance !== undefined ? selectedLedger.balances.cashBalance : (selectedLedger?.balances?.creditBalance || 0)).toFixed(2)} | Gold: ${(selectedLedger?.balances?.goldFineWeight || 0).toFixed(3)}g`}
-                    {formData.paymentType === 'money_to_silver' && `Cash: ₹${(selectedLedger?.balances?.cashBalance !== undefined ? selectedLedger.balances.cashBalance : (selectedLedger?.balances?.creditBalance || 0)).toFixed(2)} | Silver: ${(selectedLedger?.balances?.silverFineWeight || 0).toFixed(3)}g`}
+                </div>
+              )}
+
+              {/* Old Balance Details Section - Moved after Balance Summary - Only for billing types */}
+              {!['add_cash', 'add_gold', 'add_silver'].includes(formData.paymentType) && (
+                <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', border: `2px solid ${formData.paymentType === 'credit' ? 'var(--color-success, #4caf50)' : 'var(--color-warning, #ff9800)'}`, borderLeft: `4px solid ${formData.paymentType === 'credit' ? 'var(--color-success, #4caf50)' : 'var(--color-warning, #ff9800)'}` }}>
+                  <h3 style={{ marginTop: 0, color: 'var(--color-text)' }}>Old Balance Details ({formData.paymentType === 'credit' ? '📋 Credit Bill' : '💰 Cash Bill'})</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', fontSize: '14px' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Old Bal Amount (₹)</label>
+                      <div style={{
+                        padding: '10px',
+                        borderRadius: '4px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--color-text)',
+                        minHeight: '42px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontWeight: 'bold',
+                        fontSize: '14px'
+                      }}>
+                        {formData.paymentType === 'credit'
+                          ? (() => {
+                            const creditBal = parseFloat(selectedLedger?.balances?.creditBalance) || 0;
+                            const cashBal = parseFloat(selectedLedger?.balances?.cashBalance) || 0;
+                            const totalBal = creditBal + cashBal;
+                            return totalBal > 0 ? `₹${totalBal.toFixed(2)} (Credit: ₹${creditBal.toFixed(2)} + Cash: ₹${cashBal.toFixed(2)})` : '₹0.00';
+                          })()
+                          : (selectedLedger?.balances?.cashBalance ? `₹${parseFloat(selectedLedger.balances.cashBalance).toFixed(2)}` : '₹0.00')
+                        }
+                      </div>
+                      <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
+                        {formData.paymentType === 'credit' ? '📋 Balance from previous credit bills and cash bills' : '💰 Balance from cash bills only'}
+                      </small>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Old Bal Gold Fine Wt (g)</label>
+                      <div style={{
+                        padding: '10px',
+                        borderRadius: '4px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-primary)',
+                        color: '#FFD700',
+                        minHeight: '42px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontWeight: 'bold',
+                        fontSize: '14px'
+                      }}>
+                        {formData.paymentType === 'credit' && selectedLedger?.balances?.goldFineWeight ? `${parseFloat(selectedLedger.balances.goldFineWeight).toFixed(3)}g` : '0.000g'}
+                      </div>
+                      <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
+                        {formData.paymentType === 'credit' ? 'Auto-fetched from credit bills' : 'Not applicable for cash bills'}
+                      </small>
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Old Bal Silver Fine Wt (g)</label>
+                      <div style={{
+                        padding: '10px',
+                        borderRadius: '4px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-primary)',
+                        color: '#C0C0C0',
+                        minHeight: '42px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        fontWeight: 'bold',
+                        fontSize: '14px'
+                      }}>
+                        {formData.paymentType === 'credit' && selectedLedger?.balances?.silverFineWeight ? `${parseFloat(selectedLedger.balances.silverFineWeight).toFixed(3)}g` : '0.000g'}
+                      </div>
+                      <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
+                        {formData.paymentType === 'credit' ? 'Auto-fetched from credit bills' : 'Not applicable for cash bills'}
+                      </small>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>New Balance</label>
-                  <div style={{
-                    padding: '10px',
-                    borderRadius: '4px',
-                    border: '2px solid var(--color-primary)',
-                    backgroundColor: 'var(--bg-primary)',
-                    color: 'var(--color-primary)',
-                    minHeight: '38px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    fontWeight: 'bold',
-                    fontSize: '14px'
-                  }}>
-                    {formData.paymentType === 'add_cash' && `₹${((selectedLedger?.balances?.cashBalance !== undefined ? selectedLedger.balances.cashBalance : (selectedLedger?.balances?.creditBalance || 0)) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)}`}
-                    {formData.paymentType === 'add_gold' && `${((selectedLedger?.balances?.goldFineWeight || 0) - (parseFloat(formData.cashReceived) || 0)).toFixed(3)}g`}
-                    {formData.paymentType === 'add_silver' && `${((selectedLedger?.balances?.silverFineWeight || 0) - (parseFloat(formData.cashReceived) || 0)).toFixed(3)}g`}
-                    {formData.paymentType === 'money_to_gold' && `Cash: ₹${(selectedLedger?.balances?.cashBalance !== undefined ? selectedLedger.balances.cashBalance : (selectedLedger?.balances?.creditBalance || 0)).toFixed(2)} | Gold: ${((selectedLedger?.balances?.goldFineWeight || 0) - ((parseFloat(formData.cashReceived) || 0) / (parseFloat(formData.goldRate) || 1))).toFixed(3)}g`}
-                    {formData.paymentType === 'money_to_silver' && `Cash: ₹${(selectedLedger?.balances?.cashBalance !== undefined ? selectedLedger.balances.cashBalance : (selectedLedger?.balances?.creditBalance || 0)).toFixed(2)} | Silver: ${((selectedLedger?.balances?.silverFineWeight || 0) - ((parseFloat(formData.cashReceived) || 0) / (parseFloat(formData.silverRate) || 1))).toFixed(3)}g`}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
+              )}
 
-          {/* Balance Summary Section - Now after Items, before Narration - Only for billing types */}
-          {!['add_cash', 'add_gold', 'add_silver'].includes(formData.paymentType) && (
-            <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
-              <h3 style={{ marginTop: 0 }}>Balance Summary</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', fontSize: '14px' }}>
-                <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
-                  <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Net Balance</div>
-                  <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--color-primary)' }}>
-                    ₹{((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)}
-                  </div>
-                  <div style={{ fontSize: '10px', color: 'var(--color-muted)', marginTop: '3px' }}>Total - Cash Received</div>
-                </div>
-
-                <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
-                  <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Cur Bal Amount</div>
-                  <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--color-primary)' }}>
-                    ₹{(((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)) + (formData.paymentType === 'credit' ? ((parseFloat(selectedLedger?.balances?.creditBalance) || 0) + (parseFloat(selectedLedger?.balances?.cashBalance) || 0)) : (parseFloat(selectedLedger?.balances?.cashBalance) || 0))).toFixed(2)}
-                  </div>
-                  <div style={{ fontSize: '10px', color: 'var(--color-muted)', marginTop: '3px' }}>Net + Old Balance</div>
-                </div>
-
-                <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
-                  <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Cur Bal Gold Fine Wt</div>
-                  <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#FFD700' }}>
-                    {formData.paymentType === 'credit' ? ((items.filter(item => item.metalType === 'gold').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.goldFineWeight) || 0)).toFixed(3) : (parseFloat(selectedLedger?.balances?.goldFineWeight) || 0).toFixed(3)}g
-                  </div>
-                </div>
-
-                <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
-                  <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Cur Bal Silver Fine Wt</div>
-                  <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#C0C0C0' }}>
-                    {formData.paymentType === 'credit' ? ((items.filter(item => item.metalType === 'silver').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.silverFineWeight) || 0)).toFixed(3) : (parseFloat(selectedLedger?.balances?.silverFineWeight) || 0).toFixed(3)}g
-                  </div>
-                </div>
-
-                <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
-                  <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Receipt Gross</div>
-                  <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--color-primary)' }}>
-                    {(items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)).toFixed(3)}g
-                  </div>
-                  <div style={{ fontSize: '10px', color: 'var(--color-muted)', marginTop: '3px' }}>Entry Fine</div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Old Balance Details Section - Moved after Balance Summary - Only for billing types */}
-          {!['add_cash', 'add_gold', 'add_silver'].includes(formData.paymentType) && (
-            <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', border: `2px solid ${formData.paymentType === 'credit' ? 'var(--color-success, #4caf50)' : 'var(--color-warning, #ff9800)'}`, borderLeft: `4px solid ${formData.paymentType === 'credit' ? 'var(--color-success, #4caf50)' : 'var(--color-warning, #ff9800)'}` }}>
-              <h3 style={{ marginTop: 0, color: 'var(--color-text)' }}>Old Balance Details ({formData.paymentType === 'credit' ? '📋 Credit Bill' : '💰 Cash Bill'})</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', fontSize: '14px' }}>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Old Bal Amount (₹)</label>
-                  <div style={{
-                    padding: '10px',
-                    borderRadius: '4px',
-                    border: '1px solid var(--border-color)',
-                    backgroundColor: 'var(--bg-primary)',
-                    color: 'var(--color-text)',
-                    minHeight: '42px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    fontWeight: 'bold',
-                    fontSize: '14px'
-                  }}>
-                    {formData.paymentType === 'credit'
-                      ? (() => {
-                        const creditBal = parseFloat(selectedLedger?.balances?.creditBalance) || 0;
-                        const cashBal = parseFloat(selectedLedger?.balances?.cashBalance) || 0;
-                        const totalBal = creditBal + cashBal;
-                        return totalBal > 0 ? `₹${totalBal.toFixed(2)} (Credit: ₹${creditBal.toFixed(2)} + Cash: ₹${cashBal.toFixed(2)})` : '₹0.00';
-                      })()
-                      : (selectedLedger?.balances?.cashBalance ? `₹${parseFloat(selectedLedger.balances.cashBalance).toFixed(2)}` : '₹0.00')
-                    }
-                  </div>
-                  <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
-                    {formData.paymentType === 'credit' ? '📋 Balance from previous credit bills and cash bills' : '💰 Balance from cash bills only'}
-                  </small>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Old Bal Gold Fine Wt (g)</label>
-                  <div style={{
-                    padding: '10px',
-                    borderRadius: '4px',
-                    border: '1px solid var(--border-color)',
-                    backgroundColor: 'var(--bg-primary)',
-                    color: '#FFD700',
-                    minHeight: '42px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    fontWeight: 'bold',
-                    fontSize: '14px'
-                  }}>
-                    {formData.paymentType === 'credit' && selectedLedger?.balances?.goldFineWeight ? `${parseFloat(selectedLedger.balances.goldFineWeight).toFixed(3)}g` : '0.000g'}
-                  </div>
-                  <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
-                    {formData.paymentType === 'credit' ? 'Auto-fetched from credit bills' : 'Not applicable for cash bills'}
-                  </small>
-                </div>
-
-                <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Old Bal Silver Fine Wt (g)</label>
-                  <div style={{
-                    padding: '10px',
-                    borderRadius: '4px',
-                    border: '1px solid var(--border-color)',
-                    backgroundColor: 'var(--bg-primary)',
-                    color: '#C0C0C0',
-                    minHeight: '42px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    fontWeight: 'bold',
-                    fontSize: '14px'
-                  }}>
-                    {formData.paymentType === 'credit' && selectedLedger?.balances?.silverFineWeight ? `${parseFloat(selectedLedger.balances.silverFineWeight).toFixed(3)}g` : '0.000g'}
-                  </div>
-                  <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
-                    {formData.paymentType === 'credit' ? 'Auto-fetched from credit bills' : 'Not applicable for cash bills'}
-                  </small>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Narration */}
-          <div style={{ marginBottom: '20px' }}>
-            <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Narration</label>
-            <textarea
-              value={formData.narration}
-              onChange={(e) => setFormData(prev => ({ ...prev, narration: e.target.value }))}
-              placeholder="Any additional notes..."
-              rows="3"
-              style={{
-                width: '100%',
-                padding: '10px',
-                borderRadius: '4px',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--bg-primary)',
-                color: 'var(--color-text)',
-                boxSizing: 'border-box'
-              }}
-            />
-          </div>
-
-          {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-            <button
-              type="button"
-              onClick={handlePrint}
-              style={{
-                padding: '12px 20px',
-                backgroundColor: '#3498db',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '16px'
-              }}
-            >
-              <FiPrinter /> Print
-            </button>
-
-            <button
-              type="button"
-              onClick={handleShare}
-              style={{
-                padding: '12px 20px',
-                backgroundColor: '#27ae60',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '16px'
-              }}
-            >
-              <FiShare2 /> Share PDF
-            </button>
-
-            <button
-              type="submit"
-              style={{
-                padding: '12px 20px',
-                backgroundColor: 'var(--color-primary)',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                fontSize: '16px'
-              }}
-            >
-              <FiSave /> {editingVoucherId ? 'Update Voucher' : 'Save Voucher'}
-            </button>
-          </div>
-        </form>
-        )}
-
-        {/* Add Customer Modal */}
-        {showAddLedgerModal && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 100
-          }}>
-            <div style={{
-              backgroundColor: 'var(--bg-secondary)',
-              padding: '30px',
-              borderRadius: '8px',
-              maxWidth: '400px',
-              width: '90%',
-              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h2 style={{ marginTop: 0 }}>Create New Customer</h2>
-                <button
-                  onClick={() => setShowAddLedgerModal(false)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    fontSize: '24px',
-                    cursor: 'pointer'
-                  }}
-                >
-                  <FiX />
-                </button>
-              </div>
-
-              <form onSubmit={handleAddLedgerSubmit}>
-                <div style={{ marginBottom: '15px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Customer Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={ledgerFormData.name}
-                    onChange={(e) => setLedgerFormData(prev => ({ ...prev, name: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-primary)',
-                      color: 'var(--color-text)',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                <div style={{ marginBottom: '20px' }}>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Phone Number (Optional)</label>
-                  <input
-                    type="tel"
-                    value={ledgerFormData.phoneNumber}
-                    onChange={(e) => setLedgerFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
-                    placeholder="10 digits (optional)"
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-primary)',
-                      color: 'var(--color-text)',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={addingLedger}
+              {/* Narration */}
+              <div style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Narration</label>
+                <textarea
+                  value={formData.narration}
+                  onChange={(e) => setFormData(prev => ({ ...prev, narration: e.target.value }))}
+                  placeholder="Any additional notes..."
+                  rows="3"
                   style={{
                     width: '100%',
-                    padding: '12px',
-                    backgroundColor: addingLedger ? '#95a5a6' : 'var(--color-primary)',
+                    padding: '10px',
+                    borderRadius: '4px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--color-text)',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              {/* Action Buttons */}
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={handlePrint}
+                  style={{
+                    padding: '12px 20px',
+                    backgroundColor: '#3498db',
                     color: 'white',
                     border: 'none',
                     borderRadius: '4px',
-                    cursor: addingLedger ? 'not-allowed' : 'pointer',
-                    fontWeight: 'bold'
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '16px'
                   }}
                 >
-                  {addingLedger ? 'Creating...' : 'Create Customer'}
+                  <FiPrinter /> Print
                 </button>
-              </form>
+
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  style={{
+                    padding: '12px 20px',
+                    backgroundColor: '#27ae60',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '16px'
+                  }}
+                >
+                  <FiShare2 /> Share PDF
+                </button>
+
+                <button
+                  type="submit"
+                  style={{
+                    padding: '12px 20px',
+                    backgroundColor: 'var(--color-primary)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '16px'
+                  }}
+                >
+                  <FiSave /> {editingVoucherId ? 'Update Voucher' : 'Save Voucher'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Add Customer Modal */}
+          {showAddLedgerModal && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.5)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 100
+            }}>
+              <div style={{
+                backgroundColor: 'var(--bg-secondary)',
+                padding: '30px',
+                borderRadius: '8px',
+                maxWidth: '400px',
+                width: '90%',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                  <h2 style={{ marginTop: 0 }}>Create New Customer</h2>
+                  <button
+                    onClick={() => setShowAddLedgerModal(false)}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '24px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <FiX />
+                  </button>
+                </div>
+
+                <form onSubmit={handleAddLedgerSubmit}>
+                  <div style={{ marginBottom: '15px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Customer Name</label>
+                    <input
+                      type="text"
+                      required
+                      value={ledgerFormData.name}
+                      onChange={(e) => setLedgerFormData(prev => ({ ...prev, name: e.target.value }))}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        borderRadius: '4px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--color-text)',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Phone Number (Optional)</label>
+                    <input
+                      type="tel"
+                      value={ledgerFormData.phoneNumber}
+                      onChange={(e) => setLedgerFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                      placeholder="10 digits (optional)"
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        borderRadius: '4px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--color-text)',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={addingLedger}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      backgroundColor: addingLedger ? '#95a5a6' : 'var(--color-primary)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: addingLedger ? 'not-allowed' : 'pointer',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    {addingLedger ? 'Creating...' : 'Create Customer'}
+                  </button>
+                </form>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
       </PullToRefresh>
     </Layout>
   );

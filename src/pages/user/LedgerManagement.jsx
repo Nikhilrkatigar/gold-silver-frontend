@@ -4,7 +4,6 @@ import Layout from '../../components/Layout';
 import { ledgerAPI, voucherAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import { FiPlus, FiEdit2, FiTrash2, FiEye, FiX } from 'react-icons/fi';
-import { isValidGSTFormat, extractStateFromGST } from '../../utils/gstCalculations';
 import { useAuth } from '../../context/AuthContext';
 import { SkeletonCard, SkeletonStat } from '../../components/Skeleton';
 import PullToRefresh from '../../components/PullToRefresh';
@@ -18,13 +17,17 @@ export default function LedgerManagement() {
   const [editingLedger, setEditingLedger] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
-    phoneNumber: '',
-    ledgerType: 'regular',
-    hasGST: false,
-    gstNumber: '',
-    stateCode: ''
+    phoneNumber: ''
   });
   const [loading, setLoading] = useState(true);
+
+  const getLedgerDisplayCashBalance = (ledger) => -(
+    ledger?.balances?.cashBalance !== undefined
+      ? ledger.balances.cashBalance
+      : (ledger?.balances?.creditBalance || 0)
+  );
+
+  const formatSignedAmount = (amount) => `${amount > 0 ? '+' : ''}${amount.toFixed(2)}`;
 
   useEffect(() => {
     fetchLedgers();
@@ -54,29 +57,16 @@ export default function LedgerManagement() {
       ledger.name.toLowerCase().includes(searchLower) ||
       (ledger.phoneNumber && ledger.phoneNumber.includes(searchTerm))
     );
-  });
+  }).sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically A-Z
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Validate GST if enabled
-    if (formData.hasGST && (!formData.gstNumber || !isValidGSTFormat(formData.gstNumber))) {
-      toast.error('Please enter a valid GST number');
-      return;
-    }
 
     try {
       const submitData = {
         name: formData.name,
         phoneNumber: formData.phoneNumber,
-        ledgerType: formData.ledgerType,
-        ...(formData.hasGST && {
-          gstDetails: {
-            hasGST: true,
-            gstNumber: formData.gstNumber,
-            stateCode: formData.stateCode
-          }
-        })
+        ledgerType: 'regular'
       };
 
       if (editingLedger) {
@@ -88,7 +78,7 @@ export default function LedgerManagement() {
       }
 
       setShowModal(false);
-      setFormData({ name: '', phoneNumber: '', ledgerType: 'regular', hasGST: false, gstNumber: '', stateCode: '' });
+      setFormData({ name: '', phoneNumber: '' });
       setEditingLedger(null);
       fetchLedgers();
     } catch (error) {
@@ -100,11 +90,7 @@ export default function LedgerManagement() {
     setEditingLedger(ledger);
     setFormData({
       name: ledger.name,
-      phoneNumber: ledger.phoneNumber,
-      ledgerType: ledger.ledgerType || 'regular',
-      hasGST: ledger.gstDetails?.hasGST || false,
-      gstNumber: ledger.gstDetails?.gstNumber || '',
-      stateCode: ledger.gstDetails?.stateCode || ''
+      phoneNumber: ledger.phoneNumber
     });
     setShowModal(true);
   };
@@ -141,11 +127,7 @@ export default function LedgerManagement() {
                 setEditingLedger(null);
                 setFormData({
                   name: '',
-                  phoneNumber: '',
-                  ledgerType: 'regular',
-                  hasGST: false,
-                  gstNumber: '',
-                  stateCode: ''
+                  phoneNumber: ''
                 });
                 setShowModal(true);
               }}
@@ -157,26 +139,46 @@ export default function LedgerManagement() {
 
           {/* Summary Cards */}
           {loading ? (
-            <SkeletonStat count={2} />
+            <SkeletonStat count={3} />
           ) : (
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
               gap: '16px',
               marginBottom: '32px',
               padding: '16px',
               background: 'var(--bg-secondary)',
               borderRadius: '8px'
             }}>
+              {/* Total Ledgers Card */}
+              <div style={{
+                padding: '16px',
+                background: 'var(--bg-primary)',
+                borderRadius: '8px',
+                border: '2px solid #3b82f6',
+                boxShadow: '0 2px 8px rgba(59, 130, 246, 0.1)'
+              }}>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Total Ledgers</div>
+                <div style={{ fontSize: '2rem', fontWeight: 700, color: '#3b82f6', marginTop: '8px' }}>
+                  {filteredLedgers.length}
+                </div>
+                {searchTerm && (
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                    of {ledgers.length} total
+                  </div>
+                )}
+              </div>
+
               {/* Total Amount Card */}
               <div style={{
-                padding: '12px',
+                padding: '16px',
                 background: 'var(--bg-primary)',
-                borderRadius: '6px',
-                border: '1px solid var(--border-color)'
+                borderRadius: '8px',
+                border: '2px solid #667eea',
+                boxShadow: '0 2px 8px rgba(102, 126, 234, 0.1)'
               }}>
                 <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Total Amount</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#667eea', marginTop: '4px' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#667eea', marginTop: '8px' }}>
                   ₹{(() => {
                     const ledgerIds = filteredLedgers.map(l => l._id);
 
@@ -200,44 +202,51 @@ export default function LedgerManagement() {
 
               {/* Balance Amount Card */}
               <div style={{
-                padding: '12px',
+                padding: '16px',
                 background: 'var(--bg-primary)',
-                borderRadius: '6px',
-                border: '1px solid var(--border-color)'
+                borderRadius: '8px',
+                border: '2px solid #f5576c',
+                boxShadow: '0 2px 8px rgba(245, 87, 108, 0.1)'
               }}>
                 <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Balance Amount</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f5576c', marginTop: '4px' }}>
-                  ₹{filteredLedgers.reduce((sum, ledger) => {
-                    const cashBalance = -(ledger.balances?.cashBalance !== undefined ? ledger.balances.cashBalance : (ledger.balances?.creditBalance || 0));
-                    return sum + cashBalance;
-                  }, 0).toFixed(2)}
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f5576c', marginTop: '8px' }}>
+                  ₹{formatSignedAmount(filteredLedgers.reduce((sum, ledger) => {
+                    return sum + getLedgerDisplayCashBalance(ledger);
+                  }, 0))}
                 </div>
               </div>
             </div>
           )}
 
           {/* Search Bar */}
-          <div style={{ marginBottom: '1.5rem' }}>
-            <input
-              type="text"
-              placeholder="🔍 Search ledgers by name or phone number..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                width: '100%',
-                maxWidth: '400px',
-                padding: '10px 15px',
-                borderRadius: '6px',
-                border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--bg-primary)',
-                color: 'var(--color-text)',
-                fontSize: '14px',
-                boxSizing: 'border-box'
-              }}
-            />
-            {searchTerm && (
-              <div style={{ fontSize: '0.875rem', color: 'var(--color-muted)', marginTop: '0.5rem' }}>
-                Found {filteredLedgers.length} of {ledgers.length} ledgers
+          <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <input
+                type="text"
+                placeholder="🔍 Search ledgers by name or phone number..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                style={{
+                  width: '100%',
+                  maxWidth: '400px',
+                  padding: '10px 15px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--color-text)',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              />
+              {searchTerm && (
+                <div style={{ fontSize: '0.875rem', color: 'var(--color-muted)', marginTop: '0.5rem' }}>
+                  Showing {filteredLedgers.length} of {ledgers.length} ledgers
+                </div>
+              )}
+            </div>
+            {filteredLedgers.length > 0 && (
+              <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)', background: 'var(--bg-secondary)', padding: '8px 12px', borderRadius: '6px' }}>
+                📊 {filteredLedgers.length} ledger{filteredLedgers.length !== 1 ? 's' : ''} (A-Z sorted)
               </div>
             )}
           </div>
@@ -266,7 +275,7 @@ export default function LedgerManagement() {
                     </td>
                     <td>
                       <div style={{ fontWeight: 'bold', color: '$var(--color-primary)' }}>
-                        ₹{(-(ledger.balances?.cashBalance !== undefined ? ledger.balances.cashBalance : (ledger.balances?.creditBalance || 0))).toFixed(2)}
+                        ₹{formatSignedAmount(getLedgerDisplayCashBalance(ledger))}
                       </div>
                     </td>
                     <td>
@@ -334,77 +343,6 @@ export default function LedgerManagement() {
                       />
                     </div>
 
-                    <div className="input-group">
-                      <label className="input-label">Ledger Type</label>
-                      <select
-                        className="input"
-                        value={formData.ledgerType}
-                        onChange={(e) => setFormData({ ...formData, ledgerType: e.target.value })}
-                        required
-                      >
-                        <option value="regular">💰 Regular (Credit/Cash Billing)</option>
-                        <option value="gst">📄 GST Customer (Full Payment)</option>
-                      </select>
-                      <small style={{ display: 'block', marginTop: '5px', color: 'var(--text-secondary)', fontSize: '11px' }}>
-                        {formData.ledgerType === 'regular'
-                          ? '✓ Allows partial payments and balance tracking'
-                          : '✓ GST invoices only, full payment expected (like Tally)'}
-                      </small>
-                    </div>
-
-                    <div style={{ borderTop: '1px solid var(--border-color)', marginTop: '15px', paddingTop: '15px' }}>
-                      <label style={{ display: 'flex', alignItems: 'center', marginBottom: '15px', cursor: 'pointer', fontSize: '13px' }}>
-                        <input
-                          type="checkbox"
-                          checked={formData.hasGST}
-                          onChange={(e) => {
-                            setFormData({
-                              ...formData,
-                              hasGST: e.target.checked,
-                              gstNumber: e.target.checked ? formData.gstNumber : '',
-                              stateCode: e.target.checked ? formData.stateCode : ''
-                            });
-                          }}
-                          style={{ marginRight: '8px', cursor: 'pointer' }}
-                        />
-                        <span>✅ Customer has GST</span>
-                      </label>
-
-                      {formData.hasGST && (
-                        <div className="input-group">
-                          <label className="input-label">GST Number *</label>
-                          <input
-                            type="text"
-                            className="input"
-                            value={formData.gstNumber}
-                            onChange={(e) => {
-                              const gstNum = e.target.value.toUpperCase();
-                              setFormData({
-                                ...formData,
-                                gstNumber: gstNum,
-                                stateCode: isValidGSTFormat(gstNum) ? extractStateFromGST(gstNum) : ''
-                              });
-                            }}
-                            placeholder="15-digit GST format"
-                            maxLength="15"
-                            style={{
-                              borderColor: formData.gstNumber && !isValidGSTFormat(formData.gstNumber) ? '#ff4757' : 'var(--border-color)',
-                              borderWidth: formData.gstNumber && !isValidGSTFormat(formData.gstNumber) ? '2px' : '1px'
-                            }}
-                          />
-                          {formData.gstNumber && !isValidGSTFormat(formData.gstNumber) && (
-                            <small style={{ display: 'block', marginTop: '2px', color: '#ff4757', fontSize: '10px' }}>
-                              Invalid GST format (expected 15 characters)
-                            </small>
-                          )}
-                          {formData.gstNumber && isValidGSTFormat(formData.gstNumber) && formData.stateCode && (
-                            <small style={{ display: 'block', marginTop: '2px', color: 'var(--color-success)', fontSize: '10px' }}>
-                              ✓ Valid GST | State Code: {formData.stateCode}
-                            </small>
-                          )}
-                        </div>
-                      )}
-                    </div>
                   </div>
                   <div className="modal-footer">
                     <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">
@@ -413,7 +351,6 @@ export default function LedgerManagement() {
                     <button
                       type="submit"
                       className="btn btn-primary"
-                      disabled={formData.hasGST && (!formData.gstNumber || !isValidGSTFormat(formData.gstNumber))}
                     >
                       {editingLedger ? 'Update' : 'Create'}
                     </button>
@@ -427,3 +364,5 @@ export default function LedgerManagement() {
     </Layout>
   );
 }
+
+
