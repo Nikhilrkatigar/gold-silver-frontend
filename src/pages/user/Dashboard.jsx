@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import Layout from '../../components/Layout';
 import PullToRefresh from '../../components/PullToRefresh';
 import { SkeletonStat, SkeletonTable } from '../../components/Skeleton';
@@ -9,171 +9,190 @@ import { format } from 'date-fns';
 export default function UserDashboard() {
   const [dueCredits, setDueCredits] = useState([]);
   const [todayTransactions, setTodayTransactions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const getValidTimestamp = (value) => {
+  const [loadingTransactions, setLoadingTransactions] = useState(true);
+  const [loadingDueCredits, setLoadingDueCredits] = useState(true);
+
+  const getValidTimestamp = useCallback((value) => {
     if (!value) return null;
     const timestamp = new Date(value).getTime();
     return Number.isFinite(timestamp) ? timestamp : null;
-  };
+  }, []);
+
+  // Get today's date stamp for faster comparison
+  const getTodayDateStamp = useCallback(() => {
+    const today = new Date();
+    return today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+  }, []);
+
+  const getDateStamp = useCallback((dateStr) => {
+    const date = new Date(dateStr);
+    return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
+  }, []);
 
   useEffect(() => {
     const fetchAllData = async () => {
-      await Promise.all([
-        fetchDueCredits(),
-        fetchLedgersAndTransactions()
-      ]);
-      setLoading(false);
+      try {
+        // Single ledger fetch - both functions use this
+        const ledgersRes = await ledgerAPI.getAll();
+        const ledgers = ledgersRes.data.ledgers || [];
+
+        // Process both sections in parallel
+        await Promise.all([
+          processDueCredits(ledgers),
+          processTodayTransactions(ledgers)
+        ]);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        toast.error('Failed to load dashboard');
+      }
     };
+
     fetchAllData();
   }, []);
 
-  const fetchLedgersAndTransactions = async () => {
+  const processDueCredits = async (ledgers) => {
     try {
-      // Fetch all ledgers
-      const ledgersRes = await ledgerAPI.getAll();
+      const dueLedgers = ledgers
+        .filter(ledger => {
+          const creditBalance = parseFloat(ledger.balances?.creditBalance) || 0;
+          return creditBalance > 0;
+        })
+        .map(ledger => ({
+          name: ledger.name,
+          phoneNumber: ledger.phoneNumber,
+          balanceAmount: parseFloat(ledger.balances?.creditBalance) || 0,
+          goldFineWeight: parseFloat(ledger.balances?.goldFineWeight) || 0,
+          silverFineWeight: parseFloat(ledger.balances?.silverFineWeight) || 0
+        }));
+      
+      setDueCredits(dueLedgers);
+    } catch (error) {
+      console.error('Failed to process due credits:', error);
+      setDueCredits([]);
+    } finally {
+      setLoadingDueCredits(false);
+    }
+  };
 
-      if (!Array.isArray(ledgersRes.data.ledgers) || ledgersRes.data.ledgers.length === 0) {
+  const processTodayTransactions = async (ledgers) => {
+    try {
+      if (!Array.isArray(ledgers) || ledgers.length === 0) {
         setTodayTransactions([]);
+        setLoadingTransactions(false);
         return;
       }
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const todayStamp = getTodayDateStamp();
       const transactions = [];
 
-      // Fetch transactions for each ledger
-      for (const ledger of ledgersRes.data.ledgers) {
-        try {
-          const transRes = await ledgerAPI.getTransactions(ledger._id, {});
+      // Fetch vouchers and settlements in parallel
+      const [vouchersRes, settlementsRes, stockRes] = await Promise.all([
+        voucherAPI.getAll().catch(() => ({ data: { vouchers: [] } })),
+        settlementAPI.getAll().catch(() => ({ data: { settlements: [] } })),
+        stockAPI.getHistory().catch(() => ({ data: { history: [] } }))
+      ]);
 
-          // Process today's transactions for this ledger
-          if (Array.isArray(transRes.data.transactions)) {
-            transRes.data.transactions
-              .filter(t => {
-                const tDate = new Date(t.date);
-                tDate.setHours(0, 0, 0, 0);
-                return tDate.getTime() === today.getTime();
-              })
-              .forEach(t => {
-                const recordedTimestamp = getValidTimestamp(t.createdAt);
-                const sortTimestamp = recordedTimestamp ?? getValidTimestamp(t.date) ?? 0;
+      const vouchers = vouchersRes.data.vouchers || [];
+      const settlements = settlementsRes.data.settlements || [];
+      const stock = stockRes.data.history || [];
 
-                if (t.type === 'voucher') {
-                  transactions.push({
-                    type: 'voucher',
-                    date: t.date,
-                    description: `Voucher #${t.voucherNumber} - ${ledger.name}`,
-                    amount: parseFloat(t.total) || 0,
-                    paymentType: t.paymentType,
-                    timestamp: recordedTimestamp,
-                    sortTimestamp
-                  });
-                } else if (t.type === 'settlement') {
-                  transactions.push({
-                    type: 'settlement',
-                    date: t.date,
-                    description: `Settlement - ${ledger.name} (${t.metalType.toUpperCase()} ${parseFloat(t.fineGiven).toFixed(3)}g)`,
-                    amount: parseFloat(t.amount),
-                    paymentType: 'settlement',
-                    timestamp: recordedTimestamp,
-                    sortTimestamp
-                  });
-                }
-              });
-          }
-        } catch (error) {
-          console.error(`Error fetching transactions for ledger:`, error);
+      // Create ledger map for O(1) lookup
+      const ledgerMap = new Map(ledgers.map(l => [l._id, l]));
+
+      // Process vouchers
+      vouchers.forEach(v => {
+        const ledger = ledgerMap.get(typeof v.ledgerId === 'object' ? v.ledgerId?._id : v.ledgerId);
+        if (!ledger || getDateStamp(v.date) !== todayStamp) return;
+
+        const recordedTimestamp = getValidTimestamp(v.createdAt);
+        transactions.push({
+          type: 'voucher',
+          date: v.date,
+          description: `Voucher #${v.voucherNumber} - ${ledger.name}`,
+          amount: parseFloat(v.total) || 0,
+          paymentType: v.paymentType,
+          timestamp: recordedTimestamp,
+          sortTimestamp: recordedTimestamp ?? getValidTimestamp(v.date) ?? 0
+        });
+      });
+
+      // Process settlements
+      settlements.forEach(s => {
+        const ledger = ledgerMap.get(typeof s.ledgerId === 'object' ? s.ledgerId?._id : s.ledgerId);
+        if (!ledger || getDateStamp(s.date) !== todayStamp) return;
+
+        const recordedTimestamp = getValidTimestamp(s.createdAt);
+        transactions.push({
+          type: 'settlement',
+          date: s.date,
+          description: `Settlement - ${ledger.name} (${s.metalType?.toUpperCase()} ${parseFloat(s.fineGiven).toFixed(3)}g)`,
+          amount: parseFloat(s.amount),
+          paymentType: 'settlement',
+          timestamp: recordedTimestamp,
+          sortTimestamp: recordedTimestamp ?? getValidTimestamp(s.date) ?? 0
+        });
+      });
+
+      // Process stock changes
+      stock.forEach(sh => {
+        if (getDateStamp(sh.date) !== todayStamp) return;
+
+        const recordedTimestamp = getValidTimestamp(sh.createdAt ?? sh.date);
+        const sortTimestamp = recordedTimestamp ?? 0;
+
+        if (parseFloat(sh.gold) !== 0) {
+          transactions.push({
+            type: 'stock',
+            date: sh.date,
+            description: `Stock Add - Gold ${parseFloat(sh.gold) >= 0 ? '+' : ''}${parseFloat(sh.gold).toFixed(3)}g`,
+            amount: 0,
+            paymentType: 'stock',
+            timestamp: recordedTimestamp,
+            sortTimestamp
+          });
         }
-      }
-
-      // Add stock changes
-      try {
-        const stockRes = await stockAPI.getHistory().catch(() => ({ data: { history: [] } }));
-        if (stockRes.data.history) {
-          stockRes.data.history
-            .filter(sh => {
-              const shDate = new Date(sh.date);
-              shDate.setHours(0, 0, 0, 0);
-              return shDate.getTime() === today.getTime();
-            })
-            .forEach(sh => {
-              const recordedTimestamp = getValidTimestamp(sh.date) ?? getValidTimestamp(sh.createdAt);
-              const sortTimestamp = recordedTimestamp ?? 0;
-
-              if (parseFloat(sh.gold) !== 0) {
-                transactions.push({
-                  type: 'stock',
-                  date: sh.date,
-                  description: `Stock Add - Gold ${parseFloat(sh.gold) >= 0 ? '+' : ''}${parseFloat(sh.gold).toFixed(3)}g`,
-                  amount: 0,
-                  paymentType: 'stock',
-                  timestamp: recordedTimestamp,
-                  sortTimestamp
-                });
-              }
-              if (parseFloat(sh.silver) !== 0) {
-                transactions.push({
-                  type: 'stock',
-                  date: sh.date,
-                  description: `Stock Add - Silver ${parseFloat(sh.silver) >= 0 ? '+' : ''}${parseFloat(sh.silver).toFixed(3)}g`,
-                  amount: 0,
-                  paymentType: 'stock',
-                  timestamp: recordedTimestamp,
-                  sortTimestamp
-                });
-              }
-            });
+        if (parseFloat(sh.silver) !== 0) {
+          transactions.push({
+            type: 'stock',
+            date: sh.date,
+            description: `Stock Add - Silver ${parseFloat(sh.silver) >= 0 ? '+' : ''}${parseFloat(sh.silver).toFixed(3)}g`,
+            amount: 0,
+            paymentType: 'stock',
+            timestamp: recordedTimestamp,
+            sortTimestamp
+          });
         }
-      } catch (error) {
-        console.error('Error fetching stock history:', error);
-      }
+      });
 
-      // Sort by timestamp descending (newest first)
+      // Sort by timestamp descending
       transactions.sort((a, b) => (b.sortTimestamp || 0) - (a.sortTimestamp || 0));
       setTodayTransactions(transactions);
     } catch (error) {
-      console.error('Error in fetchLedgersAndTransactions:', error);
+      console.error('Error processing today transactions:', error);
+      setTodayTransactions([]);
+    } finally {
+      setLoadingTransactions(false);
     }
   };
-
-  const fetchDueCredits = async () => {
-    try {
-      // Fetch all ledgers and filter those with outstanding credit balance
-      const ledgersRes = await ledgerAPI.getAll();
-      
-      if (Array.isArray(ledgersRes.data.ledgers)) {
-        const dueLedgers = ledgersRes.data.ledgers
-          .filter(ledger => {
-            const creditBalance = parseFloat(ledger.balances?.creditBalance) || 0;
-            return creditBalance > 0; // Only show ledgers with positive credit balance
-          })
-          .map(ledger => ({
-            name: ledger.name,
-            phoneNumber: ledger.phoneNumber,
-            balanceAmount: parseFloat(ledger.balances?.creditBalance) || 0,
-            goldFineWeight: parseFloat(ledger.balances?.goldFineWeight) || 0,
-            silverFineWeight: parseFloat(ledger.balances?.silverFineWeight) || 0
-          }));
-        
-        setDueCredits(dueLedgers);
-      } else {
-        setDueCredits([]);
-      }
-    } catch (error) {
-      console.error('Failed to load due credits:', error);
-      setDueCredits([]);
-    }
-  };
-
-
 
   const handleRefresh = async () => {
-    setLoading(true);
-    await Promise.all([
-      fetchDueCredits(),
-      fetchLedgersAndTransactions()
-    ]);
-    setLoading(false);
+    setLoadingDueCredits(true);
+    setLoadingTransactions(true);
+    
+    try {
+      const ledgersRes = await ledgerAPI.getAll();
+      const ledgers = ledgersRes.data.ledgers || [];
+
+      await Promise.all([
+        processDueCredits(ledgers),
+        processTodayTransactions(ledgers)
+      ]);
+    } catch (error) {
+      console.error('Refresh error:', error);
+      toast.error('Failed to refresh dashboard');
+      setLoadingDueCredits(false);
+      setLoadingTransactions(false);
+    }
   };
 
   const showTimeColumn = todayTransactions.length > 0 && todayTransactions.every((transaction) => transaction.timestamp !== null);
@@ -181,19 +200,19 @@ export default function UserDashboard() {
   return (
     <Layout>
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className={loading ? '' : 'fade-in'}>
+        <div className={loadingTransactions || loadingDueCredits ? '' : 'fade-in'}>
           {/* Today's Transaction Summary */}
           <div style={{ marginBottom: '3rem' }}>
             <h1 style={{ marginBottom: '1.5rem' }}>Today's Transactions</h1>
 
-            {loading ? (
+            {loadingTransactions ? (
               <SkeletonTable rows={5} columns={showTimeColumn ? 4 : 3} />
             ) : todayTransactions.length === 0 ? (
               <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
                 <p className="text-muted">No transactions today</p>
               </div>
             ) : (
-              <div className="card">
+              <div className="card fade-in">
                 <div className="table-container">
                   <table className="table" style={{ width: '100%' }}>
                     <thead>

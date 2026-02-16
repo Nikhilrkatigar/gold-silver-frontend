@@ -862,12 +862,8 @@ export default function GSTBilling() {
       };
 
       if (editingVoucherId) {
-        await voucherAPI.cancel(editingVoucherId, {
-          status: 'cancelled',
-          cancelledReason: 'Updated with new invoice'
-        });
-        await voucherAPI.create(voucherData);
-        toast.success('Invoice updated successfully and previous invoice was cancelled.');
+        await voucherAPI.update(editingVoucherId, voucherData);
+        toast.success('Invoice updated successfully.');
       } else {
         const response = await voucherAPI.create(voucherData);
         console.log('✅ GST Voucher created:', response.data);

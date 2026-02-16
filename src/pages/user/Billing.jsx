@@ -741,12 +741,8 @@ export default function Billing() {
       const isSettlementType = ['add_cash', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'].includes(formData.paymentType);
 
       if (editingVoucherId) {
-        await voucherAPI.cancel(editingVoucherId, {
-          status: 'cancelled',
-          cancelledReason: 'Updated with new voucher'
-        });
-        await voucherAPI.create(voucherData);
-        toast.success(isSettlementType ? 'Settlement created successfully!' : 'Voucher updated successfully and previous voucher was cancelled.');
+        await voucherAPI.update(editingVoucherId, voucherData);
+        toast.success(isSettlementType ? 'Settlement updated successfully!' : 'Voucher updated successfully!');
       } else {
         await voucherAPI.create(voucherData);
         toast.success(isSettlementType ? 'Settlement created successfully! Balance updated.' : 'Voucher created successfully!');

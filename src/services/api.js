@@ -73,6 +73,7 @@ export const ledgerAPI = {
 // Voucher APIs
 export const voucherAPI = {
   create: (data) => api.post('/api/voucher', data),
+  update: (id, data) => api.put(`/api/voucher/${id}`, data),
   getAll: (params) => api.get('/api/voucher', { params }),
   getDueCredits: () => api.get('/api/voucher/due-credits'),
   getOne: (id) => api.get(`/api/voucher/${id}`),
