@@ -119,7 +119,7 @@ const StockManagement = () => {
       const gstLedgers = gstLedgersRes.data.ledgers || [];
       const allVouchers = vouchersRes.data.vouchers || [];
       const allExpenses = expensesRes.data.expenses || [];
-      const allKarigar = karigarRes.data.karigars || [];
+      const allKarigar = karigarRes.data.transactions || karigarRes.data.karigars || [];
 
       const regularLedgerIds = regularLedgers.map((ledger) => ledger._id);
       const totalAmountRegular = allVouchers

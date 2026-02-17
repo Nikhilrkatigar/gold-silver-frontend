@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { format } from 'date-fns';
 import { SkeletonCard, SkeletonStat, SkeletonTable } from '../../components/Skeleton';
 import PullToRefresh from '../../components/PullToRefresh';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 const EXPENSE_CATEGORIES = [
     { value: 'petrol', label: 'Petrol' },
@@ -36,6 +37,10 @@ export default function Expenses() {
         paymentMethod: ''
     });
     const [loading, setLoading] = useState(true);
+    const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+    const [deleteConfirmId, setDeleteConfirmId] = useState(null);
+    const [cashWarningOpen, setCashWarningOpen] = useState(false);
+    const [pendingExpenseData, setPendingExpenseData] = useState(null);
 
     useEffect(() => {
         fetchExpenses();
@@ -119,15 +124,17 @@ export default function Expenses() {
 
         // Check if cash payment would result in negative balance
         if (formData.paymentMethod === 'cash' && amount > cashInHand) {
-            const proceed = confirm(
-                `This expense (₹${amount.toFixed(2)}) exceeds your cash in hand (₹${cashInHand.toFixed(2)}). ` +
-                `Your cash balance will become negative. Do you want to proceed?`
-            );
-            if (!proceed) return;
+            setPendingExpenseData(formData);
+            setCashWarningOpen(true);
+            return;
         }
 
+        await submitExpense(formData);
+    };
+
+    const submitExpense = async (expenseData) => {
         try {
-            await expenseAPI.create(formData);
+            await expenseAPI.create(expenseData);
             toast.success('Expense added successfully!');
             setFormData({
                 date: new Date().toISOString().split('T')[0],
@@ -143,12 +150,16 @@ export default function Expenses() {
         }
     };
 
-    const handleDeleteExpense = async (expenseId) => {
-        if (!confirm('Delete this expense?')) return;
+    const handleDeleteExpense = (expenseId) => {
+        setDeleteConfirmId(expenseId);
+        setDeleteConfirmOpen(true);
+    };
 
+    const confirmDeleteExpense = async () => {
         try {
-            await expenseAPI.delete(expenseId);
+            await expenseAPI.delete(deleteConfirmId);
             toast.success('Expense deleted successfully');
+            setDeleteConfirmId(null);
             fetchExpenses();
             calculateCashInHand();
         } catch (error) {
@@ -394,6 +405,42 @@ export default function Expenses() {
                             <p style={{ color: 'var(--text-secondary)' }}>Add your first expense using the form above</p>
                         </div>
                     )}
+
+                    {/* Modern Delete Confirmation Dialog */}
+                    <ConfirmDialog
+                        isOpen={deleteConfirmOpen}
+                        onClose={() => {
+                            setDeleteConfirmOpen(false);
+                            setDeleteConfirmId(null);
+                        }}
+                        onConfirm={confirmDeleteExpense}
+                        title="Delete Expense"
+                        message="Are you sure you want to delete this expense? This action cannot be undone."
+                        confirmText="Delete"
+                        cancelText="Cancel"
+                        danger={true}
+                    />
+
+                    {/* Modern Cash Warning Dialog */}
+                    <ConfirmDialog
+                        isOpen={cashWarningOpen}
+                        onClose={() => {
+                            setCashWarningOpen(false);
+                            setPendingExpenseData(null);
+                        }}
+                        onConfirm={() => {
+                            if (pendingExpenseData) {
+                                submitExpense(pendingExpenseData);
+                            }
+                            setCashWarningOpen(false);
+                            setPendingExpenseData(null);
+                        }}
+                        title="Cash Balance Warning"
+                        message={`This expense (₹${pendingExpenseData?.amount || 0}) exceeds your cash in hand (₹${cashInHand.toFixed(2)}). Your cash balance will become negative. Do you want to proceed?`}
+                        confirmText="Proceed"
+                        cancelText="Cancel"
+                        danger={true}
+                    />
                 </div>
             </PullToRefresh>
         </Layout >

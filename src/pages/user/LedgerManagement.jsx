@@ -29,6 +29,13 @@ export default function LedgerManagement() {
 
   const formatSignedAmount = (amount) => `${amount > 0 ? '+' : ''}${amount.toFixed(2)}`;
 
+  const getVoucherCountForLedger = (ledgerId) => {
+    return vouchers.filter(v => {
+      const vouchLedgerId = typeof v.ledgerId === 'object' ? v.ledgerId?._id : v.ledgerId;
+      return vouchLedgerId === ledgerId;
+    }).length;
+  };
+
   useEffect(() => {
     fetchLedgers();
   }, []);
@@ -260,6 +267,7 @@ export default function LedgerManagement() {
                   <th>Type</th>
                   <th>Cash Balance</th>
                   <th>Balance</th>
+                  <th>Total Vouchers</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -286,6 +294,11 @@ export default function LedgerManagement() {
                         <div style={{ color: '#C0C0C0', fontWeight: 'bold' }}>
                           Silver: {ledger.balances?.silverFineWeight?.toFixed(3) || '0.000'} g fine
                         </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 'bold', color: '#667eea', fontSize: '1.125rem', textAlign: 'center' }}>
+                        {getVoucherCountForLedger(ledger._id)}
                       </div>
                     </td>
                     <td>

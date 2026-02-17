@@ -128,7 +128,7 @@ export default function AccountInfo() {
       <div style={{ maxWidth: '800px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <h1 style={{ margin: 0 }}>Account Information</h1>
-          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>v2.8</span>
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>v2.9</span>
         </div>
 
         <div className="card" style={{ marginBottom: '1.5rem' }}>
@@ -298,6 +298,29 @@ export default function AccountInfo() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {!user?.gstEnabled && (
+          <div className="card" style={{ marginBottom: '1.5rem', padding: '2rem', backgroundColor: 'rgba(102, 126, 234, 0.05)', border: '2px solid #667eea', borderRadius: '8px' }}>
+            <div style={{ textAlign: 'center' }}>
+              <h3 style={{ margin: '0 0 1rem 0', color: '#667eea' }}>📋 GST Feature</h3>
+              <div style={{ fontSize: '1rem', fontWeight: 500, marginBottom: '0.5rem', color: 'var(--color-text)' }}>
+                GST is available for implementation
+              </div>
+              <div style={{ fontSize: '0.95rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+                Please contact admin to enable GST for your account
+              </div>
+              <div style={{ fontSize: '0.95rem', padding: '1rem', backgroundColor: 'var(--bg-primary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                <div style={{ fontWeight: 600, marginBottom: '0.5rem', color: 'var(--color-text)' }}>ಕನ್ನಡದಲ್ಲಿ (In Kannada)</div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+                  GST ಅನುಷ್ಠಾನಕ್ಕಾಗಿ ಲಭ್ಯವಾಗಿದೆ
+                </div>
+                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                  ನಿರ್ವಾಹಕರನ್ನು ಸಂಪರ್ಕಿಸಿ
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
