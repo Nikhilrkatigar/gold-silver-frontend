@@ -132,6 +132,22 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updateLabourChargeSettings = async (settings) => {
+    try {
+      const response = await authAPI.updateSettings({ labourChargeSettings: settings });
+      setUser(response.data.user);
+      // Persist to localStorage
+      const updatedUser = {
+        ...JSON.parse(localStorage.getItem('user')),
+        labourChargeSettings: response.data.user.labourChargeSettings
+      };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error('Failed to update labour charge settings:', error);
+      throw error;
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -141,6 +157,7 @@ export const AuthProvider = ({ children }) => {
     updateTheme,
     updateVoucherSettings,
     updateGSTSettings,
+    updateLabourChargeSettings,
     isAdmin: user?.role === 'admin',
     isLicenseExpired: user?.isLicenseExpired
   };

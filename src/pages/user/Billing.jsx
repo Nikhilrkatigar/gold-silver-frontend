@@ -13,13 +13,27 @@ import { SkeletonTable, SkeletonStat } from '../../components/Skeleton';
 // Voucher Print Template Component
 const VoucherTemplate = ({ formData, items, ledgers, user, voucherData }) => {
   const ledger = ledgers.find(l => l._id === formData.ledgerId);
+
+  // Calculate labour charge based on type
+  const labourChargeType = user?.labourChargeSettings?.type || 'full';
+  let totalLabourCharge = 0;
+
+  items.forEach(item => {
+    const labourRate = parseFloat(item.labourRate) || 0;
+    const grossWeight = parseFloat(item.grossWeight) || 0;
+    const itemLabourCharge = labourChargeType === 'per-gram'
+      ? labourRate * grossWeight
+      : labourRate;
+    totalLabourCharge += itemLabourCharge;
+  });
+
   const totals = {
     pieces: items.reduce((sum, item) => sum + (parseInt(item.pieces) || 0), 0),
     grossWeight: items.reduce((sum, item) => sum + (parseFloat(item.grossWeight) || 0), 0),
     lessWeight: items.reduce((sum, item) => sum + (parseFloat(item.lessWeight) || 0), 0),
     netWeight: items.reduce((sum, item) => sum + (parseFloat(item.netWeight) || 0), 0),
     fineWeight: items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0),
-    labourRate: items.reduce((sum, item) => sum + (parseFloat(item.labourRate) || 0), 0),
+    labourRate: totalLabourCharge,
     amount: items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
   };
 
@@ -284,6 +298,9 @@ export default function Billing() {
   const [ledgerFormData, setLedgerFormData] = useState({
     name: '',
     phoneNumber: '',
+    oldBalAmount: '',
+    oldBalGold: '',
+    oldBalSilver: '',
     hasGST: false,
     gstNumber: '',
     stateCode: ''
@@ -452,7 +469,13 @@ export default function Billing() {
             ? (parseFloat(formData.goldRate) || 0)
             : (parseFloat(formData.silverRate) || 0);
 
-          const amount = (fineWeight * rate) + labourRate;
+          // Apply labour charge type setting
+          const labourChargeType = user?.labourChargeSettings?.type || 'full';
+          const calculatedLabourCharge = labourChargeType === 'per-gram'
+            ? labourRate * grossWeight
+            : labourRate;
+
+          const amount = (fineWeight * rate) + calculatedLabourCharge;
 
           return {
             ...item,
@@ -463,7 +486,7 @@ export default function Billing() {
         });
       });
     }
-  }, [formData.goldRate, formData.silverRate]);
+  }, [formData.goldRate, formData.silverRate, user?.labourChargeSettings?.type]);
 
   const fetchLedgers = async () => {
     setIsLoading(true);
@@ -500,13 +523,27 @@ export default function Billing() {
       const submitData = {
         name: ledgerFormData.name,
         phoneNumber: ledgerFormData.phoneNumber,
+        openingBalance: {
+          amount: parseFloat(ledgerFormData.oldBalAmount) || 0,
+          goldFineWeight: parseFloat(ledgerFormData.oldBalGold) || 0,
+          silverFineWeight: parseFloat(ledgerFormData.oldBalSilver) || 0
+        },
         ledgerType: 'regular' // Ensure new ledgers created here are regular
       };
 
       await ledgerAPI.create(submitData);
       toast.success('Ledger created successfully');
       setShowAddLedgerModal(false);
-      setLedgerFormData({ name: '', phoneNumber: '', hasGST: false, gstNumber: '', stateCode: '' });
+      setLedgerFormData({
+        name: '',
+        phoneNumber: '',
+        oldBalAmount: '',
+        oldBalGold: '',
+        oldBalSilver: '',
+        hasGST: false,
+        gstNumber: '',
+        stateCode: ''
+      });
       fetchLedgers();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to create ledger');
@@ -533,7 +570,13 @@ export default function Billing() {
         ? (parseFloat(formData.goldRate) || 0)
         : (parseFloat(formData.silverRate) || 0);
 
-      const amount = (fineWeight * rate) + labourRate;
+      // Apply labour charge type setting
+      const labourChargeType = user?.labourChargeSettings?.type || 'full';
+      const calculatedLabourCharge = labourChargeType === 'per-gram'
+        ? labourRate * grossWeight
+        : labourRate;
+
+      const amount = (fineWeight * rate) + calculatedLabourCharge;
 
       newItems[index] = {
         ...item,
@@ -544,7 +587,7 @@ export default function Billing() {
 
       return newItems;
     });
-  }, [formData.goldRate, formData.silverRate]);
+  }, [formData.goldRate, formData.silverRate, user?.labourChargeSettings?.type]);
 
   const addRow = useCallback((metalType) => {
     setItems(prev => [...prev, {
@@ -569,12 +612,56 @@ export default function Billing() {
   const updateItem = useCallback((index, field, value) => {
     setItems(prev => {
       const newItems = [...prev];
-      newItems[index] = { ...newItems[index], [field]: value };
+      const item = newItems[index];
+      item[field] = value;
+
+      // Recalculate amount when relevant fields change
+      if (['grossWeight', 'lessWeight', 'melting', 'wastage', 'labourRate'].includes(field)) {
+        const grossWeight = parseFloat(item.grossWeight) || 0;
+        const lessWeight = parseFloat(item.lessWeight) || 0;
+        const melting = parseFloat(item.melting) || 0;
+        const wastage = parseFloat(item.wastage) || 0;
+        const labourRate = parseFloat(item.labourRate) || 0;
+
+        const netWeight = grossWeight - lessWeight;
+        const fineWeight = (netWeight * (melting / 100)) + wastage;
+
+        const rate = item.metalType === 'gold'
+          ? (parseFloat(formData.goldRate) || 0)
+          : (parseFloat(formData.silverRate) || 0);
+
+        // Apply labour charge type setting
+        const labourChargeType = user?.labourChargeSettings?.type || 'full';
+        const calculatedLabourCharge = labourChargeType === 'per-gram'
+          ? labourRate * grossWeight
+          : labourRate;
+
+        const amount = (fineWeight * rate) + calculatedLabourCharge;
+
+        item.netWeight = netWeight.toFixed(3);
+        item.fineWeight = fineWeight.toFixed(3);
+        item.amount = amount.toFixed(2);
+      }
+
+      newItems[index] = item;
       return newItems;
     });
-  }, []);
+  }, [formData.goldRate, formData.silverRate, user?.labourChargeSettings?.type]);
 
   const calculateTotals = useCallback(() => {
+    // Calculate labour charge based on type
+    const labourChargeType = user?.labourChargeSettings?.type || 'full';
+    let totalLabourCharge = 0;
+
+    items.forEach(item => {
+      const labourRate = parseFloat(item.labourRate) || 0;
+      const grossWeight = parseFloat(item.grossWeight) || 0;
+      const itemLabourCharge = labourChargeType === 'per-gram'
+        ? labourRate * grossWeight
+        : labourRate;
+      totalLabourCharge += itemLabourCharge;
+    });
+
     return items.reduce((acc, item) => {
       const pieces = parseInt(item.pieces) || 0;
       const grossWeight = parseFloat(item.grossWeight) || 0;
@@ -583,7 +670,6 @@ export default function Billing() {
       const melting = parseFloat(item.melting) || 0;
       const wastage = parseFloat(item.wastage) || 0;
       const fineWeight = parseFloat(item.fineWeight) || 0;
-      const labourRate = parseFloat(item.labourRate) || 0;
       const amount = parseFloat(item.amount) || 0;
 
       return {
@@ -594,7 +680,7 @@ export default function Billing() {
         melting: acc.melting + melting,
         wastage: acc.wastage + wastage,
         fineWeight: acc.fineWeight + fineWeight,
-        labourRate: acc.labourRate + labourRate,
+        labourRate: totalLabourCharge,
         amount: acc.amount + amount
       };
     }, {
@@ -608,7 +694,7 @@ export default function Billing() {
       labourRate: 0,
       amount: 0
     });
-  }, [items]);
+  }, [items, user?.labourChargeSettings?.type]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -1425,6 +1511,9 @@ export default function Billing() {
                     setLedgerFormData({
                       name: '',
                       phoneNumber: '',
+                      oldBalAmount: '',
+                      oldBalGold: '',
+                      oldBalSilver: '',
                       hasGST: false,
                       gstNumber: '',
                       stateCode: ''
@@ -2497,6 +2586,73 @@ export default function Billing() {
                         boxSizing: 'border-box'
                       }}
                     />
+                  </div>
+
+                  {/* Opening Balance Fields */}
+                  <div style={{ marginBottom: '15px', padding: '12px', background: 'var(--bg-primary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: 'bold', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Opening Balance (Optional)</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '3px' }}>Amount (₹)</label>
+                        <input
+                          type="number"
+                          value={ledgerFormData.oldBalAmount}
+                          onChange={(e) => setLedgerFormData(prev => ({ ...prev, oldBalAmount: e.target.value }))}
+                          placeholder="₹0.00"
+                          step="0.01"
+                          style={{
+                            width: '100%',
+                            padding: '8px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-secondary)',
+                            color: 'var(--color-text)',
+                            boxSizing: 'border-box',
+                            fontSize: '0.85rem'
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', color: '#FFD700', display: 'block', marginBottom: '3px' }}>Gold Fine (g)</label>
+                        <input
+                          type="number"
+                          value={ledgerFormData.oldBalGold}
+                          onChange={(e) => setLedgerFormData(prev => ({ ...prev, oldBalGold: e.target.value }))}
+                          placeholder="0.000g"
+                          step="0.001"
+                          style={{
+                            width: '100%',
+                            padding: '8px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-secondary)',
+                            color: 'var(--color-text)',
+                            boxSizing: 'border-box',
+                            fontSize: '0.85rem'
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '0.75rem', color: '#C0C0C0', display: 'block', marginBottom: '3px' }}>Silver Fine (g)</label>
+                        <input
+                          type="number"
+                          value={ledgerFormData.oldBalSilver}
+                          onChange={(e) => setLedgerFormData(prev => ({ ...prev, oldBalSilver: e.target.value }))}
+                          placeholder="0.000g"
+                          step="0.001"
+                          style={{
+                            width: '100%',
+                            padding: '8px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-secondary)',
+                            color: 'var(--color-text)',
+                            boxSizing: 'border-box',
+                            fontSize: '0.85rem'
+                          }}
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <button

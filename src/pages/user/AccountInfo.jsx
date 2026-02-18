@@ -6,8 +6,9 @@ import { format, differenceInDays } from 'date-fns';
 import { FiSun, FiMoon, FiMonitor, FiLock, FiEdit2, FiSave, FiX } from 'react-icons/fi';
 
 export default function AccountInfo() {
-  const { user, updateTheme, updateVoucherSettings, logout, theme, updateGSTSettings } = useAuth();
+  const { user, updateTheme, updateVoucherSettings, logout, theme, updateGSTSettings, updateLabourChargeSettings } = useAuth();
   const [voucherMode, setVoucherMode] = useState(user?.voucherSettings?.autoIncrement ?? true);
+  const [labourChargeType, setLabourChargeType] = useState(user?.labourChargeSettings?.type ?? 'full');
   const [editingGST, setEditingGST] = useState(false);
   const [gstFormData, setGstFormData] = useState({
     gstNumber: user?.gstSettings?.gstNumber || '',
@@ -86,6 +87,16 @@ export default function AccountInfo() {
     }
   };
 
+  const handleLabourChargeTypeChange = async (type) => {
+    try {
+      await updateLabourChargeSettings({ type });
+      setLabourChargeType(type);
+      toast.success(`Labour charge changed to: ${type === 'full' ? 'Fixed Amount' : 'Per Gram'}`);
+    } catch (error) {
+      toast.error('Failed to update labour charge settings');
+    }
+  };
+
   const handleSaveGST = async () => {
     if (!gstFormData.gstNumber || !gstFormData.businessState) {
       toast.error('GST Number and Business State are required');
@@ -128,7 +139,7 @@ export default function AccountInfo() {
       <div style={{ maxWidth: '800px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <h1 style={{ margin: 0 }}>Account Information</h1>
-          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>v2.9</span>
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>v3.0</span>
         </div>
 
         <div className="card" style={{ marginBottom: '1.5rem' }}>
@@ -381,6 +392,69 @@ export default function AccountInfo() {
               : 'You can manually enter voucher numbers'
             }
           </p>
+        </div>
+
+        <div className="card" style={{ marginBottom: '1.5rem' }}>
+          <h3 style={{ marginBottom: '1.5rem' }}>Labour Charge Configuration</h3>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>
+              Choose how labour charges are calculated in billing:
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <button
+                onClick={() => handleLabourChargeTypeChange('full')}
+                style={{
+                  padding: '1.5rem',
+                  border: `2px solid ${labourChargeType === 'full' ? 'var(--color-primary)' : 'var(--border-color)'}`,
+                  borderRadius: '8px',
+                  background: labourChargeType === 'full' ? 'rgba(245, 158, 11, 0.1)' : 'transparent',
+                  color: 'var(--color-text)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  textAlign: 'center'
+                }}
+              >
+                <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Fixed Amount</div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  Labour charge stays fixed
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                  e.g., ₹15
+                </div>
+              </button>
+              <button
+                onClick={() => handleLabourChargeTypeChange('per-gram')}
+                style={{
+                  padding: '1.5rem',
+                  border: `2px solid ${labourChargeType === 'per-gram' ? 'var(--color-primary)' : 'var(--border-color)'}`,
+                  borderRadius: '8px',
+                  background: labourChargeType === 'per-gram' ? 'rgba(245, 158, 11, 0.1)' : 'transparent',
+                  color: 'var(--color-text)',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  textAlign: 'center'
+                }}
+              >
+                <div style={{ fontWeight: 600, marginBottom: '0.5rem' }}>Per Gram</div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                  Labour charge × Gross weight
+                </div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginTop: '0.5rem' }}>
+                  e.g., ₹15 × 5g = ₹75
+                </div>
+              </button>
+            </div>
+          </div>
+          <div style={{ 
+            padding: '1rem', 
+            backgroundColor: 'rgba(102, 126, 234, 0.05)', 
+            borderLeft: '4px solid #667eea', 
+            borderRadius: '4px' 
+          }}>
+            <p style={{ margin: '0', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+              <strong>Current setting:</strong> Labour charges will be calculated as <strong>{labourChargeType === 'full' ? 'fixed amount' : 'price per gram × gross weight'}</strong>
+            </p>
+          </div>
         </div>
 
         <div className="card" style={{ marginBottom: '1.5rem', textAlign: 'center', padding: '1.5rem', backgroundColor: 'var(--bg-secondary)', borderTop: '2px solid var(--color-primary)' }}>

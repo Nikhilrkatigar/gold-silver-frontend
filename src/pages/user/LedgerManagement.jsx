@@ -17,7 +17,10 @@ export default function LedgerManagement() {
   const [editingLedger, setEditingLedger] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
-    phoneNumber: ''
+    phoneNumber: '',
+    oldBalAmount: '',
+    oldBalGold: '',
+    oldBalSilver: ''
   });
   const [loading, setLoading] = useState(true);
 
@@ -73,7 +76,12 @@ export default function LedgerManagement() {
       const submitData = {
         name: formData.name,
         phoneNumber: formData.phoneNumber,
-        ledgerType: 'regular'
+        ledgerType: 'regular',
+        openingBalance: {
+          amount: parseFloat(formData.oldBalAmount) || 0,
+          goldFineWeight: parseFloat(formData.oldBalGold) || 0,
+          silverFineWeight: parseFloat(formData.oldBalSilver) || 0
+        }
       };
 
       if (editingLedger) {
@@ -85,7 +93,7 @@ export default function LedgerManagement() {
       }
 
       setShowModal(false);
-      setFormData({ name: '', phoneNumber: '' });
+      setFormData({ name: '', phoneNumber: '', oldBalAmount: '', oldBalGold: '', oldBalSilver: '' });
       setEditingLedger(null);
       fetchLedgers();
     } catch (error) {
@@ -97,7 +105,10 @@ export default function LedgerManagement() {
     setEditingLedger(ledger);
     setFormData({
       name: ledger.name,
-      phoneNumber: ledger.phoneNumber
+      phoneNumber: ledger.phoneNumber,
+      oldBalAmount: ledger.openingBalance?.amount || '',
+      oldBalGold: ledger.openingBalance?.goldFineWeight || '',
+      oldBalSilver: ledger.openingBalance?.silverFineWeight || ''
     });
     setShowModal(true);
   };
@@ -134,7 +145,10 @@ export default function LedgerManagement() {
                 setEditingLedger(null);
                 setFormData({
                   name: '',
-                  phoneNumber: ''
+                  phoneNumber: '',
+                  oldBalAmount: '',
+                  oldBalGold: '',
+                  oldBalSilver: ''
                 });
                 setShowModal(true);
               }}
@@ -356,6 +370,50 @@ export default function LedgerManagement() {
                       />
                     </div>
 
+                    {/* Old Balance Fields */}
+                    <div style={{ marginTop: '10px', padding: '12px', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                      <label className="input-label" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>
+                        Opening Balance (Optional)
+                      </label>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '3px' }}>Amount (₹)</label>
+                          <input
+                            type="number"
+                            className="input"
+                            value={formData.oldBalAmount}
+                            onChange={(e) => setFormData({ ...formData, oldBalAmount: e.target.value })}
+                            placeholder="₹0.00"
+                            step="0.01"
+                            style={{ fontSize: '0.85rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', color: '#FFD700', display: 'block', marginBottom: '3px' }}>Gold Fine (g)</label>
+                          <input
+                            type="number"
+                            className="input"
+                            value={formData.oldBalGold}
+                            onChange={(e) => setFormData({ ...formData, oldBalGold: e.target.value })}
+                            placeholder="0.000g"
+                            step="0.001"
+                            style={{ fontSize: '0.85rem' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '0.75rem', color: '#C0C0C0', display: 'block', marginBottom: '3px' }}>Silver Fine (g)</label>
+                          <input
+                            type="number"
+                            className="input"
+                            value={formData.oldBalSilver}
+                            onChange={(e) => setFormData({ ...formData, oldBalSilver: e.target.value })}
+                            placeholder="0.000g"
+                            step="0.001"
+                            style={{ fontSize: '0.85rem' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   <div className="modal-footer">
                     <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">

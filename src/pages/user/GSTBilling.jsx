@@ -733,7 +733,7 @@ export default function GSTBilling() {
       const item = newItems[index];
       item[field] = value;
 
-      if (['grossWeight', 'lessWeight', 'melting', 'wastage'].includes(field)) {
+      if (['grossWeight', 'lessWeight', 'melting', 'wastage', 'labourRate'].includes(field)) {
         const grossWeight = parseFloat(item.grossWeight) || 0;
         const lessWeight = parseFloat(item.lessWeight) || 0;
         const melting = parseFloat(item.melting) || 0;
@@ -745,7 +745,14 @@ export default function GSTBilling() {
         const rate = item.metalType === 'gold'
           ? (parseFloat(formData.goldRate) || 0)
           : (parseFloat(formData.silverRate) || 0);
-        const amount = (fineWeight * rate) + labourRate;
+        
+        // Apply labour charge type setting
+        const labourChargeType = user?.labourChargeSettings?.type || 'full';
+        const calculatedLabourCharge = labourChargeType === 'per-gram' 
+          ? labourRate * grossWeight 
+          : labourRate;
+        
+        const amount = (fineWeight * rate) + calculatedLabourCharge;
 
         item.netWeight = netWeight.toFixed(3);
         item.fineWeight = fineWeight.toFixed(3);
@@ -754,7 +761,7 @@ export default function GSTBilling() {
 
       return newItems;
     });
-  }, [formData.goldRate, formData.silverRate]);
+  }, [formData.goldRate, formData.silverRate, user?.labourChargeSettings?.type]);
 
   const calculateTotals = useCallback(() => {
     return items.reduce((acc, item) => {

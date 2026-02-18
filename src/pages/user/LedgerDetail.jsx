@@ -1033,31 +1033,62 @@ export default function LedgerDetail() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-2" style={{ marginTop: '1.5rem' }}>
+            <>
+              <div className="grid grid-2" style={{ marginTop: '1.5rem' }}>
 
-              <div>
-                <div className="text-muted" style={{ fontSize: '0.875rem' }}> Fine Gold</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 600, color: ledger?.balances?.goldFineWeight > 0 ? 'red' : undefined }}>
-                  {ledger?.balances?.goldFineWeight > 0 ? '-' : ''}{Math.abs(ledger?.balances?.goldFineWeight || 0).toFixed(3)} g
+                <div>
+                  <div className="text-muted" style={{ fontSize: '0.875rem' }}> Fine Gold</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 600, color: ledger?.balances?.goldFineWeight > 0 ? 'red' : undefined }}>
+                    {ledger?.balances?.goldFineWeight > 0 ? '-' : ''}{Math.abs(ledger?.balances?.goldFineWeight || 0).toFixed(3)} g
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted" style={{ fontSize: '0.875rem' }}> Fine Silver</div>
+                  <div style={{ fontSize: '1.2rem', fontWeight: 600, color: ledger?.balances?.silverFineWeight > 0 ? 'red' : undefined }}>
+                    {ledger?.balances?.silverFineWeight > 0 ? '-' : ''}{Math.abs(ledger?.balances?.silverFineWeight || 0).toFixed(3)} g
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted" style={{ fontSize: '0.875rem' }}>Cash Balance</div>
+                  <div style={{
+                    fontSize: '1.2rem',
+                    fontWeight: 600,
+                    color: displayCashBalance < 0 ? 'red' : displayCashBalance > 0 ? 'green' : undefined
+                  }}>
+                    {formatSignedCurrency(displayCashBalance)}
+                  </div>
                 </div>
               </div>
-              <div>
-                <div className="text-muted" style={{ fontSize: '0.875rem' }}> Fine Silver</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 600, color: ledger?.balances?.silverFineWeight > 0 ? 'red' : undefined }}>
-                  {ledger?.balances?.silverFineWeight > 0 ? '-' : ''}{Math.abs(ledger?.balances?.silverFineWeight || 0).toFixed(3)} g
+
+              {/* Opening Balance Section - show if any opening balance was set */}
+              {(ledger?.openingBalance?.amount || ledger?.openingBalance?.goldFineWeight || ledger?.openingBalance?.silverFineWeight) ? (
+                <div style={{ marginTop: '1rem', padding: '12px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px dashed var(--border-color)' }}>
+                  <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                    📋 Opening Balance (set during creation)
+                  </div>
+                  <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', fontSize: '0.85rem' }}>
+                    {ledger.openingBalance.amount ? (
+                      <div>
+                        <span style={{ color: 'var(--text-secondary)' }}>Amount: </span>
+                        <strong>₹{parseFloat(ledger.openingBalance.amount).toFixed(2)}</strong>
+                      </div>
+                    ) : null}
+                    {ledger.openingBalance.goldFineWeight ? (
+                      <div>
+                        <span style={{ color: 'var(--text-secondary)' }}>Gold Fine: </span>
+                        <strong style={{ color: '#FFD700' }}>{parseFloat(ledger.openingBalance.goldFineWeight).toFixed(3)}g</strong>
+                      </div>
+                    ) : null}
+                    {ledger.openingBalance.silverFineWeight ? (
+                      <div>
+                        <span style={{ color: 'var(--text-secondary)' }}>Silver Fine: </span>
+                        <strong style={{ color: '#C0C0C0' }}>{parseFloat(ledger.openingBalance.silverFineWeight).toFixed(3)}g</strong>
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
-              </div>
-              <div>
-                <div className="text-muted" style={{ fontSize: '0.875rem' }}>Cash Balance</div>
-                <div style={{
-                  fontSize: '1.2rem',
-                  fontWeight: 600,
-                  color: displayCashBalance < 0 ? 'red' : displayCashBalance > 0 ? 'green' : undefined
-                }}>
-                  {formatSignedCurrency(displayCashBalance)}
-                </div>
-              </div>
-            </div>
+              ) : null}
+            </>
           )}
         </div>
 

@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '../../components/Layout';
 import PullToRefresh from '../../components/PullToRefresh';
-import { SkeletonStat, SkeletonTable } from '../../components/Skeleton';
+import { SkeletonTable } from '../../components/Skeleton';
 import { voucherAPI, settlementAPI, stockAPI, ledgerAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import { format } from 'date-fns';
@@ -38,7 +38,7 @@ export default function UserDashboard() {
 
         // Process both sections in parallel
         await Promise.all([
-          processDueCredits(ledgers),
+          processDueCredits(),
           processTodayTransactions(ledgers)
         ]);
       } catch (error) {
@@ -50,22 +50,10 @@ export default function UserDashboard() {
     fetchAllData();
   }, []);
 
-  const processDueCredits = async (ledgers) => {
+  const processDueCredits = async () => {
     try {
-      const dueLedgers = ledgers
-        .filter(ledger => {
-          const creditBalance = parseFloat(ledger.balances?.creditBalance) || 0;
-          return creditBalance > 0;
-        })
-        .map(ledger => ({
-          name: ledger.name,
-          phoneNumber: ledger.phoneNumber,
-          balanceAmount: parseFloat(ledger.balances?.creditBalance) || 0,
-          goldFineWeight: parseFloat(ledger.balances?.goldFineWeight) || 0,
-          silverFineWeight: parseFloat(ledger.balances?.silverFineWeight) || 0
-        }));
-      
-      setDueCredits(dueLedgers);
+      const response = await voucherAPI.getDueCredits();
+      setDueCredits(response?.data?.dueCredits || []);
     } catch (error) {
       console.error('Failed to process due credits:', error);
       setDueCredits([]);
@@ -184,7 +172,7 @@ export default function UserDashboard() {
       const ledgers = ledgersRes.data.ledgers || [];
 
       await Promise.all([
-        processDueCredits(ledgers),
+        processDueCredits(),
         processTodayTransactions(ledgers)
       ]);
     } catch (error) {
@@ -201,6 +189,55 @@ export default function UserDashboard() {
     <Layout>
       <PullToRefresh onRefresh={handleRefresh}>
         <div className={loadingTransactions || loadingDueCredits ? '' : 'fade-in'}>
+          {/* Due Customers Section */}
+          <div style={{ marginBottom: '3rem' }}>
+            <h1 style={{ marginBottom: '1.5rem' }}>Due Customers </h1>
+
+            {loadingDueCredits ? (
+              <SkeletonTable rows={4} columns={5} />
+            ) : dueCredits.length === 0 ? (
+              <div className="card" style={{ textAlign: 'center', padding: '2rem' }}>
+                <p className="text-muted">No due customers right now</p>
+              </div>
+            ) : (
+              <div className="card fade-in">
+                <div className="table-container">
+                  <table className="table" style={{ width: '100%' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: 'var(--bg-secondary)' }}>
+                        <th style={{ padding: '12px', textAlign: 'left' }}>Name</th>
+                        <th style={{ padding: '12px', textAlign: 'right' }}>Amount</th>
+                        <th style={{ padding: '12px', textAlign: 'right' }}>Gold (g)</th>
+                        <th style={{ padding: '12px', textAlign: 'right' }}>Silver (g)</th>
+                        <th style={{ padding: '12px', textAlign: 'left' }}>Due</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dueCredits.map((due) => (
+                        <tr key={due.ledgerId} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                          <td style={{ padding: '12px' }}>{due.name || 'N/A'}</td>
+                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600' }}>
+                            ₹{(parseFloat(due.balanceAmount) || 0).toFixed(2)}
+                          </td>
+                          <td style={{ padding: '12px', textAlign: 'right', color: '#b7791f', fontWeight: '600' }}>
+                            {(parseFloat(due.goldFineWeight) || 0).toFixed(3)}
+                          </td>
+                          <td style={{ padding: '12px', textAlign: 'right', color: '#4a5568', fontWeight: '600' }}>
+                            {(parseFloat(due.silverFineWeight) || 0).toFixed(3)}
+                          </td>
+                          <td style={{ padding: '12px' }}>
+                            {due.dueDate ? format(new Date(due.dueDate), 'dd MMM yyyy') : '-'}
+                            {` (${parseInt(due.daysOverdue || 0, 10)}d)`}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Today's Transaction Summary */}
           <div style={{ marginBottom: '3rem' }}>
             <h1 style={{ marginBottom: '1.5rem' }}>Today's Transactions</h1>
