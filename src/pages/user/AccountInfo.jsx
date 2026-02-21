@@ -139,7 +139,7 @@ export default function AccountInfo() {
       <div style={{ maxWidth: '800px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <h1 style={{ margin: 0 }}>Account Information</h1>
-          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>v3.0</span>
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>v3.1</span>
         </div>
 
         <div className="card" style={{ marginBottom: '1.5rem' }}>
@@ -445,11 +445,11 @@ export default function AccountInfo() {
               </button>
             </div>
           </div>
-          <div style={{ 
-            padding: '1rem', 
-            backgroundColor: 'rgba(102, 126, 234, 0.05)', 
-            borderLeft: '4px solid #667eea', 
-            borderRadius: '4px' 
+          <div style={{
+            padding: '1rem',
+            backgroundColor: 'rgba(102, 126, 234, 0.05)',
+            borderLeft: '4px solid #667eea',
+            borderRadius: '4px'
           }}>
             <p style={{ margin: '0', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
               <strong>Current setting:</strong> Labour charges will be calculated as <strong>{labourChargeType === 'full' ? 'fixed amount' : 'price per gram × gross weight'}</strong>

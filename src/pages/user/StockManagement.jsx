@@ -1,10 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { stockAPI, ledgerAPI, voucherAPI, settlementAPI, expenseAPI, karigarAPI } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import Layout from '../../components/Layout';
 import { FiDownload, FiPrinter, FiRotateCcw } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { SkeletonStat, SkeletonTable } from '../../components/Skeleton';
 import PullToRefresh from '../../components/PullToRefresh';
+import ItemStockManagement from './ItemStockManagement';
 
 const HOUR_OPTIONS = Array.from({ length: 12 }, (_, index) => String(index + 1).padStart(2, '0'));
 const MINUTE_OPTIONS = Array.from({ length: 60 }, (_, index) => String(index).padStart(2, '0'));
@@ -77,6 +79,18 @@ const formatTime12Hour = (value) => {
 const escapeCsv = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
 
 const StockManagement = () => {
+  const { user } = useAuth();
+
+  // If user is in item mode, render ItemStockManagement instead
+  if (user?.stockMode === 'item') {
+    return (
+      <Layout>
+        <ItemStockManagement />
+      </Layout>
+    );
+  }
+
+  // Otherwise, render traditional bulk stock management
   const [goldStock, setGoldStock] = useState(0);
   const [silverStock, setSilverStock] = useState(0);
   const [goldInput, setGoldInput] = useState('');

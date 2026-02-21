@@ -30,6 +30,7 @@ export default function Layout({ children }) {
     { path: '/expenses', icon: FiTrendingUp, label: 'Expenses' },
     { path: '/karigar', icon: FiDollarSign, label: 'Karigar' },
     { path: '/stock', icon: FiDollarSign, label: 'Stock Management' },
+    { path: '/item-reports', icon: FiFileText, label: 'Item Reports', requiresItemMode: true },
     { path: '/account', icon: FiSettings, label: 'Account' },
   ];
 
@@ -38,6 +39,9 @@ export default function Layout({ children }) {
     // If item requires GST, only show it if user has GST enabled
     if (item.requiresGST) {
       return user?.gstEnabled === true;
+    }
+    if (item.requiresItemMode) {
+      return user?.stockMode === 'item';
     }
     return true;
   });

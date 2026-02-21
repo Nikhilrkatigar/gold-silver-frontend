@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '../../components/Layout';
-import { ledgerAPI, voucherAPI, settlementAPI } from '../../services/api';
+import { ledgerAPI, voucherAPI, settlementAPI, itemAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import { FiPlus, FiX, FiSave, FiPrinter, FiShare2, FiRefreshCw } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
@@ -9,6 +9,7 @@ import html2pdf from 'html2pdf.js';
 import { isValidGSTFormat, extractStateFromGST, calculateGST } from '../../utils/gstCalculations';
 import PullToRefresh from '../../components/PullToRefresh';
 import { SkeletonTable, SkeletonStat } from '../../components/Skeleton';
+import ItemScanner from '../../components/ItemScanner';
 
 // Voucher Print Template Component
 const VoucherTemplate = ({ formData, items, ledgers, user, voucherData }) => {
@@ -648,6 +649,54 @@ export default function Billing() {
     });
   }, [formData.goldRate, formData.silverRate, user?.labourChargeSettings?.type]);
 
+  // Handle scanned item from item scanner (item mode only)
+  const handleItemScanned = useCallback((scannedItem) => {
+    // Convert database item to invoice item format
+    const newInvoiceItem = {
+      metalType: scannedItem.metal,
+      itemName: scannedItem.name,
+      pieces: 1,
+      grossWeight: scannedItem.grossWeight.toString(),
+      lessWeight: scannedItem.lessWeight.toString(),
+      netWeight: scannedItem.netWeight.toFixed(3),
+      melting: scannedItem.meltingPercent ? scannedItem.meltingPercent.toString() : '0',
+      wastage: scannedItem.wastage ? scannedItem.wastage.toString() : '0',
+      fineWeight: '',
+      labourRate: scannedItem.labour ? scannedItem.labour.toString() : '0',
+      amount: '',
+      _itemId: scannedItem._id // Track original item ID for marking as sold
+    };
+
+    // Calculate net weight and fine weight using updateItem logic
+    const grossWeight = parseFloat(newInvoiceItem.grossWeight) || 0;
+    const lessWeight = parseFloat(newInvoiceItem.lessWeight) || 0;
+    const melting = parseFloat(newInvoiceItem.melting) || 0;
+    const wastage = parseFloat(newInvoiceItem.wastage) || 0;
+    const labourRate = parseFloat(newInvoiceItem.labourRate) || 0;
+
+    const netWeight = grossWeight - lessWeight;
+    const fineWeight = (netWeight * (melting / 100)) + wastage;
+
+    const rate = newInvoiceItem.metalType === 'gold'
+      ? (parseFloat(formData.goldRate) || 0)
+      : (parseFloat(formData.silverRate) || 0);
+
+    const labourChargeType = user?.labourChargeSettings?.type || 'full';
+    const calculatedLabourCharge = labourChargeType === 'per-gram'
+      ? labourRate * grossWeight
+      : labourRate;
+
+    const amount = (fineWeight * rate) + calculatedLabourCharge;
+
+    newInvoiceItem.netWeight = netWeight.toFixed(3);
+    newInvoiceItem.fineWeight = fineWeight.toFixed(3);
+    newInvoiceItem.amount = amount.toFixed(2);
+
+    // Add to items array
+    setItems(prev => [...prev, newInvoiceItem]);
+    toast.success(`✓ ${scannedItem.name} added to invoice`);
+  }, [formData.goldRate, formData.silverRate, user?.labourChargeSettings?.type]);
+
   const calculateTotals = useCallback(() => {
     // Calculate labour charge based on type
     const labourChargeType = user?.labourChargeSettings?.type || 'full';
@@ -753,6 +802,7 @@ export default function Billing() {
     }
 
     const cleanedItems = items.map(item => ({
+      sourceItemId: item._itemId || undefined,
       metalType: item.metalType,
       itemName: item.itemName,
       pieces: parseInt(item.pieces) || 0,
@@ -825,14 +875,60 @@ export default function Billing() {
 
     try {
       const isSettlementType = ['add_cash', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'].includes(formData.paymentType);
+      const isItemModeBilling = user?.stockMode === 'item' && !isSettlementType;
 
+      let voucherId;
+      let createdNewVoucher = false;
       if (editingVoucherId) {
         await voucherAPI.update(editingVoucherId, voucherData);
-        toast.success(isSettlementType ? 'Settlement updated successfully!' : 'Voucher updated successfully!');
+        voucherId = editingVoucherId;
       } else {
-        await voucherAPI.create(voucherData);
-        toast.success(isSettlementType ? 'Settlement created successfully! Balance updated.' : 'Voucher created successfully!');
+        const response = await voucherAPI.create(voucherData);
+        voucherId = response.data.voucher?._id;
+        createdNewVoucher = true;
       }
+
+      // Mark items as sold (item mode only)
+      if (isItemModeBilling && voucherId) {
+        const itemIdsToMarkSold = items
+          .filter(item => item._itemId)
+          .map(item => item._itemId);
+
+        if (itemIdsToMarkSold.length > 0) {
+          try {
+            const markSoldRes = await itemAPI.markSoldBatch(itemIdsToMarkSold, voucherId);
+            const failedItems = markSoldRes?.data?.results?.failed || [];
+            if (failedItems.length > 0) {
+              throw new Error(failedItems[0]?.reason || 'Failed to mark one or more items as sold');
+            }
+          } catch (itemError) {
+            console.error('Failed to mark items as sold:', itemError);
+            const markSoldErrorMessage = itemError?.response?.data?.message || itemError?.message || 'Failed to mark items as sold';
+
+            if (createdNewVoucher) {
+              try {
+                await voucherAPI.delete(voucherId);
+                toast.error(`Voucher was not saved: ${markSoldErrorMessage}`);
+                return;
+              } catch (rollbackError) {
+                console.error('Voucher rollback failed after item mark-sold failure:', rollbackError);
+                toast.warning('Voucher saved, but item sale sync failed. Please resolve from stock/invoice records.');
+                return;
+              }
+            }
+
+            toast.warning(`Voucher updated, but item sale sync failed: ${markSoldErrorMessage}`);
+            return;
+          }
+        }
+      }
+
+      toast.success(
+        editingVoucherId
+          ? (isSettlementType ? 'Settlement updated successfully!' : 'Voucher updated successfully!')
+          : (isSettlementType ? 'Settlement created successfully! Balance updated.' : 'Voucher created successfully!')
+      );
+
       setTimeout(() => {
         window.location.reload();
       }, 1000);
@@ -898,11 +994,14 @@ export default function Billing() {
           body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
           table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
           th, td { border: 1px solid #000; padding: 5px; text-align: left; font-size: 12px; }
+          tr, th, td { page-break-inside: avoid; break-inside: avoid; }
+          thead { display: table-header-group; }
           th { background-color: #f0f0f0; font-weight: bold; }
           .total-row { font-weight: bold; background-color: #f0f0f0; }
-          .balance-box { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; background-color: #fafafa; }
+          .balance-box { border: 1px solid #ddd; padding: 10px; margin-bottom: 10px; background-color: #fafafa; page-break-inside: avoid; break-inside: avoid; }
           .balance-label { font-weight: bold; margin-bottom: 8px; font-size: 12px; }
           .balance-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; }
+          .avoid-break { page-break-inside: avoid; break-inside: avoid; }
           @media print { body { margin: 0; padding: 10px; } }
         </style>
       </head>
@@ -980,7 +1079,7 @@ export default function Billing() {
           </table>
 
           <!-- Amount Summary and Rates -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; font-size: 14px;">
+          <div class="avoid-break" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; font-size: 14px;">
             <div>
               <div style="font-weight: bold; margin-bottom: 5px;">Amount Summary</div>
               <div style="display: flex; justify-content: space-between;">
@@ -1010,7 +1109,7 @@ export default function Billing() {
           </div>
 
           <!-- Balance Details Section -->
-          <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #000;">
+          <div class="avoid-break" style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #000;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
               <div>Cash Received</div>
               <div>₹${parseFloat(formData.cashReceived || 0).toFixed(2)}</div>
@@ -1027,7 +1126,7 @@ export default function Billing() {
             </div>
 
             <!-- Rates and Cash Received Section -->
-            <div style="margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; background-color: #f9f9f9;">
+            <div class="avoid-break" style="margin-bottom: 15px; padding: 10px; border: 1px solid #ddd; background-color: #f9f9f9;">
               <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
                 <div style="font-weight: bold;">Gold Rate:</div>
                 <div>₹${parseFloat(formData.goldRate || 0).toFixed(2)}/g</div>
@@ -1122,15 +1221,27 @@ export default function Billing() {
       // IMPORTANT: Force light mode colors for PDF to work in both light and dark app themes
       const voucherContent = document.createElement('div');
       voucherContent.innerHTML = `
+        <style>
+          .pdf-avoid-break {
+            page-break-inside: avoid;
+            break-inside: avoid;
+            -webkit-column-break-inside: avoid;
+          }
+          tr, th, td {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          thead { display: table-header-group; }
+        </style>
         <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; background-color: #ffffff; color: #333333;">
           <!-- Header -->
-          <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #333; padding-bottom: 20px;">
+          <div class="pdf-avoid-break" style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #333; padding-bottom: 20px;">
             <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #000000;">${user?.shopName || 'ESTIMATE/ON APPROVAL'}</h1>
             <p style="margin: 8px 0 0 0; font-size: 16px; color: #333333;">ESTIMATE/ON APPROVAL - ISSUE</p>
           </div>
 
           <!-- Customer & Voucher Info -->
-          <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #333333;">
+          <div class="pdf-avoid-break" style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #333333;">
             <div>
               <div style="font-weight: bold; margin-bottom: 5px; color: #000000;">Customer Name</div>
               <div style="font-size: 16px; font-weight: 600; color: #000000;">${ledger?.name || 'N/A'}</div>
@@ -1141,7 +1252,7 @@ export default function Billing() {
             </div>
           </div>
 
-          <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #444444; border-bottom: 1px solid #ccc; padding-bottom: 15px;">
+          <div class="pdf-avoid-break" style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #444444; border-bottom: 1px solid #ccc; padding-bottom: 15px;">
             <div>Date: <strong style="color: #000000;">${new Date(formData.date).toLocaleDateString('en-IN')}</strong></div>
             <div>Time: <strong style="color: #000000;">${new Date().toLocaleTimeString('en-IN')}</strong></div>
           </div>
@@ -1189,7 +1300,7 @@ export default function Billing() {
           </table>
 
           <!-- Summary Section -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; font-size: 14px; color: #333333;">
+          <div class="pdf-avoid-break" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; font-size: 14px; color: #333333;">
             <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0;">
               <h3 style="margin: 0 0 15px 0; font-size: 14px; font-weight: bold; color: #000000;">Amount Summary</h3>
               <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #333333;">
@@ -1230,7 +1341,7 @@ export default function Billing() {
           </div>
 
           <!-- Balance Section -->
-          <div style="background-color: #fff3cd; padding: 20px; border-radius: 8px; border: 2px solid #ffc107; margin-bottom: 20px; font-size: 14px; color: #333333;">
+          <div class="pdf-avoid-break" style="background-color: #fff3cd; padding: 20px; border-radius: 8px; border: 2px solid #ffc107; margin-bottom: 20px; font-size: 14px; color: #333333;">
             <h3 style="margin: 0 0 15px 0; font-size: 14px; font-weight: bold; color: #856404;">Balance Details</h3>
             
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
@@ -1244,7 +1355,7 @@ export default function Billing() {
               </div>
             </div>
 
-            <div style="border-top: 1px solid rgba(0,0,0,0.1); padding-top: 15px; margin-bottom: 15px;">
+            <div class="pdf-avoid-break" style="border-top: 1px solid rgba(0,0,0,0.1); padding-top: 15px; margin-bottom: 15px;">
               <h4 style="margin: 0 0 10px 0; color: #856404;">Old Balance Details (${formData.paymentType === 'credit' ? 'Credit Bill' : 'Cash Bill'})</h4>
               <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
                 <div>
@@ -1262,7 +1373,7 @@ export default function Billing() {
               </div>
             </div>
 
-            <div style="border-top: 1px solid rgba(0,0,0,0.1); padding-top: 15px;">
+            <div class="pdf-avoid-break" style="border-top: 1px solid rgba(0,0,0,0.1); padding-top: 15px;">
               <h4 style="margin: 0 0 10px 0; color: #856404;">Current Balance</h4>
               <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
                 <div style="background-color: #d4edda; padding: 15px; border-radius: 4px;">
@@ -1301,7 +1412,7 @@ export default function Billing() {
             totalGST = cgst + sgst;
           }
 
-          let html = '<div style="background-color: #e3f2fd; padding: 20px; border-radius: 8px; border: 2px solid #2196f3; margin-bottom: 20px; font-size: 14px; color: #333333;"><h3 style="margin: 0 0 15px 0; font-size: 14px; font-weight: bold; color: #1565c0;">📄 GST Details (Tax Invoice)</h3>';
+          let html = '<div class="pdf-avoid-break" style="background-color: #e3f2fd; padding: 20px; border-radius: 8px; border: 2px solid #2196f3; margin-bottom: 20px; font-size: 14px; color: #333333;"><h3 style="margin: 0 0 15px 0; font-size: 14px; font-weight: bold; color: #1565c0;">📄 GST Details (Tax Invoice)</h3>';
 
           html += '<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;"><div style="background-color: rgba(255,255,255,0.6); padding: 12px; border-radius: 4px;"><div style="color: #666; font-size: 12px; margin-bottom: 3px;">Taxable Amount</div><div style="font-size: 14px; font-weight: bold; color: #000000;">₹' + taxableAmount.toFixed(2) + '</div></div><div style="background-color: rgba(255,255,255,0.6); padding: 12px; border-radius: 4px;"><div style="color: #666; font-size: 12px; margin-bottom: 3px;">GST Rate</div><div style="font-size: 14px; font-weight: bold; color: #000000;">' + rate + '%</div></div>';
           if (gstType === 'IGST') {
@@ -1314,7 +1425,7 @@ export default function Billing() {
         })() : ''}
 
           <!-- Footer -->
-          <div style="text-align: center; border-top: 2px solid #ddd; padding-top: 20px; font-size: 12px; color: #666666;">
+          <div class="pdf-avoid-break" style="text-align: center; border-top: 2px solid #ddd; padding-top: 20px; font-size: 12px; color: #666666;">
             <p style="margin: 0; color: #666666;">Generated on ${new Date().toLocaleString('en-IN')}</p>
             <p style="margin: 0; color: #666666;">This is an electronically generated document</p>
           </div>
@@ -1332,6 +1443,10 @@ export default function Billing() {
           margin: [10, 10, 10, 10],
           filename: `Voucher-${formData.voucherNumber}-${Date.now()}.pdf`,
           image: { type: 'jpeg', quality: 0.98 },
+          pagebreak: {
+            mode: ['css', 'legacy'],
+            avoid: ['.pdf-avoid-break', '.balance-box', 'tr']
+          },
           html2canvas: {
             scale: 2,
             useCors: true,
@@ -1842,6 +1957,14 @@ export default function Billing() {
               {!['add_cash', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'].includes(formData.paymentType) && (
                 <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
                   <h3>Items</h3>
+
+                  {/* Item Scanner for Item Mode */}
+                  {user?.stockMode === 'item' && (
+                    <ItemScanner 
+                      onItemSelected={handleItemScanned}
+                      existingItems={items.filter(item => item._itemId)}
+                    />
+                  )}
 
                   <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
                     <button type="button" onClick={() => addRow('gold')} style={{

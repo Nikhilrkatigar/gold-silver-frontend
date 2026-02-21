@@ -113,4 +113,26 @@ export const expenseAPI = {
   delete: (id) => api.delete(`/api/expense/${id}`),
 };
 
+// Category APIs (Item Mode)
+export const categoryAPI = {
+  create: (data) => api.post('/api/category', data),
+  getAll: (params) => api.get('/api/category', { params }),
+  getOne: (id) => api.get(`/api/category/${id}`),
+  update: (id, data) => api.put(`/api/category/${id}`, data),
+  delete: (id) => api.delete(`/api/category/${id}`),
+  getStats: (id) => api.get(`/api/category/${id}/stats`),
+};
+
+// Item APIs (Item Mode)
+export const itemAPI = {
+  create: (data) => api.post('/api/item', data),
+  getAll: (params) => api.get('/api/item', { params }),
+  getOne: (id) => api.get(`/api/item/${id}`),
+  update: (id, data) => api.put(`/api/item/${id}`, data),
+  delete: (id) => api.delete(`/api/item/${id}`),
+  override: (id, data) => api.post(`/api/item/${id}/override`, data),
+  getByCode: (code) => api.get(`/api/item/code/${code}`),
+  markSoldBatch: (itemIds, invoiceId) => api.post('/api/item/mark-sold/batch', { itemIds, invoiceId }),
+};
+
 export default api;

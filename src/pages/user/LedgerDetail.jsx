@@ -211,6 +211,8 @@ export default function LedgerDetail() {
           body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #fff; color: #000; }
           table { width: 100%; border-collapse: collapse; }
           th, td { border: 1px solid #000; padding: 8px; text-align: left; }
+          tr, th, td { page-break-inside: avoid; break-inside: avoid; }
+          thead { display: table-header-group; }
           th { background-color: #f5f5f5; font-weight: bold; }
           .header { text-align: center; font-size: 18px; font-weight: bold; margin-bottom: 10px; border-bottom: 2px solid #000; padding-bottom: 10px; }
           .shop-name { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
@@ -219,6 +221,7 @@ export default function LedgerDetail() {
           .section-label { font-weight: bold; margin-bottom: 5px; margin-top: 10px; }
           .line-height { height: 30px; border-bottom: 1px solid #000; }
           .voucher-container { max-width: 900px; margin: 0 auto; }
+          .avoid-break { page-break-inside: avoid; break-inside: avoid; }
           @media print { body { margin: 0; padding: 0; background-color: #fff; } }
         </style>
       </head>
@@ -287,7 +290,7 @@ export default function LedgerDetail() {
             </tbody>
           </table>
 
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+          <div class="avoid-break" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
             <div>
               <div style="font-weight: bold; margin-bottom: 5px;">Stone Amount :</div>
               <div>${parseFloat(voucher.stoneAmount || 0).toFixed(2)}</div>
@@ -329,7 +332,7 @@ export default function LedgerDetail() {
           </div>
 
           <!-- Old Balance Details Box -->
-          <div style="border: 1px solid #000; padding: 10px; margin-top: 15px; margin-bottom: 10px;">
+          <div class="avoid-break" style="border: 1px solid #000; padding: 10px; margin-top: 15px; margin-bottom: 10px;">
             <div style="font-weight: bold; margin-bottom: 10px;">Customer Balance</div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
               <div>Fine Gold</div>
@@ -554,16 +557,28 @@ export default function LedgerDetail() {
 
       const voucherContent = document.createElement('div');
       voucherContent.innerHTML = `
+        <style>
+          .pdf-avoid-break {
+            page-break-inside: avoid;
+            break-inside: avoid;
+            -webkit-column-break-inside: avoid;
+          }
+          tr, th, td {
+            page-break-inside: avoid;
+            break-inside: avoid;
+          }
+          thead { display: table-header-group; }
+        </style>
         <div style="font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; background-color: #ffffff; color: #333333;">
           <!-- Header -->
-          <div style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #333; padding-bottom: 20px;">
+          <div class="pdf-avoid-break" style="text-align: center; margin-bottom: 30px; border-bottom: 3px solid #333; padding-bottom: 20px;">
             <h1 style="margin: 0; font-size: 28px; font-weight: bold; color: #000000;">${user?.shopName || 'ESTIMATE/ON APPROVAL'}</h1>
             ${user?.phoneNumber ? `<p style="margin: 2px 0; font-size: 14px; color: #666;">📞 ${user.phoneNumber}</p>` : ''}
             <p style="margin: 8px 0 0 0; font-size: 16px; color: #333333;">ESTIMATE/ON APPROVAL - ISSUE</p>
           </div>
 
           <!-- Customer & Voucher Info -->
-          <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #333333;">
+          <div class="pdf-avoid-break" style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #333333;">
             <div>
               <div style="font-weight: bold; margin-bottom: 5px; color: #000000;">Customer Name</div>
               <div style="font-size: 16px; font-weight: 600; color: #000000;">${ledger?.name || 'N/A'}</div>
@@ -574,7 +589,7 @@ export default function LedgerDetail() {
             </div>
           </div>
 
-          <div style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #444444; border-bottom: 1px solid #ccc; padding-bottom: 15px;">
+          <div class="pdf-avoid-break" style="display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; color: #444444; border-bottom: 1px solid #ccc; padding-bottom: 15px;">
             <div>Date: <strong style="color: #000000;">${new Date(voucher.date).toLocaleDateString('en-IN')}</strong></div>
             <div>Time: <strong style="color: #000000;">${new Date().toLocaleTimeString('en-IN')}</strong></div>
           </div>
@@ -624,7 +639,7 @@ export default function LedgerDetail() {
           </table>
 
           <!-- Summary Section -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; font-size: 14px;">
+          <div class="pdf-avoid-break" style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-bottom: 30px; font-size: 14px;">
             <div style="background-color: #f9f9f9; padding: 20px; border-radius: 8px; border: 1px solid #e0e0e0;">
               <h3 style="margin: 0 0 15px 0; font-size: 14px; font-weight: bold; color: #333;">Amount Summary</h3>
               <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
@@ -655,7 +670,7 @@ export default function LedgerDetail() {
           </div>
 
           <!-- Balance Details Section -->
-          <div style="margin-top: 30px; margin-bottom: 30px;">
+          <div class="pdf-avoid-break" style="margin-top: 30px; margin-bottom: 30px;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 14px; font-weight: bold; color: #000000;">
               <span>Cash Received</span>
               <span>${parseFloat(voucher.cashReceived || 0).toFixed(2)}</span>
@@ -667,7 +682,7 @@ export default function LedgerDetail() {
 
             <!-- Balance Details Section - Side by Side -->
             <!-- Customer Profile Balance -->
-            <div style="border: 1px solid #000; padding: 15px; background-color: #ffffff;">
+            <div class="pdf-avoid-break" style="border: 1px solid #000; padding: 15px; background-color: #ffffff;">
               <div style="font-weight: bold; margin-bottom: 10px; font-size: 13px; color: #000000;">Customer Balance</div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
                 <span>Fine Gold</span>
@@ -685,7 +700,7 @@ export default function LedgerDetail() {
           </div>
 
           <!-- Footer -->
-          <div style="text-align: center; border-top: 2px solid #ddd; padding-top: 20px; font-size: 12px; color: #666666;">
+          <div class="pdf-avoid-break" style="text-align: center; border-top: 2px solid #ddd; padding-top: 20px; font-size: 12px; color: #666666;">
             <p style="margin: 0; color: #666666;">Generated on ${new Date().toLocaleString('en-IN')}</p>
             <p style="margin: 0; color: #666666;">This is an electronically generated document</p>
           </div>
@@ -701,6 +716,10 @@ export default function LedgerDetail() {
           margin: [10, 10, 10, 10],
           filename: `Voucher-${voucher.voucherNumber}-${Date.now()}.pdf`,
           image: { type: 'jpeg', quality: 0.98 },
+          pagebreak: {
+            mode: ['css', 'legacy'],
+            avoid: ['.pdf-avoid-break', 'tr']
+          },
           html2canvas: {
             scale: 2,
             useCors: true,

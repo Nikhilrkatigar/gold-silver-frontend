@@ -21,6 +21,7 @@ import Expenses from './pages/user/Expenses';
 import AccountInfo from './pages/user/AccountInfo';
 import StockManagement from './pages/user/StockManagement';
 import Karigar from './pages/user/Karigar';
+import ItemReports from './pages/user/ItemReports';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, adminOnly = false }) => {
@@ -81,6 +82,7 @@ function AppRoutes() {
       <Route path="/ledgers/:id" element={<ProtectedRoute><LedgerDetail /></ProtectedRoute>} />
       <Route path="/expenses" element={<ProtectedRoute><Expenses /></ProtectedRoute>} />
       <Route path="/stock" element={<ProtectedRoute><StockManagement /></ProtectedRoute>} />
+      <Route path="/item-reports" element={<ProtectedRoute><ItemReports /></ProtectedRoute>} />
       <Route path="/account" element={<ProtectedRoute><AccountInfo /></ProtectedRoute>} />
       <Route path="/karigar" element={<ProtectedRoute><Karigar /></ProtectedRoute>} />
 

@@ -10,6 +10,7 @@ export default function AddUser() {
     phoneNumber: '',
     password: '',
     licenseDays: '30',
+    stockMode: 'bulk',
     gstEnabled: false,
     gstEditPermission: 'user'
   });
@@ -34,6 +35,7 @@ export default function AddUser() {
         phoneNumber: formData.phoneNumber,
         password: formData.password,
         licenseDays: formData.licenseDays,
+        stockMode: formData.stockMode,
         gstEnabled: formData.gstEnabled,
         gstSettings: {
           gstEditPermission: formData.gstEditPermission,
@@ -48,6 +50,7 @@ export default function AddUser() {
         phoneNumber: '',
         password: '',
         licenseDays: '30',
+        stockMode: 'bulk',
         gstEnabled: false,
         gstEditPermission: 'user'
       });
@@ -147,6 +150,27 @@ export default function AddUser() {
                 min="1"
                 required
               />
+            </div>
+
+            <div className="input-group">
+              <label className="input-label">
+                📦 Stock Management Mode
+              </label>
+              <select
+                name="stockMode"
+                className="input"
+                value={formData.stockMode}
+                onChange={handleChange}
+              >
+                <option value="bulk">Bulk Mode (Traditional) - Track gold/silver in bulk</option>
+                <option value="item">Item-wise Mode (Advanced) - Track individual items with QR codes</option>
+              </select>
+              <small style={{ display: 'block', marginTop: '0.5rem', color: 'var(--text-secondary)' }}>
+                {formData.stockMode === 'bulk'
+                  ? 'User will track stock as bulk quantities (gold in grams, silver in grams)'
+                  : 'User will track individual items with QR codes, categories, and detailed audits'
+                }
+              </small>
             </div>
 
             <div style={{ marginBottom: '1.5rem', padding: '1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
