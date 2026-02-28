@@ -143,11 +143,69 @@ export default function Reports() {
                 .sort((a, b) => (b.balances?.cashBalance || 0) - (a.balances?.cashBalance || 0))
                 .slice(0, 5);
 
+            // ────── AI DEMAND FORECASTING ──────────────────────────────
+            // Day-of-week analysis
+            const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            const dayOfWeekMap = {};
+            dayNames.forEach((d, i) => { dayOfWeekMap[i] = { day: d, count: 0, amount: 0, gold: 0, silver: 0 }; });
+            saleVouchers.forEach(v => {
+                const dow = new Date(v.date || v.createdAt).getDay();
+                dayOfWeekMap[dow].count++;
+                dayOfWeekMap[dow].amount += v.total || 0;
+                v.items?.forEach(i => {
+                    if (i.metalType === 'gold') dayOfWeekMap[dow].gold += i.fineWeight || 0;
+                    if (i.metalType === 'silver') dayOfWeekMap[dow].silver += i.fineWeight || 0;
+                });
+            });
+            const dayOfWeek = Object.values(dayOfWeekMap).filter(d => d.count > 0).sort((a, b) => b.amount - a.amount);
+
+            // Top sold items analysis
+            const itemPopularity = {};
+            saleVouchers.forEach(v => {
+                v.items?.forEach(i => {
+                    const name = (i.itemName || 'Unknown').toLowerCase().trim();
+                    if (!itemPopularity[name]) itemPopularity[name] = { name: i.itemName || 'Unknown', count: 0, totalWeight: 0, totalAmount: 0, metal: i.metalType };
+                    itemPopularity[name].count++;
+                    itemPopularity[name].totalWeight += i.fineWeight || 0;
+                    itemPopularity[name].totalAmount += i.amount || 0;
+                });
+            });
+            const topItems = Object.values(itemPopularity).sort((a, b) => b.count - a.count).slice(0, 8);
+
+            // Metal demand ratio
+            const totalGoldAmt = saleVouchers.reduce((s, v) => s + (v.items?.filter(i => i.metalType === 'gold').reduce((a, i) => a + (i.amount || 0), 0) || 0), 0);
+            const totalSilverAmt = saleVouchers.reduce((s, v) => s + (v.items?.filter(i => i.metalType === 'silver').reduce((a, i) => a + (i.amount || 0), 0) || 0), 0);
+            const goldRatio = totalSales > 0 ? ((totalGoldAmt / totalSales) * 100) : 0;
+            const silverRatio = totalSales > 0 ? ((totalSilverAmt / totalSales) * 100) : 0;
+
+            // Projection: daily avg revenue & growth
+            const totalDays = daily.length || 1;
+            const avgDailyRevenue = totalSales / totalDays;
+            const avgDailyGold = goldSold / totalDays;
+            const avgDailySilver = silverSold / totalDays;
+
+            // Revenue trend (first half vs second half of period)
+            const sortedDaily = [...daily].sort((a, b) => a.date.localeCompare(b.date));
+            const half = Math.ceil(sortedDaily.length / 2);
+            const firstHalf = sortedDaily.slice(0, half);
+            const secondHalf = sortedDaily.slice(half);
+            const firstHalfAvg = firstHalf.length > 0 ? firstHalf.reduce((s, d) => s + d.amount, 0) / firstHalf.length : 0;
+            const secondHalfAvg = secondHalf.length > 0 ? secondHalf.reduce((s, d) => s + d.amount, 0) / secondHalf.length : 0;
+            const growthRate = firstHalfAvg > 0 ? ((secondHalfAvg - firstHalfAvg) / firstHalfAvg) * 100 : 0;
+            const projectedNextPeriod = avgDailyRevenue * totalDays * (1 + growthRate / 100);
+
+            const forecast = {
+                dayOfWeek, topItems, goldRatio, silverRatio,
+                avgDailyRevenue, avgDailyGold, avgDailySilver,
+                growthRate, projectedNextPeriod, totalDays
+            };
+
             setData({
                 totalSales, totalPurchase, goldSold, silverSold, goldBought,
                 totalCashReceived, totalExpenses, creditVouchers, totalCreditValue,
                 topCustomers, daily, expCatMap, dueCustomers,
-                voucherCount: rangeVouchers.length, saleCount: saleVouchers.length
+                voucherCount: rangeVouchers.length, saleCount: saleVouchers.length,
+                forecast
             });
         } catch (err) {
             toast.error('Failed to load report data');
@@ -305,6 +363,108 @@ export default function Reports() {
                                             <div style={{ fontSize: 16, fontWeight: 700, color: '#ef4444' }}>{fmtAmt(amt)}</div>
                                         </div>
                                     ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* ── AI DEMAND FORECASTING ────────────────────── */}
+                        {data.forecast && (
+                            <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 20, marginTop: 28 }}>
+                                <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700 }}>🤖 AI Demand Forecasting</h3>
+                                <p style={{ margin: '0 0 18px', fontSize: 11, color: 'var(--color-muted)' }}>Based on {data.forecast.totalDays} days of transaction history</p>
+
+                                {/* Revenue Projection */}
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 20 }}>
+                                    <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: 14, borderLeft: '4px solid #f59e0b' }}>
+                                        <div style={{ fontSize: 11, color: 'var(--color-muted)', marginBottom: 4 }}>Avg Daily Revenue</div>
+                                        <div style={{ fontSize: 18, fontWeight: 700, color: '#f59e0b' }}>{fmtAmt(data.forecast.avgDailyRevenue)}</div>
+                                    </div>
+                                    <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: 14, borderLeft: '4px solid #10b981' }}>
+                                        <div style={{ fontSize: 11, color: 'var(--color-muted)', marginBottom: 4 }}>Projected Next Period</div>
+                                        <div style={{ fontSize: 18, fontWeight: 700, color: '#10b981' }}>{fmtAmt(data.forecast.projectedNextPeriod)}</div>
+                                    </div>
+                                    <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: 14, borderLeft: `4px solid ${data.forecast.growthRate >= 0 ? '#10b981' : '#ef4444'}` }}>
+                                        <div style={{ fontSize: 11, color: 'var(--color-muted)', marginBottom: 4 }}>Revenue Trend</div>
+                                        <div style={{ fontSize: 18, fontWeight: 700, color: data.forecast.growthRate >= 0 ? '#10b981' : '#ef4444' }}>
+                                            {data.forecast.growthRate >= 0 ? '📈' : '📉'} {data.forecast.growthRate.toFixed(1)}%
+                                        </div>
+                                    </div>
+                                    <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: 14, borderLeft: '4px solid #B8860B' }}>
+                                        <div style={{ fontSize: 11, color: 'var(--color-muted)', marginBottom: 4 }}>Avg Daily Gold</div>
+                                        <div style={{ fontSize: 18, fontWeight: 700, color: '#B8860B' }}>{fmtWt(data.forecast.avgDailyGold)}</div>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
+                                    {/* Best Selling Days */}
+                                    <div>
+                                        <h4 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>📅 Best Selling Days</h4>
+                                        {data.forecast.dayOfWeek.length === 0 && <div style={{ color: 'var(--color-muted)', fontSize: 12 }}>No data</div>}
+                                        {data.forecast.dayOfWeek.map((d, i) => (
+                                            <div key={d.day} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border-color)', fontSize: 12 }}>
+                                                <span style={{ fontWeight: i < 2 ? 600 : 400 }}>
+                                                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`} {d.day}
+                                                </span>
+                                                <span style={{ display: 'flex', gap: 12, fontSize: 11 }}>
+                                                    <span style={{ color: '#f59e0b', fontWeight: 600 }}>{fmtAmt(d.amount)}</span>
+                                                    <span style={{ color: 'var(--color-muted)' }}>{d.count} bills</span>
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Metal Demand Split & Top Items */}
+                                    <div>
+                                        <h4 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>⚖️ Metal Demand Split</h4>
+                                        <div style={{ display: 'flex', height: 28, borderRadius: 6, overflow: 'hidden', marginBottom: 8 }}>
+                                            <div style={{ width: `${data.forecast.goldRatio}%`, background: 'linear-gradient(90deg,#B8860B,#DAA520)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10, fontWeight: 700 }}>
+                                                {data.forecast.goldRatio > 10 ? `Gold ${data.forecast.goldRatio.toFixed(0)}%` : ''}
+                                            </div>
+                                            <div style={{ width: `${data.forecast.silverRatio}%`, background: 'linear-gradient(90deg,#6b7280,#9ca3af)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10, fontWeight: 700 }}>
+                                                {data.forecast.silverRatio > 10 ? `Silver ${data.forecast.silverRatio.toFixed(0)}%` : ''}
+                                            </div>
+                                            {(100 - data.forecast.goldRatio - data.forecast.silverRatio) > 5 && (
+                                                <div style={{ flex: 1, background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#666' }}>Other</div>
+                                            )}
+                                        </div>
+
+                                        <h4 style={{ margin: '16px 0 10px', fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>🔥 Top Selling Items</h4>
+                                        {data.forecast.topItems.map((it, i) => (
+                                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: '1px solid var(--border-color)', fontSize: 12 }}>
+                                                <span>
+                                                    <span style={{ color: it.metal === 'gold' ? '#B8860B' : '#6b7280', fontWeight: 600 }}>{it.metal === 'gold' ? '🟡' : '⚪'}</span>
+                                                    {' '}{it.name}
+                                                </span>
+                                                <span style={{ fontSize: 11, color: 'var(--color-muted)' }}>{it.count}× | {fmtWt(it.totalWeight)}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* AI Insights */}
+                                <div style={{ marginTop: 18, padding: 14, background: 'linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)', borderRadius: 8, border: '1px dashed #93c5fd' }}>
+                                    <h4 style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 700, color: '#1e3a8a' }}>💡 AI Insights</h4>
+                                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: '#334155', lineHeight: 1.8 }}>
+                                        {data.forecast.dayOfWeek.length > 0 && (
+                                            <li><b>{data.forecast.dayOfWeek[0].day}</b> is your busiest day — consider stocking more inventory and keeping staff ready.</li>
+                                        )}
+                                        {data.forecast.growthRate > 5 && (
+                                            <li>📈 Sales are <b>growing {data.forecast.growthRate.toFixed(0)}%</b> — great momentum! Plan for increased stock requirements.</li>
+                                        )}
+                                        {data.forecast.growthRate < -5 && (
+                                            <li>📉 Sales <b>declined {Math.abs(data.forecast.growthRate).toFixed(0)}%</b> — consider promotions or reaching out to repeat customers.</li>
+                                        )}
+                                        {data.forecast.goldRatio > 70 && (
+                                            <li>🟡 <b>{data.forecast.goldRatio.toFixed(0)}%</b> of revenue is from gold — ensure gold stock is always replenished.</li>
+                                        )}
+                                        {data.forecast.silverRatio > 40 && (
+                                            <li>⚪ Silver accounts for <b>{data.forecast.silverRatio.toFixed(0)}%</b> of sales — a strong silver market, keep diverse silver inventory.</li>
+                                        )}
+                                        {data.forecast.topItems.length > 0 && (
+                                            <li>🔥 <b>{data.forecast.topItems[0].name}</b> is your best-seller ({data.forecast.topItems[0].count} sold) — ensure this item type is always in stock.</li>
+                                        )}
+                                        <li>💰 At current pace, expect <b>{fmtAmt(data.forecast.avgDailyRevenue * 30)}</b> in revenue over the next 30 days.</li>
+                                    </ul>
                                 </div>
                             </div>
                         )}
