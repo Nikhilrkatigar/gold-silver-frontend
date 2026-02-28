@@ -1,0 +1,316 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import Layout from '../../components/Layout';
+import { reportAPI } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
+import { toast } from 'react-toastify';
+
+// Date helpers
+const fmt = (d) => new Date(d).toLocaleDateString('en-IN');
+const todayISO = () => new Date().toISOString().split('T')[0];
+const daysAgo = (n) => {
+    const d = new Date();
+    d.setDate(d.getDate() - n);
+    return d.toISOString().split('T')[0];
+};
+const startOfMonth = () => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0];
+};
+
+const PRESETS = [
+    { label: 'Today', from: todayISO(), to: todayISO() },
+    { label: 'Last 7 Days', from: daysAgo(6), to: todayISO() },
+    { label: 'This Month', from: startOfMonth(), to: todayISO() },
+    { label: 'Last 30 Days', from: daysAgo(29), to: todayISO() },
+];
+
+// Mini bar chart using CSS widths only
+const MiniBar = ({ value, max, color = '#f59e0b' }) => (
+    <div style={{ height: 8, background: '#f0f0f0', borderRadius: 4, overflow: 'hidden', minWidth: 60 }}>
+        <div style={{
+            height: '100%',
+            width: `${max > 0 ? Math.min(100, (value / max) * 100) : 0}%`,
+            background: color,
+            borderRadius: 4,
+            transition: 'width 0.5s ease'
+        }} />
+    </div>
+);
+
+const StatCard = ({ label, value, sub, color = 'var(--color-primary)' }) => (
+    <div style={{
+        background: 'var(--bg-primary)',
+        border: '1px solid var(--border-color)',
+        borderRadius: 10,
+        padding: '16px 20px',
+        borderLeft: `4px solid ${color}`
+    }}>
+        <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 4 }}>{label}</div>
+        <div style={{ fontSize: 22, fontWeight: 700, color }}>{value}</div>
+        {sub && <div style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 4 }}>{sub}</div>}
+    </div>
+);
+
+export default function Reports() {
+    const { user } = useAuth();
+    const [preset, setPreset] = useState(0); // index into PRESETS
+    const [fromDate, setFromDate] = useState(PRESETS[2].from);
+    const [toDate, setToDate] = useState(PRESETS[2].to);
+    const [loading, setLoading] = useState(false);
+    const [data, setData] = useState(null);
+
+    const fetchAll = useCallback(async () => {
+        setLoading(true);
+        try {
+            const [vRes, eRes, sRes, lRes] = await Promise.all([
+                reportAPI.getVouchers({ limit: 2000, dateFrom: fromDate, dateTo: toDate }),
+                reportAPI.getExpenses({ limit: 2000 }),
+                reportAPI.getSettlements({ limit: 2000 }),
+                reportAPI.getLedgers({ limit: 2000 }),
+            ]);
+            const vouchers = vRes.data?.vouchers || [];
+            const expenses = eRes.data?.expenses || [];
+            const settlements = sRes.data?.settlements || [];
+            const ledgers = lRes.data?.ledgers || [];
+
+            const from = new Date(fromDate);
+            from.setHours(0, 0, 0, 0);
+            const to = new Date(toDate);
+            to.setHours(23, 59, 59, 999);
+
+            // Filter by date range
+            const inRange = (dateStr) => {
+                const d = new Date(dateStr);
+                return d >= from && d <= to;
+            };
+
+            const rangeVouchers = vouchers.filter(v => inRange(v.date || v.createdAt));
+            const rangeExpenses = expenses.filter(e => inRange(e.date || e.createdAt));
+
+            // Separate sales vs purchases
+            const saleVouchers = rangeVouchers.filter(v => v.voucherType !== 'purchase' && ['cash', 'credit'].includes(v.paymentType));
+            const purchaseVouchers = rangeVouchers.filter(v => v.voucherType === 'purchase');
+
+            // Totals
+            const totalSales = saleVouchers.reduce((s, v) => s + (v.total || 0), 0);
+            const totalPurchase = purchaseVouchers.reduce((s, v) => s + (v.total || 0), 0);
+            const goldSold = saleVouchers.reduce((s, v) => s + (v.totals?.fineWeight ? v.items?.filter(i => i.metalType === 'gold').reduce((a, i) => a + (i.fineWeight || 0), 0) : 0), 0);
+            const silverSold = saleVouchers.reduce((s, v) => s + (v.items?.filter(i => i.metalType === 'silver').reduce((a, i) => a + (i.fineWeight || 0), 0) || 0), 0);
+            const goldBought = purchaseVouchers.reduce((s, v) => s + (v.items?.filter(i => i.metalType === 'gold').reduce((a, i) => a + (i.fineWeight || 0), 0) || 0), 0);
+            const totalCashReceived = saleVouchers.reduce((s, v) => s + (v.cashReceived || 0), 0);
+            const totalExpenses = rangeExpenses.reduce((s, e) => s + (e.amount || 0), 0);
+            const creditVouchers = saleVouchers.filter(v => v.paymentType === 'credit');
+            const totalCreditValue = creditVouchers.reduce((s, v) => s + (v.total || 0), 0);
+
+            // Top customers by voucher count
+            const custMap = {};
+            rangeVouchers.forEach(v => {
+                const id = v.ledgerId?._id || v.ledgerId;
+                if (!id) return;
+                if (!custMap[id]) custMap[id] = { name: v.customerName || 'Unknown', count: 0, amount: 0 };
+                custMap[id].count++;
+                custMap[id].amount += v.total || 0;
+            });
+            const topCustomers = Object.values(custMap).sort((a, b) => b.amount - a.amount).slice(0, 5);
+
+            // Daily breakdown
+            const dailyMap = {};
+            rangeVouchers.forEach(v => {
+                const day = new Date(v.date || v.createdAt).toISOString().split('T')[0];
+                if (!dailyMap[day]) dailyMap[day] = { date: day, count: 0, amount: 0, gold: 0, silver: 0 };
+                dailyMap[day].count++;
+                if (['cash', 'credit'].includes(v.paymentType) && v.voucherType !== 'purchase') {
+                    dailyMap[day].amount += v.total || 0;
+                    v.items?.forEach(i => {
+                        if (i.metalType === 'gold') dailyMap[day].gold += i.fineWeight || 0;
+                        if (i.metalType === 'silver') dailyMap[day].silver += i.fineWeight || 0;
+                    });
+                }
+            });
+            const daily = Object.values(dailyMap).sort((a, b) => b.date.localeCompare(a.date));
+
+            // Expense breakdown by category
+            const expCatMap = {};
+            rangeExpenses.forEach(e => {
+                const cat = e.category || 'Other';
+                if (!expCatMap[cat]) expCatMap[cat] = 0;
+                expCatMap[cat] += e.amount || 0;
+            });
+
+            // Due balance customers (from all ledgers)
+            const dueCustomers = ledgers
+                .filter(l => (l.balances?.cashBalance || 0) > 0)
+                .sort((a, b) => (b.balances?.cashBalance || 0) - (a.balances?.cashBalance || 0))
+                .slice(0, 5);
+
+            setData({
+                totalSales, totalPurchase, goldSold, silverSold, goldBought,
+                totalCashReceived, totalExpenses, creditVouchers, totalCreditValue,
+                topCustomers, daily, expCatMap, dueCustomers,
+                voucherCount: rangeVouchers.length, saleCount: saleVouchers.length
+            });
+        } catch (err) {
+            toast.error('Failed to load report data');
+        } finally {
+            setLoading(false);
+        }
+    }, [fromDate, toDate]);
+
+    useEffect(() => { fetchAll(); }, [fetchAll]);
+
+    const applyPreset = (idx) => {
+        setPreset(idx);
+        setFromDate(PRESETS[idx].from);
+        setToDate(PRESETS[idx].to);
+    };
+
+    const fmtAmt = (n) => `₹${(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+    const fmtWt = (n) => `${(n || 0).toFixed(3)} g`;
+
+    const maxDaily = data ? Math.max(...(data.daily.map(d => d.amount)), 1) : 1;
+    const maxCust = data ? Math.max(...(data.topCustomers.map(c => c.amount)), 1) : 1;
+
+    return (
+        <Layout>
+            <div style={{ padding: '20px', maxWidth: 1100, margin: '0 auto' }}>
+                {/* Header */}
+                <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+                    <div>
+                        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>📊 Reports & Analytics</h1>
+                        <p style={{ margin: '4px 0 0', color: 'var(--color-muted)', fontSize: 13 }}>
+                            {user?.shopName}
+                        </p>
+                    </div>
+
+                    {/* Date Range Controls */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                        {PRESETS.map((p, i) => (
+                            <button
+                                key={i}
+                                onClick={() => applyPreset(i)}
+                                style={{
+                                    padding: '6px 12px',
+                                    borderRadius: 6,
+                                    border: '1px solid var(--border-color)',
+                                    background: preset === i ? 'var(--color-primary)' : 'transparent',
+                                    color: preset === i ? '#fff' : 'var(--color-text)',
+                                    cursor: 'pointer',
+                                    fontSize: 12,
+                                    fontWeight: 500
+                                }}
+                            >{p.label}</button>
+                        ))}
+                        <input type="date" value={fromDate} onChange={e => { setFromDate(e.target.value); setPreset(-1); }}
+                            style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--color-text)', fontSize: 12 }} />
+                        <input type="date" value={toDate} onChange={e => { setToDate(e.target.value); setPreset(-1); }}
+                            style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--color-text)', fontSize: 12 }} />
+                        <button onClick={fetchAll} disabled={loading}
+                            style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: '#f59e0b', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 12 }}>
+                            {loading ? '...' : 'Apply'}
+                        </button>
+                    </div>
+                </div>
+
+                {loading && (
+                    <div style={{ textAlign: 'center', padding: 60, color: 'var(--color-muted)' }}>Loading report data...</div>
+                )}
+
+                {!loading && data && (
+                    <>
+                        {/* Summary Cards */}
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 28 }}>
+                            <StatCard label="Total Sales" value={fmtAmt(data.totalSales)} sub={`${data.saleCount} vouchers`} color="#f59e0b" />
+                            <StatCard label="Gold Sold" value={fmtWt(data.goldSold)} sub="Fine weight" color="#B8860B" />
+                            <StatCard label="Silver Sold" value={fmtWt(data.silverSold)} sub="Fine weight" color="#555" />
+                            <StatCard label="Cash Collected" value={fmtAmt(data.totalCashReceived)} color="#10b981" />
+                            <StatCard label="Total Expenses" value={fmtAmt(data.totalExpenses)} color="#ef4444" />
+                            <StatCard label="Credit Sales" value={fmtAmt(data.totalCreditValue)} sub={`${data.creditVouchers.length} bills`} color="#8b5cf6" />
+                            {data.totalPurchase > 0 && (
+                                <StatCard label="Purchases (Old Gold)" value={fmtAmt(data.totalPurchase)} sub={`Gold: ${fmtWt(data.goldBought)}`} color="#06b6d4" />
+                            )}
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 28 }}>
+                            {/* Top Customers */}
+                            <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 20 }}>
+                                <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600 }}>🏆 Top Customers (by Amount)</h3>
+                                {data.topCustomers.length === 0 && <div style={{ color: 'var(--color-muted)', fontSize: 13 }}>No transactions in range</div>}
+                                {data.topCustomers.map((c, i) => (
+                                    <div key={i} style={{ marginBottom: 12 }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
+                                            <span style={{ fontWeight: 500 }}>{i + 1}. {c.name}</span>
+                                            <span style={{ color: '#f59e0b', fontWeight: 600 }}>{fmtAmt(c.amount)}</span>
+                                        </div>
+                                        <MiniBar value={c.amount} max={maxCust} color="#f59e0b" />
+                                        <div style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 2 }}>{c.count} vouchers</div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Due Customers */}
+                            <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 20 }}>
+                                <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600 }}>⏰ Highest Outstanding Balances</h3>
+                                {data.dueCustomers.length === 0 && <div style={{ color: 'var(--color-muted)', fontSize: 13 }}>No outstanding balances</div>}
+                                {data.dueCustomers.map((l, i) => (
+                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border-color)', fontSize: 13 }}>
+                                        <span>{i + 1}. {l.name}</span>
+                                        <span style={{ color: '#ef4444', fontWeight: 600 }}>{fmtAmt(l.balances?.cashBalance)}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Daily Breakdown Table */}
+                        <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 20, marginBottom: 28 }}>
+                            <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600 }}>📅 Daily Sales Breakdown</h3>
+                            {data.daily.length === 0 ? (
+                                <div style={{ color: 'var(--color-muted)', fontSize: 13 }}>No data in selected range</div>
+                            ) : (
+                                <div style={{ overflowX: 'auto' }}>
+                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                                        <thead>
+                                            <tr style={{ background: 'var(--bg-secondary)' }}>
+                                                {['Date', 'Vouchers', 'Sales Amount', 'Gold (g)', 'Silver (g)', 'Bar'].map(h => (
+                                                    <th key={h} style={{ padding: '10px 12px', textAlign: h === 'Bar' || h === 'Sales Amount' ? 'right' : 'left', fontWeight: 600, borderBottom: '2px solid var(--border-color)' }}>{h}</th>
+                                                ))}
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {data.daily.map((d, i) => (
+                                                <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                                    <td style={{ padding: '10px 12px' }}>{fmt(d.date)}</td>
+                                                    <td style={{ padding: '10px 12px' }}>{d.count}</td>
+                                                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#f59e0b' }}>{fmtAmt(d.amount)}</td>
+                                                    <td style={{ padding: '10px 12px', color: '#B8860B' }}>{d.gold.toFixed(3)}</td>
+                                                    <td style={{ padding: '10px 12px', color: '#555' }}>{d.silver.toFixed(3)}</td>
+                                                    <td style={{ padding: '10px 12px', textAlign: 'right', minWidth: 100 }}>
+                                                        <MiniBar value={d.amount} max={maxDaily} />
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Expense Breakdown */}
+                        {Object.keys(data.expCatMap).length > 0 && (
+                            <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 20 }}>
+                                <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600 }}>💸 Expense Breakdown</h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
+                                    {Object.entries(data.expCatMap).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => (
+                                        <div key={cat} style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '12px 14px' }}>
+                                            <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 4 }}>{cat}</div>
+                                            <div style={{ fontSize: 16, fontWeight: 700, color: '#ef4444' }}>{fmtAmt(amt)}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+        </Layout>
+    );
+}
