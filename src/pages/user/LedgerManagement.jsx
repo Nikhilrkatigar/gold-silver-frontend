@@ -7,6 +7,7 @@ import { FiPlus, FiEdit2, FiTrash2, FiEye, FiX } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { SkeletonCard, SkeletonStat } from '../../components/Skeleton';
 import PullToRefresh from '../../components/PullToRefresh';
+import ConfirmDialog from '../../components/ConfirmDialog';
 
 export default function LedgerManagement() {
   const { user } = useAuth();
@@ -23,6 +24,8 @@ export default function LedgerManagement() {
     oldBalSilver: ''
   });
   const [loading, setLoading] = useState(true);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteConfirmLedger, setDeleteConfirmLedger] = useState(null);
 
   const toFiniteNumber = (value, fallback = 0) => {
     const parsed = Number(value);
@@ -140,17 +143,20 @@ export default function LedgerManagement() {
     setShowModal(true);
   };
 
-  const handleDelete = async (ledger) => {
+  const handleDelete = (ledger) => {
     if (ledger.hasVouchers) {
       toast.error('Cannot delete ledger with existing vouchers');
       return;
     }
+    setDeleteConfirmLedger(ledger);
+    setDeleteConfirmOpen(true);
+  };
 
-    if (!confirm(`Delete ledger "${ledger.name}"?`)) return;
-
+  const confirmDelete = async () => {
     try {
-      await ledgerAPI.delete(ledger._id);
+      await ledgerAPI.delete(deleteConfirmLedger._id);
       toast.success('Ledger deleted successfully');
+      setDeleteConfirmLedger(null);
       fetchLedgers();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to delete ledger');
@@ -454,6 +460,21 @@ export default function LedgerManagement() {
               </div>
             </div>
           )}
+
+          {/* Delete Confirmation Dialog */}
+          <ConfirmDialog
+            isOpen={deleteConfirmOpen}
+            onClose={() => {
+              setDeleteConfirmOpen(false);
+              setDeleteConfirmLedger(null);
+            }}
+            onConfirm={confirmDelete}
+            title="Delete Ledger"
+            message={`Are you sure you want to delete ledger "${deleteConfirmLedger?.name}"? This action cannot be undone.`}
+            confirmText="Delete"
+            cancelText="Cancel"
+            danger={true}
+          />
         </div>
       </PullToRefresh>
     </Layout>

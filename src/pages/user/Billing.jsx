@@ -56,8 +56,8 @@ const VoucherTemplate = ({ formData, items, ledgers, user, voucherData }) => {
 
   const curBalanceAmount = voucherData?.balanceSnapshot?.currentBalance?.amount ??
     (formData.paymentType === 'credit'
-      ? ((parseFloat(ledger?.balances?.creditBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)))
-      : ((parseFloat(ledger?.balances?.cashBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))));
+      ? ((parseFloat(ledger?.balances?.creditBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)))
+      : ((parseFloat(ledger?.balances?.cashBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))));
 
   const curBalanceGold = voucherData?.balanceSnapshot?.currentBalance?.goldFineWeight ??
     (formData.paymentType === 'credit' ? ((parseFloat(ledger?.balances?.goldFineWeight || 0) + goldTotal)) : (parseFloat(ledger?.balances?.goldFineWeight) || 0));
@@ -65,7 +65,7 @@ const VoucherTemplate = ({ formData, items, ledgers, user, voucherData }) => {
   const curBalanceSilver = voucherData?.balanceSnapshot?.currentBalance?.silverFineWeight ??
     (formData.paymentType === 'credit' ? ((parseFloat(ledger?.balances?.silverFineWeight || 0) + silverTotal)) : (parseFloat(ledger?.balances?.silverFineWeight) || 0));
 
-  const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.roundOff) || 0);
+  const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0) + (parseFloat(formData.roundOff) || 0);
 
   return (
     <div style={{ padding: '20px', fontFamily: 'Arial, sans-serif' }}>
@@ -149,6 +149,10 @@ const VoucherTemplate = ({ formData, items, ledgers, user, voucherData }) => {
           <div>{parseFloat(formData.stoneAmount || 0).toFixed(2)}</div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <div>Fine Amount :</div>
+          <div>{parseFloat(formData.fineAmount || 0).toFixed(2)}</div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
           <div>Labour :</div>
           <div>{totals.labourRate.toFixed(2)}</div>
         </div>
@@ -158,7 +162,7 @@ const VoucherTemplate = ({ formData, items, ledgers, user, voucherData }) => {
           <div style={{ marginTop: '10px', borderTop: '1px solid #000', paddingTop: '10px' }}>
             <div style={{ fontWeight: 'bold', marginBottom: '5px' }}>GST Details</div>
             {(() => {
-              const taxableAmount = totals.amount + (parseFloat(formData.stoneAmount) || 0);
+              const taxableAmount = totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0);
               // Determine GST type: same state = CGST+SGST, different state = IGST
               const sellerState = user?.gstSettings?.businessState || null;
               const customerState = ledger?.stateCode || null;
@@ -202,7 +206,7 @@ const VoucherTemplate = ({ formData, items, ledgers, user, voucherData }) => {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
           <div>Net Balance :</div>
-          <div>₹{((totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.roundOff) || 0)) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)}</div>
+          <div>₹{((totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0) + (parseFloat(formData.roundOff) || 0)) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)}</div>
         </div>
         {formData.narration && (
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
@@ -245,7 +249,7 @@ const VoucherTemplate = ({ formData, items, ledgers, user, voucherData }) => {
           )}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontWeight: 'bold' }}>
             <div>Net Balance</div>
-            <div>₹{((totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.roundOff) || 0)) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)}</div>
+            <div>₹{((totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0) + (parseFloat(formData.roundOff) || 0)) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)}</div>
           </div>
 
           {/* Balance Details Section - Side by Side */}
@@ -322,6 +326,7 @@ export default function Billing() {
     goldRate: '',
     silverRate: '',
     stoneAmount: '',
+    fineAmount: '',
     issueGross: '',
     receiptGross: '',
     narration: '',
@@ -375,6 +380,7 @@ export default function Billing() {
         goldRate: voucher.goldRate || '',
         silverRate: voucher.silverRate || '',
         stoneAmount: voucher.stoneAmount || '',
+        fineAmount: voucher.fineAmount || '',
         issueGross: voucher.issue?.gross || '',
         receiptGross: voucher.receipt?.gross || '',
         narration: voucher.narration || '',
@@ -837,7 +843,7 @@ export default function Billing() {
       .filter(item => item.metalType === 'silver')
       .reduce((sum, item) => sum + (item.fineWeight || 0), 0);
 
-    const totalAmountInThisBill = cleanedItems.reduce((sum, item) => sum + (item.amount || 0), 0) + (parseFloat(formData.stoneAmount) || 0);
+    const totalAmountInThisBill = cleanedItems.reduce((sum, item) => sum + (item.amount || 0), 0) + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0);
     const netBalanceOfThisBill = totalAmountInThisBill - (parseFloat(formData.cashReceived) || 0);
 
     const creditBalance = parseFloat(selectedLedger?.balances?.creditBalance) || 0;
@@ -870,6 +876,7 @@ export default function Billing() {
       goldRate: parseFloat(formData.goldRate) || 0,
       silverRate: parseFloat(formData.silverRate) || 0,
       stoneAmount: parseFloat(formData.stoneAmount) || 0,
+      fineAmount: parseFloat(formData.fineAmount) || 0,
       items: cleanedItems,
       issue: { gross: parseFloat(formData.issueGross) || 0 },
       receipt: { gross: parseFloat(formData.receiptGross) || 0 },
@@ -966,7 +973,7 @@ export default function Billing() {
         `${i + 1}. ${item.itemName} (${item.metalType}) | Fine: ${parseFloat(item.fineWeight || 0).toFixed(3)}g | ₹${parseFloat(item.amount || 0).toFixed(2)}`
       ),
       ``,
-      `*Total: ₹${(t.amount + (parseFloat(formData.stoneAmount) || 0)).toFixed(2)}*`,
+      `*Total: \u20b9${(t.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0)).toFixed(2)}*`,
       formData.cashReceived ? `Cash Received: ₹${parseFloat(formData.cashReceived).toFixed(2)}` : '',
       formData.narration ? `Note: ${formData.narration}` : '',
       ``,
@@ -1010,8 +1017,8 @@ export default function Billing() {
 
     const curBalanceAmount = savedVoucherData?.balanceSnapshot?.currentBalance?.amount ??
       (formData.paymentType === 'credit'
-        ? ((parseFloat(selectedLedger?.balances?.creditBalance || 0) + parseFloat(selectedLedger?.balances?.cashBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)))
-        : ((parseFloat(selectedLedger?.balances?.cashBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))));
+        ? ((parseFloat(selectedLedger?.balances?.creditBalance || 0) + parseFloat(selectedLedger?.balances?.cashBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)))
+        : ((parseFloat(selectedLedger?.balances?.cashBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))));
 
     const curBalanceGold = savedVoucherData?.balanceSnapshot?.currentBalance?.goldFineWeight ??
       (formData.paymentType === 'credit' ? ((parseFloat(selectedLedger?.balances?.goldFineWeight || 0) + goldTotal)) : goldTotal);
@@ -1128,7 +1135,11 @@ export default function Billing() {
               </div>
               <div style="display: flex; justify-content: space-between;">
                 <div>Stone Amount:</div>
-                <div>₹${parseFloat(formData.stoneAmount || 0).toFixed(2)}</div>
+                <div>\u20b9${parseFloat(formData.stoneAmount || 0).toFixed(2)}</div>
+              </div>
+              <div style="display: flex; justify-content: space-between;">
+                <div>Fine Amount:</div>
+                <div>\u20b9${parseFloat(formData.fineAmount || 0).toFixed(2)}</div>
               </div>
               <div style="display: flex; justify-content: space-between; font-weight: bold; margin-top: 5px; padding-top: 5px; border-top: 1px solid #ddd;">
                 <div>Grand Total:</div>
@@ -1162,7 +1173,7 @@ export default function Billing() {
             ` : ''}
             <div style="display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: bold;">
               <div>Net Balance</div>
-              <div>₹${((totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.roundOff) || 0)) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)}</div>
+              <div>\u20b9${((totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0) + (parseFloat(formData.roundOff) || 0)) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)}</div>
             </div>
 
             <!-- Rates and Cash Received Section -->
@@ -1264,7 +1275,7 @@ export default function Billing() {
 
       // Calculate grandTotal
       const totals = calculateTotals();
-      const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0);
+      const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0);
 
       // Create professional voucher content
       // IMPORTANT: Force light mode colors for PDF to work in both light and dark app themes
@@ -1358,7 +1369,11 @@ export default function Billing() {
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #333333;">
                 <span>Stone Amount:</span>
-                <strong style="color: #000000;">₹${parseFloat(formData.stoneAmount || 0).toFixed(2)}</strong>
+                <strong style="color: #000000;">\u20b9${parseFloat(formData.stoneAmount || 0).toFixed(2)}</strong>
+              </div>
+              <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #333333;">
+                <span>Fine Amount:</span>
+                <strong style="color: #000000;">\u20b9${parseFloat(formData.fineAmount || 0).toFixed(2)}</strong>
               </div>
               <div style="display: flex; justify-content: space-between; margin-top: 12px; padding-top: 12px; border-top: 2px solid #ddd; font-size: 16px; font-weight: bold; color: #000000;">
                 <span>Grand Total:</span>
@@ -1400,7 +1415,7 @@ export default function Billing() {
               </div>
               <div style="background-color: rgba(255,255,255,0.6); padding: 15px; border-radius: 4px;">
                 <div style="color: #333333; margin-bottom: 5px; font-weight: bold;">Net Balance</div>
-                <div style="font-size: 16px; font-weight: bold; color: #c41c3b;">₹${(((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))).toFixed(2)}</div>
+                <div style="font-size: 16px; font-weight: bold; color: #c41c3b;">₹${(((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))).toFixed(2)}</div>
               </div>
             </div>
 
@@ -1427,7 +1442,7 @@ export default function Billing() {
               <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
                 <div style="background-color: #d4edda; padding: 15px; border-radius: 4px;">
                   <div style="color: #155724; margin-bottom: 5px; font-size: 12px; font-weight: bold;">Cur Bal Amount</div>
-                  <div style="font-size: 16px; font-weight: bold; color: #155724;">₹${(savedVoucherData?.balanceSnapshot?.currentBalance?.amount ?? (formData.paymentType === 'credit' ? (((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)) + (parseFloat(selectedLedger?.balances?.creditBalance || 0) + parseFloat(selectedLedger?.balances?.cashBalance || 0))) : (((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)) + (parseFloat(selectedLedger?.balances?.cashBalance) || 0)))).toFixed(2)}</div>
+                  <div style="font-size: 16px; font-weight: bold; color: #155724;">₹${(savedVoucherData?.balanceSnapshot?.currentBalance?.amount ?? (formData.paymentType === 'credit' ? (((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)) + (parseFloat(selectedLedger?.balances?.creditBalance || 0) + parseFloat(selectedLedger?.balances?.cashBalance || 0))) : (((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)) + (parseFloat(selectedLedger?.balances?.cashBalance) || 0)))).toFixed(2)}</div>
                 </div>
                 <div style="background-color: #d4edda; padding: 15px; border-radius: 4px;">
                   <div style="color: #155724; margin-bottom: 5px; font-size: 12px; font-weight: bold;">Cur Bal Gold Fine Wt</div>
@@ -1447,7 +1462,7 @@ export default function Billing() {
 
           <!-- GST Section -->
           ${formData.invoiceType === 'gst' && formData.gstRate ? (() => {
-          const taxableAmount = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0);
+          const taxableAmount = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0);
           // Determine GST type: same state = CGST+SGST, different state = IGST
           const sellerStatePdf = user?.gstSettings?.businessState || null;
           const customerStatePdf = selectedLedger?.stateCode || null;
@@ -1903,6 +1918,27 @@ export default function Billing() {
                 </div>
 
                 <div>
+                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Fine Amount (₹)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={formData.fineAmount}
+                    onChange={(e) => setFormData(prev => ({ ...prev, fineAmount: e.target.value }))}
+                    placeholder="0.00"
+                    style={{
+                      width: '100%',
+                      padding: '8px',
+                      borderRadius: '4px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--color-text)',
+                      boxSizing: 'border-box',
+                      fontSize: '13px'
+                    }}
+                  />
+                </div>
+
+                <div>
                   <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Issue Gross (g)</label>
                   <input
                     type="number"
@@ -2287,7 +2323,7 @@ export default function Billing() {
                           <strong>Total Labour:</strong> ₹{calculateTotals().labourRate.toFixed(2)}
                         </div>
                         <div style={{ fontWeight: 'bold', color: 'var(--color-primary)', fontSize: '16px' }}>
-                          <strong>Total Amount:</strong> ₹{(calculateTotals().amount + (parseFloat(formData.stoneAmount) || 0)).toFixed(2)}
+                          <strong>Total Amount:</strong> ₹{(calculateTotals().amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0)).toFixed(2)}
                         </div>
                       </div>
                     </div>
@@ -2507,7 +2543,7 @@ export default function Billing() {
                     <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
                       <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Net Balance</div>
                       <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--color-primary)' }}>
-                        ₹{((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)}
+                        ₹{((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)}
                       </div>
                       <div style={{ fontSize: '10px', color: 'var(--color-muted)', marginTop: '3px' }}>Total - Cash Received</div>
                     </div>
@@ -2515,7 +2551,7 @@ export default function Billing() {
                     <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
                       <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Cur Bal Amount</div>
                       <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--color-primary)' }}>
-                        ₹{(((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)) + (formData.paymentType === 'credit' ? ((parseFloat(selectedLedger?.balances?.creditBalance) || 0) + (parseFloat(selectedLedger?.balances?.cashBalance) || 0)) : (parseFloat(selectedLedger?.balances?.cashBalance) || 0))).toFixed(2)}
+                        ₹{(((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)) + (formData.paymentType === 'credit' ? ((parseFloat(selectedLedger?.balances?.creditBalance) || 0) + (parseFloat(selectedLedger?.balances?.cashBalance) || 0)) : (parseFloat(selectedLedger?.balances?.cashBalance) || 0))).toFixed(2)}
                       </div>
                       <div style={{ fontSize: '10px', color: 'var(--color-muted)', marginTop: '3px' }}>Net + Old Balance</div>
                     </div>
