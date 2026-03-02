@@ -678,6 +678,7 @@ export default function Billing() {
       fineWeight: '',
       labourRate: scannedItem.labour ? scannedItem.labour.toString() : '0',
       amount: '',
+      hsnCode: scannedItem.hsnCode || (scannedItem.metal === 'gold' ? '7113' : '7114'),
       _itemId: scannedItem._id // Track original item ID for marking as sold
     };
 

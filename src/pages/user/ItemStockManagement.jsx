@@ -30,7 +30,8 @@ const ItemStockManagement = () => {
     purchaseRate: '',
     categoryId: '',
     huid: '',
-    hallmarkDate: ''
+    hallmarkDate: '',
+    hsnCode: '7113'
   });
 
   // Fetch items and categories
@@ -94,6 +95,7 @@ const ItemStockManagement = () => {
         categoryId: formData.categoryId,
         ...(formData.huid ? { huid: formData.huid.toUpperCase().trim() } : {}),
         ...(formData.hallmarkDate ? { hallmarkDate: formData.hallmarkDate } : {}),
+        ...(formData.hsnCode ? { hsnCode: formData.hsnCode.trim() } : {}),
       };
 
       if (editingItem) {
@@ -107,7 +109,7 @@ const ItemStockManagement = () => {
       setShowForm(false);
       setEditingItem(null);
       setCategorySearch('');
-      setFormData({ name: '', metal: 'gold', purity: '22K', grossWeight: '', lessWeight: '0', purchaseRate: '', categoryId: '', huid: '', hallmarkDate: '' });
+      setFormData({ name: '', metal: 'gold', purity: '22K', grossWeight: '', lessWeight: '0', purchaseRate: '', categoryId: '', huid: '', hallmarkDate: '', hsnCode: '7113' });
       fetchData();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to save item');
@@ -141,6 +143,7 @@ const ItemStockManagement = () => {
       categoryId: item.categoryId._id,
       huid: item.huid || '',
       hallmarkDate: item.hallmarkDate ? item.hallmarkDate.split('T')[0] : '',
+      hsnCode: item.hsnCode || (item.metal === 'gold' ? '7113' : '7114'),
     });
     setShowForm(true);
   };
@@ -289,7 +292,7 @@ const ItemStockManagement = () => {
         {/* Actions Bar */}
         <div style={{ marginBottom: '1.5rem', display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
           <button
-            onClick={() => { setEditingItem(null); setShowForm(!showForm); setCategorySearch(''); setFormData({ name: '', metal: 'gold', purity: '22K', grossWeight: '', lessWeight: '0', purchaseRate: '', categoryId: '', huid: '', hallmarkDate: '' }); }}
+            onClick={() => { setEditingItem(null); setShowForm(!showForm); setCategorySearch(''); setFormData({ name: '', metal: 'gold', purity: '22K', grossWeight: '', lessWeight: '0', purchaseRate: '', categoryId: '', huid: '', hallmarkDate: '', hsnCode: '7113' }); }}
             className="btn btn-primary"
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
           >
@@ -400,7 +403,11 @@ const ItemStockManagement = () => {
                   <select
                     className="input"
                     value={formData.metal}
-                    onChange={(e) => setFormData({ ...formData, metal: e.target.value })}
+                    onChange={(e) => {
+                      const newMetal = e.target.value;
+                      const defaultHsn = newMetal === 'gold' ? '7113' : '7114';
+                      setFormData({ ...formData, metal: newMetal, hsnCode: defaultHsn });
+                    }}
                   >
                     <option value="gold">Gold</option>
                     <option value="silver">Silver</option>
@@ -453,6 +460,21 @@ const ItemStockManagement = () => {
                       Cost: ₹{((parseFloat(formData.grossWeight || 0) - parseFloat(formData.lessWeight || 0)) * parseFloat(formData.purchaseRate || 0)).toFixed(2)}
                     </small>
                   )}
+                </div>
+                {/* HSN Code for GST */}
+                <div>
+                  <label className="input-label">HSN Code (GST)</label>
+                  <input
+                    type="text"
+                    className="input"
+                    value={formData.hsnCode}
+                    onChange={(e) => setFormData({ ...formData, hsnCode: e.target.value })}
+                    placeholder="e.g. 7113"
+                    maxLength={8}
+                  />
+                  <small style={{ color: 'var(--text-secondary)', fontSize: '11px' }}>
+                    Default: {formData.metal === 'gold' ? '7113 (Gold Jewellery)' : '7114 (Silver Articles)'}
+                  </small>
                 </div>
                 {/* HUID / Hallmark fields */}
                 <div>

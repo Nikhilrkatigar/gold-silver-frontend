@@ -2,12 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import ReactDOM from 'react-dom/client';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Layout from '../../components/Layout';
-import { ledgerAPI, voucherAPI } from '../../services/api';
+import { ledgerAPI, voucherAPI, itemAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import { FiPlus, FiX, FiSave, FiPrinter, FiDownload, FiRefreshCw, FiShare2 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { isValidGSTFormat, calculateGST, extractStateFromGST, determineGSTType } from '../../utils/gstCalculations';
 import html2pdf from 'html2pdf.js';
+import ItemScanner from '../../components/ItemScanner';
 
 // Convert number to words
 const numberToWords = (num) => {
@@ -227,7 +228,7 @@ const GSTInvoiceTemplate = ({ formData, items, ledgers, user, gstType, gstBreakd
                 {item.itemName} ({item.metalType === 'gold' ? 'GOLD' : 'SILVER'})
               </td>
               <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'center' }}>
-                {item.metalType === 'gold' ? '7108' : '7106'}
+                {item.hsnCode || (item.metalType === 'gold' ? '7113' : '7114')}
               </td>
               <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>{item.pieces}</td>
               <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>{parseFloat(item.netWeight).toFixed(3)}</td>
@@ -727,6 +728,47 @@ export default function GSTBilling() {
     setItems(prev => prev.filter((_, i) => i !== index));
   }, []);
 
+  // Handle scanned item from item scanner (item mode only)
+  const handleItemScanned = useCallback((scannedItem) => {
+    const grossWeight = parseFloat(scannedItem.grossWeight) || 0;
+    const lessWeight = parseFloat(scannedItem.lessWeight) || 0;
+    const melting = parseFloat(scannedItem.meltingPercent) || 100;
+    const wastage = parseFloat(scannedItem.wastage) || 0;
+    const labourRate = parseFloat(scannedItem.labour) || 0;
+
+    const netWeight = grossWeight - lessWeight;
+    const fineWeight = (netWeight * (melting / 100)) + wastage;
+    const rate = scannedItem.metal === 'gold'
+      ? (parseFloat(formData.goldRate) || 0)
+      : (parseFloat(formData.silverRate) || 0);
+
+    const labourChargeType = user?.labourChargeSettings?.type || 'full';
+    const calculatedLabourCharge = labourChargeType === 'per-gram'
+      ? labourRate * grossWeight
+      : labourRate;
+
+    const amount = (fineWeight * rate) + calculatedLabourCharge;
+
+    const newItem = {
+      metalType: scannedItem.metal,
+      itemName: scannedItem.name,
+      pieces: 1,
+      grossWeight: grossWeight.toString(),
+      lessWeight: lessWeight.toString(),
+      netWeight: netWeight.toFixed(3),
+      melting: melting.toString(),
+      wastage: wastage.toString(),
+      fineWeight: fineWeight.toFixed(3),
+      labourRate: labourRate.toString(),
+      amount: amount.toFixed(2),
+      hsnCode: scannedItem.hsnCode || (scannedItem.metal === 'gold' ? '7113' : '7114'),
+      _itemId: scannedItem._id
+    };
+
+    setItems(prev => [...prev, newItem]);
+    toast.success(`\u2713 ${scannedItem.name} added to GST invoice`);
+  }, [formData.goldRate, formData.silverRate, user?.labourChargeSettings?.type]);
+
   const updateItem = useCallback((index, field, value) => {
     setItems(prev => {
       const newItems = [...prev];
@@ -745,13 +787,13 @@ export default function GSTBilling() {
         const rate = item.metalType === 'gold'
           ? (parseFloat(formData.goldRate) || 0)
           : (parseFloat(formData.silverRate) || 0);
-        
+
         // Apply labour charge type setting
         const labourChargeType = user?.labourChargeSettings?.type || 'full';
-        const calculatedLabourCharge = labourChargeType === 'per-gram' 
-          ? labourRate * grossWeight 
+        const calculatedLabourCharge = labourChargeType === 'per-gram'
+          ? labourRate * grossWeight
           : labourRate;
-        
+
         const amount = (fineWeight * rate) + calculatedLabourCharge;
 
         item.netWeight = netWeight.toFixed(3);
@@ -837,7 +879,8 @@ export default function GSTBilling() {
         wastage: parseFloat(item.wastage) || 0,
         fineWeight: parseFloat(item.fineWeight) || 0,
         labourRate: parseFloat(item.labourRate) || 0,
-        amount: parseFloat(item.amount) || 0
+        amount: parseFloat(item.amount) || 0,
+        hsnCode: item.hsnCode || (item.metalType === 'gold' ? '7113' : '7114')
       }));
 
       const voucherData = {
@@ -1141,7 +1184,7 @@ export default function GSTBilling() {
       <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '10px' }}>
           <h1 style={{ marginBottom: 0, color: 'var(--color-text)' }}>📄 GST Tax Invoice</h1>
-          
+
           {/* Manual Refresh Button */}
           <button
             type="button"
@@ -1484,6 +1527,13 @@ export default function GSTBilling() {
 
           {/* Items Section */}
           <div style={{ marginBottom: '20px' }}>
+            {/* Item Scanner for Item Mode */}
+            {user?.stockMode === 'item' && (
+              <ItemScanner
+                onItemSelected={handleItemScanned}
+                existingItems={items.filter(item => item._itemId)}
+              />
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <h3 style={{ margin: 0, color: 'var(--color-text)' }}>Line Items</h3>
               <div style={{ display: 'flex', gap: '10px' }}>
