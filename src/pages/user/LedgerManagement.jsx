@@ -43,21 +43,24 @@ export default function LedgerManagement() {
   };
 
   // "Total Amount" should represent gross billed value only.
-  // Ignore settlement vouchers and negative/credit-style entries.
+  // Ignore settlement vouchers. For vouchers with mixed positive/negative items,
+  // sum only the positive item amounts so partial sales aren't lost.
   const getVoucherGrossBillAmount = (voucher) => {
     const paymentType = voucher?.paymentType;
     if (!['cash', 'credit'].includes(paymentType)) return 0;
 
     const explicitTotal = Number(voucher?.total);
-    if (Number.isFinite(explicitTotal)) {
-      return explicitTotal > 0 ? explicitTotal : 0;
+    if (Number.isFinite(explicitTotal) && explicitTotal > 0) {
+      return explicitTotal;
     }
 
-    const itemsTotal = (voucher?.items || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-    const stoneAmount = parseFloat(voucher?.stoneAmount) || 0;
-    const fineAmount = parseFloat(voucher?.fineAmount) || 0;
-    const computedTotal = itemsTotal + stoneAmount + fineAmount;
-    return computedTotal > 0 ? computedTotal : 0;
+    // When voucher total is negative or zero, sum only positive item amounts
+    // so that partial sales within the voucher still count
+    const positiveItemsTotal = (voucher?.items || []).reduce((sum, item) => {
+      const amt = parseFloat(item.amount) || 0;
+      return sum + (amt > 0 ? amt : 0);
+    }, 0);
+    return positiveItemsTotal;
   };
 
   const formatSignedAmount = (amount) => `${amount > 0 ? '+' : ''}${amount.toFixed(2)}`;

@@ -6,9 +6,15 @@ import { format, differenceInDays } from 'date-fns';
 import { FiSun, FiMoon, FiMonitor, FiLock, FiEdit2, FiSave, FiX } from 'react-icons/fi';
 
 export default function AccountInfo() {
-  const { user, updateTheme, updateVoucherSettings, logout, theme, updateGSTSettings, updateLabourChargeSettings } = useAuth();
+  const { user, updateTheme, updateVoucherSettings, logout, theme, updateGSTSettings, updateLabourChargeSettings, updateUserSettings } = useAuth();
   const [voucherMode, setVoucherMode] = useState(user?.voucherSettings?.autoIncrement ?? true);
   const [labourChargeType, setLabourChargeType] = useState(user?.labourChargeSettings?.type ?? 'full');
+  const [reversalEnabled, setReversalEnabled] = useState(
+    user?.reversalSettings?.enabled ?? true
+  );
+  const [reversalWindow, setReversalWindow] = useState(
+    user?.reversalSettings?.windowHours ?? 48
+  );
   const [editingGST, setEditingGST] = useState(false);
   const [gstFormData, setGstFormData] = useState({
     gstNumber: user?.gstSettings?.gstNumber || '',
@@ -97,6 +103,20 @@ export default function AccountInfo() {
     }
   };
 
+  const handleReversalSettingsSave = async () => {
+    try {
+      await updateUserSettings({
+        reversalSettings: {
+          enabled: reversalEnabled,
+          windowHours: Number(reversalWindow)
+        }
+      });
+      toast.success('Reversal policy updated');
+    } catch (error) {
+      toast.error('Failed to update reversal settings');
+    }
+  };
+
   const handleSaveGST = async () => {
     if (!gstFormData.gstNumber || !gstFormData.businessState) {
       toast.error('GST Number and Business State are required');
@@ -139,7 +159,7 @@ export default function AccountInfo() {
       <div style={{ maxWidth: '800px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <h1 style={{ margin: 0 }}>Account Information</h1>
-          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>v3.3</span>
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>v3.4</span>
         </div>
 
         <div className="card" style={{ marginBottom: '1.5rem' }}>
@@ -392,6 +412,52 @@ export default function AccountInfo() {
               : 'You can manually enter voucher numbers'
             }
           </p>
+        </div>
+
+        {/* reversal policy card */}
+        <div className="card" style={{ marginBottom: '1.5rem' }}>
+          <h3 style={{ marginBottom: '1.5rem' }}>Voucher Deletion Policy</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <input
+                type="checkbox"
+                checked={!reversalEnabled}
+                onChange={(e) => setReversalEnabled(!e.target.checked)}
+              />
+              <span>No reversal when deleting (keep entries for accuracy)</span>
+            </label>
+            {reversalEnabled && (
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.25rem' }}>
+                  Reversal window (hours)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={reversalWindow}
+                  onChange={(e) => setReversalWindow(e.target.value)}
+                  style={{
+                    width: '100px',
+                    padding: '0.5rem',
+                    borderRadius: '4px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--color-text)'
+                  }}
+                />
+                <small className="text-muted" style={{ display: 'block' }}>
+                  Leave as 0 for no reversals at all.
+                </small>
+              </div>
+            )}
+            <button
+              onClick={handleReversalSettingsSave}
+              className="btn btn-primary btn-sm"
+              style={{ alignSelf: 'flex-start' }}
+            >
+              Save Policy
+            </button>
+          </div>
         </div>
 
         <div className="card" style={{ marginBottom: '1.5rem' }}>

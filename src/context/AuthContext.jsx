@@ -148,6 +148,23 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // generic updater used by components that modify multiple settings
+  const updateUserSettings = async (settings) => {
+    try {
+      const response = await authAPI.updateSettings(settings);
+      setUser(response.data.user);
+      // merge returned user object into stored user
+      const updatedUser = {
+        ...JSON.parse(localStorage.getItem('user')),
+        ...response.data.user
+      };
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error('Failed to update user settings:', error);
+      throw error;
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -158,6 +175,7 @@ export const AuthProvider = ({ children }) => {
     updateVoucherSettings,
     updateGSTSettings,
     updateLabourChargeSettings,
+    updateUserSettings,
     isAdmin: user?.role === 'admin',
     isLicenseExpired: user?.isLicenseExpired
   };

@@ -3,6 +3,7 @@ import Layout from '../../components/Layout';
 import { reportAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
+import { SkeletonStat, SkeletonCard, SkeletonTable } from '../../components/Skeleton';
 
 // Date helpers
 const fmt = (d) => new Date(d).toLocaleDateString('en-IN');
@@ -200,13 +201,81 @@ export default function Reports() {
                 growthRate, projectedNextPeriod, totalDays
             };
 
+            // ── PROFIT & LOSS ──
+            const netProfit = totalSales - totalExpenses - totalPurchase;
+            const profitMargin = totalSales > 0 ? (netProfit / totalSales) * 100 : 0;
+
+            // ── HOURLY HEATMAP ──
+            const hourlyMap = {};
+            for (let h = 0; h < 24; h++) hourlyMap[h] = { hour: h, count: 0, amount: 0 };
+            saleVouchers.forEach(v => {
+                const h = new Date(v.date || v.createdAt).getHours();
+                hourlyMap[h].count++;
+                hourlyMap[h].amount += v.total || 0;
+            });
+            const hourly = Object.values(hourlyMap);
+
+            // ── PAYMENT MODE BREAKDOWN ──
+            const cashSales = saleVouchers.filter(v => v.paymentType === 'cash');
+            const creditSales = saleVouchers.filter(v => v.paymentType === 'credit');
+            const paymentBreakdown = {
+                cashCount: cashSales.length,
+                cashAmount: cashSales.reduce((s, v) => s + (v.total || 0), 0),
+                creditCount: creditSales.length,
+                creditAmount: creditSales.reduce((s, v) => s + (v.total || 0), 0)
+            };
+
+            // ── MONTH-OVER-MONTH ──
+            const periodMs = to.getTime() - from.getTime();
+            const prevFrom = new Date(from.getTime() - periodMs - 86400000);
+            const prevTo = new Date(from.getTime() - 86400000);
+            const prevVouchers = vouchers.filter(v => {
+                const d = new Date(v.date || v.createdAt);
+                return d >= prevFrom && d <= prevTo && v.voucherType !== 'purchase' && ['cash', 'credit'].includes(v.paymentType);
+            });
+            const prevSales = prevVouchers.reduce((s, v) => s + (v.total || 0), 0);
+            const momChange = prevSales > 0 ? ((totalSales - prevSales) / prevSales) * 100 : (totalSales > 0 ? 100 : 0);
+
+            // ── CUSTOMER LOYALTY ──
+            const loyaltyMap = {};
+            saleVouchers.forEach(v => {
+                const id = v.ledgerId?._id || v.ledgerId;
+                if (!id) return;
+                if (!loyaltyMap[id]) loyaltyMap[id] = { name: v.customerName || 'Unknown', visits: 0, totalSpent: 0, lastVisit: null };
+                loyaltyMap[id].visits++;
+                loyaltyMap[id].totalSpent += v.total || 0;
+                const vDate = new Date(v.date || v.createdAt);
+                if (!loyaltyMap[id].lastVisit || vDate > loyaltyMap[id].lastVisit) loyaltyMap[id].lastVisit = vDate;
+            });
+            const loyalty = Object.values(loyaltyMap)
+                .filter(c => c.visits >= 2)
+                .sort((a, b) => b.visits - a.visits)
+                .slice(0, 8)
+                .map(c => ({
+                    ...c,
+                    daysSinceVisit: Math.floor((new Date() - c.lastVisit) / 86400000),
+                    atRisk: Math.floor((new Date() - c.lastVisit) / 86400000) > 30
+                }));
+
+            // ── AI HEALTH SCORE (0-100) ──
+            const revenueScore = Math.min(25, (totalSales > 0 ? 15 : 0) + (growthRate > 0 ? 10 : growthRate > -10 ? 5 : 0));
+            const creditRiskScore = totalSales > 0 ? Math.min(25, 25 - Math.min(25, (totalCreditValue / totalSales) * 50)) : 12;
+            const expenseScore = totalSales > 0 ? Math.min(25, 25 - Math.min(25, (totalExpenses / totalSales) * 50)) : 12;
+            const diversScore = Math.min(25, (data?.topCustomers?.length || Object.keys(custMap).length) >= 5 ? 25 : (Object.keys(custMap).length / 5) * 25);
+            const healthScore = Math.round(revenueScore + creditRiskScore + expenseScore + diversScore);
+
             setData({
                 totalSales, totalPurchase, goldSold, silverSold, goldBought,
                 totalCashReceived, totalExpenses, creditVouchers, totalCreditValue,
                 topCustomers, daily, expCatMap, dueCustomers,
                 voucherCount: rangeVouchers.length, saleCount: saleVouchers.length,
-                forecast
+                forecast,
+                netProfit, profitMargin,
+                hourly, paymentBreakdown,
+                prevSales, momChange,
+                loyalty, healthScore
             });
+
         } catch (err) {
             toast.error('Failed to load report data');
         } finally {
@@ -266,11 +335,25 @@ export default function Reports() {
                             style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: '#f59e0b', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 12 }}>
                             {loading ? '...' : 'Apply'}
                         </button>
+                        {!loading && data && (
+                            <button onClick={() => window.print()}
+                                style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--color-text)', fontWeight: 500, cursor: 'pointer', fontSize: 12 }}>
+                                🖨️ Print
+                            </button>
+                        )}
                     </div>
                 </div>
 
                 {loading && (
-                    <div style={{ textAlign: 'center', padding: 60, color: 'var(--color-muted)' }}>Loading report data...</div>
+                    <div>
+                        <SkeletonStat count={6} />
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 28 }}>
+                            <SkeletonCard count={1} />
+                            <SkeletonCard count={1} />
+                        </div>
+                        <SkeletonTable rows={5} columns={6} />
+                        <div style={{ marginTop: 28 }}><SkeletonCard count={1} /></div>
+                    </div>
                 )}
 
                 {!loading && data && (
@@ -286,6 +369,32 @@ export default function Reports() {
                             {data.totalPurchase > 0 && (
                                 <StatCard label="Purchases (Old Gold)" value={fmtAmt(data.totalPurchase)} sub={`Gold: ${fmtWt(data.goldBought)}`} color="#06b6d4" />
                             )}
+                        </div>
+
+                        {/* Profit & Loss + MoM + Payment Breakdown */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 28 }}>
+                            <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: '16px 20px', borderLeft: `4px solid ${data.netProfit >= 0 ? '#10b981' : '#ef4444'}` }}>
+                                <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 4 }}>💰 Net Profit</div>
+                                <div style={{ fontSize: 22, fontWeight: 700, color: data.netProfit >= 0 ? '#10b981' : '#ef4444' }}>{fmtAmt(data.netProfit)}</div>
+                                <div style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 4 }}>Margin: {data.profitMargin.toFixed(1)}%</div>
+                            </div>
+                            <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: '16px 20px', borderLeft: '4px solid #3b82f6' }}>
+                                <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 4 }}>📈 vs Previous Period</div>
+                                <div style={{ fontSize: 22, fontWeight: 700, color: data.momChange >= 0 ? '#10b981' : '#ef4444' }}>
+                                    {data.momChange >= 0 ? '▲' : '▼'} {Math.abs(data.momChange).toFixed(1)}%
+                                </div>
+                                <div style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 4 }}>Prev: {fmtAmt(data.prevSales)}</div>
+                            </div>
+                            <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: '16px 20px', borderLeft: '4px solid #8b5cf6' }}>
+                                <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 8 }}>💳 Payment Split</div>
+                                <div style={{ display: 'flex', height: 22, borderRadius: 4, overflow: 'hidden', marginBottom: 6 }}>
+                                    {data.paymentBreakdown.cashAmount > 0 && <div style={{ width: `${(data.paymentBreakdown.cashAmount / (data.paymentBreakdown.cashAmount + data.paymentBreakdown.creditAmount || 1)) * 100}%`, background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 9, fontWeight: 700 }}>Cash</div>}
+                                    {data.paymentBreakdown.creditAmount > 0 && <div style={{ width: `${(data.paymentBreakdown.creditAmount / (data.paymentBreakdown.cashAmount + data.paymentBreakdown.creditAmount || 1)) * 100}%`, background: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 9, fontWeight: 700 }}>Credit</div>}
+                                </div>
+                                <div style={{ fontSize: 11, color: 'var(--color-muted)' }}>
+                                    Cash: {fmtAmt(data.paymentBreakdown.cashAmount)} ({data.paymentBreakdown.cashCount}) · Credit: {fmtAmt(data.paymentBreakdown.creditAmount)} ({data.paymentBreakdown.creditCount})
+                                </div>
+                            </div>
                         </div>
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 28 }}>
@@ -367,7 +476,79 @@ export default function Reports() {
                             </div>
                         )}
 
-                        {/* ── AI DEMAND FORECASTING ────────────────────── */}
+                        {/* Hourly Sales Heatmap + Customer Loyalty */}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginTop: 28, marginBottom: 28 }}>
+                            {/* Hourly Heatmap */}
+                            <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 20 }}>
+                                <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600 }}>📊 Hourly Sales Heatmap</h3>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 4 }}>
+                                    {data.hourly.filter(h => h.hour >= 8 && h.hour <= 21).map(h => {
+                                        const maxH = Math.max(...data.hourly.map(x => x.count), 1);
+                                        const intensity = h.count / maxH;
+                                        return (
+                                            <div key={h.hour} title={`${h.hour}:00 — ${h.count} sales, ${fmtAmt(h.amount)}`}
+                                                style={{
+                                                    textAlign: 'center', padding: '8px 2px', borderRadius: 6, fontSize: 10,
+                                                    background: h.count === 0 ? 'var(--bg-secondary)' : `rgba(245, 158, 11, ${0.15 + intensity * 0.85})`,
+                                                    color: intensity > 0.5 ? '#fff' : 'var(--color-text)', fontWeight: intensity > 0.5 ? 700 : 400,
+                                                    cursor: 'default'
+                                                }}>
+                                                <div>{h.hour > 12 ? `${h.hour - 12}P` : h.hour === 12 ? '12P' : `${h.hour}A`}</div>
+                                                <div style={{ fontSize: 9, marginTop: 2 }}>{h.count}</div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div style={{ marginTop: 10, fontSize: 11, color: 'var(--color-muted)' }}>
+                                    Darker = more sales. Hover for details. (8 AM – 9 PM shown)
+                                </div>
+                            </div>
+
+                            {/* Customer Loyalty */}
+                            <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 20 }}>
+                                <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600 }}>🏅 Loyal Customers</h3>
+                                {data.loyalty.length === 0 ? (
+                                    <div style={{ color: 'var(--color-muted)', fontSize: 13 }}>No repeat customers in this period</div>
+                                ) : (
+                                    data.loyalty.map((c, i) => (
+                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid var(--border-color)', fontSize: 12 }}>
+                                            <span>
+                                                <span style={{ fontWeight: 600 }}>{c.name}</span>
+                                                {c.atRisk && <span style={{ marginLeft: 6, fontSize: 9, background: '#fee2e2', color: '#ef4444', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>AT RISK</span>}
+                                            </span>
+                                            <span style={{ display: 'flex', gap: 10, fontSize: 11 }}>
+                                                <span style={{ color: '#f59e0b', fontWeight: 600 }}>{c.visits} visits</span>
+                                                <span style={{ color: 'var(--color-muted)' }}>{fmtAmt(c.totalSpent)}</span>
+                                                <span style={{ color: 'var(--color-muted)' }}>{c.daysSinceVisit}d ago</span>
+                                            </span>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </div>
+
+                        {/* AI Health Score */}
+                        <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 20, marginBottom: 28, textAlign: 'center' }}>
+                            <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700 }}>⚡ AI Shop Health Score</h3>
+                            <div style={{ position: 'relative', display: 'inline-block', width: 120, height: 120 }}>
+                                <svg viewBox="0 0 120 120" width="120" height="120">
+                                    <circle cx="60" cy="60" r="50" fill="none" stroke="#e5e7eb" strokeWidth="10" />
+                                    <circle cx="60" cy="60" r="50" fill="none"
+                                        stroke={data.healthScore >= 70 ? '#10b981' : data.healthScore >= 40 ? '#f59e0b' : '#ef4444'}
+                                        strokeWidth="10" strokeDasharray={`${(data.healthScore / 100) * 314} 314`}
+                                        strokeLinecap="round" transform="rotate(-90 60 60)" style={{ transition: 'stroke-dasharray 1s ease' }} />
+                                </svg>
+                                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontSize: 28, fontWeight: 800, color: data.healthScore >= 70 ? '#10b981' : data.healthScore >= 40 ? '#f59e0b' : '#ef4444' }}>
+                                    {data.healthScore}
+                                </div>
+                            </div>
+                            <div style={{ marginTop: 8, fontSize: 13, fontWeight: 600, color: data.healthScore >= 70 ? '#065f46' : data.healthScore >= 40 ? '#92400e' : '#991b1b' }}>
+                                {data.healthScore >= 70 ? '🟢 Healthy' : data.healthScore >= 40 ? '🟡 Needs Attention' : '🔴 Critical'}
+                            </div>
+                            <div style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 4 }}>Based on revenue trend, credit risk, expense ratio & customer diversity</div>
+                        </div>
+
+
                         {data.forecast && (
                             <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 20, marginTop: 28 }}>
                                 <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700 }}>🤖 AI Demand Forecasting</h3>

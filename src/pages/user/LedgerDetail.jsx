@@ -1107,11 +1107,6 @@ export default function LedgerDetail() {
       const silverFine = items.filter(i => i.metalType === 'silver').reduce((s, i) => s + toFiniteNumber(i.fineWeight), 0);
       const total = toFiniteNumber(txn.total || txn.amount);
       const cashRcvd = toFiniteNumber(txn.cashReceived);
-      const itemNames = items.map(i => i.itemName).filter(Boolean).join(', ') || (isSettlement ? txn.paymentType?.replace('_', ' ') : '-');
-      // Gold rate or silver rate displayed
-      const rate = items.length > 0
-        ? (items[0].metalType === 'gold' ? toFiniteNumber(txn.goldRate) : toFiniteNumber(txn.silverRate))
-        : 0;
 
       // Update running balance
       if (isPurchase) {
@@ -1132,19 +1127,58 @@ export default function LedgerDetail() {
       }
 
       const runBalText = `\u20b9${runCash.toFixed(0)}${runGold !== 0 ? ' | G:' + runGold.toFixed(3) + 'g' : ''}${runSilver !== 0 ? ' | S:' + runSilver.toFixed(3) + 'g' : ''}`;
+      const td = 'border:1px solid #e0e0e0;padding:4px 5px';
+
+      // Multi-item: each item gets its own row, voucher-level cells use rowspan
+      if (items.length > 1) {
+        return items.map((item, idx) => {
+          const itemGold = item.metalType === 'gold' ? toFiniteNumber(item.fineWeight) : 0;
+          const itemSilver = item.metalType === 'silver' ? toFiniteNumber(item.fineWeight) : 0;
+          const itemRate = item.metalType === 'gold' ? toFiniteNumber(txn.goldRate) : toFiniteNumber(txn.silverRate);
+          if (idx === 0) {
+            return `<tr style="font-size:9px">
+              <td rowspan="${items.length}" style="${td}">${format(new Date(txn.date), 'dd-MM-yy')}</td>
+              <td rowspan="${items.length}" style="${td}"><span style="background:${badgeColor};color:#fff;padding:1px 6px;border-radius:8px;font-size:8px;white-space:nowrap">${txnType}</span></td>
+              <td rowspan="${items.length}" style="${td}">${billNo}</td>
+              <td style="${td}">${item.itemName || '-'} <span style="color:${item.metalType === 'gold' ? '#b45309' : '#6b7280'};font-size:7px">(${item.metalType === 'gold' ? 'G' : 'S'})</span></td>
+              <td style="${td};text-align:right">${itemGold ? itemGold.toFixed(3) : '-'}</td>
+              <td style="${td};text-align:right">${itemSilver ? itemSilver.toFixed(3) : '-'}</td>
+              <td style="${td};text-align:right">${toFiniteNumber(item.melting).toFixed(2)}%</td>
+              <td style="${td};text-align:right">${itemRate ? '\u20b9' + itemRate.toFixed(0) : '-'}</td>
+              <td rowspan="${items.length}" style="${td};text-align:right;font-weight:600">${total.toFixed(2)}</td>
+              <td rowspan="${items.length}" style="${td};text-align:right">${cashRcvd ? cashRcvd.toFixed(2) : '-'}</td>
+              <td rowspan="${items.length}" style="${td};text-align:right;font-size:8px;color:#555">${runBalText}</td>
+            </tr>`;
+          }
+          return `<tr style="font-size:9px">
+            <td style="${td}">${item.itemName || '-'} <span style="color:${item.metalType === 'gold' ? '#b45309' : '#6b7280'};font-size:7px">(${item.metalType === 'gold' ? 'G' : 'S'})</span></td>
+            <td style="${td};text-align:right">${itemGold ? itemGold.toFixed(3) : '-'}</td>
+            <td style="${td};text-align:right">${itemSilver ? itemSilver.toFixed(3) : '-'}</td>
+            <td style="${td};text-align:right">${toFiniteNumber(item.melting).toFixed(2)}%</td>
+            <td style="${td};text-align:right">${itemRate ? '\u20b9' + itemRate.toFixed(0) : '-'}</td>
+          </tr>`;
+        }).join('');
+      }
+
+      // Single item or no items: one row
+      const singleItem = items[0];
+      const itemName = singleItem?.itemName || (isSettlement ? txn.paymentType?.replace('_', ' ') : '-');
+      const rate = singleItem
+        ? (singleItem.metalType === 'gold' ? toFiniteNumber(txn.goldRate) : toFiniteNumber(txn.silverRate))
+        : 0;
 
       return `<tr style="font-size:9px">
-        <td style="border:1px solid #e0e0e0;padding:4px 5px">${format(new Date(txn.date), 'dd-MM-yy')}</td>
-        <td style="border:1px solid #e0e0e0;padding:4px 5px"><span style="background:${badgeColor};color:#fff;padding:1px 6px;border-radius:8px;font-size:8px;white-space:nowrap">${txnType}</span></td>
-        <td style="border:1px solid #e0e0e0;padding:4px 5px">${billNo}</td>
-        <td style="border:1px solid #e0e0e0;padding:4px 5px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${itemNames}</td>
-        <td style="border:1px solid #e0e0e0;padding:4px 5px;text-align:right">${goldFine ? goldFine.toFixed(3) : '-'}</td>
-        <td style="border:1px solid #e0e0e0;padding:4px 5px;text-align:right">${silverFine ? silverFine.toFixed(3) : '-'}</td>
-        <td style="border:1px solid #e0e0e0;padding:4px 5px;text-align:right">${items.length > 0 ? toFiniteNumber(items[0].melting).toFixed(2) + '%' : '-'}</td>
-        <td style="border:1px solid #e0e0e0;padding:4px 5px;text-align:right">${rate ? '\u20b9' + rate.toFixed(0) : '-'}</td>
-        <td style="border:1px solid #e0e0e0;padding:4px 5px;text-align:right;font-weight:600">${total.toFixed(2)}</td>
-        <td style="border:1px solid #e0e0e0;padding:4px 5px;text-align:right">${cashRcvd ? cashRcvd.toFixed(2) : '-'}</td>
-        <td style="border:1px solid #e0e0e0;padding:4px 5px;text-align:right;font-size:8px;color:#555">${runBalText}</td>
+        <td style="${td}">${format(new Date(txn.date), 'dd-MM-yy')}</td>
+        <td style="${td}"><span style="background:${badgeColor};color:#fff;padding:1px 6px;border-radius:8px;font-size:8px;white-space:nowrap">${txnType}</span></td>
+        <td style="${td}">${billNo}</td>
+        <td style="${td}">${itemName}</td>
+        <td style="${td};text-align:right">${goldFine ? goldFine.toFixed(3) : '-'}</td>
+        <td style="${td};text-align:right">${silverFine ? silverFine.toFixed(3) : '-'}</td>
+        <td style="${td};text-align:right">${singleItem ? toFiniteNumber(singleItem.melting).toFixed(2) + '%' : '-'}</td>
+        <td style="${td};text-align:right">${rate ? '\u20b9' + rate.toFixed(0) : '-'}</td>
+        <td style="${td};text-align:right;font-weight:600">${total.toFixed(2)}</td>
+        <td style="${td};text-align:right">${cashRcvd ? cashRcvd.toFixed(2) : '-'}</td>
+        <td style="${td};text-align:right;font-size:8px;color:#555">${runBalText}</td>
       </tr>`;
     }).join('');
 

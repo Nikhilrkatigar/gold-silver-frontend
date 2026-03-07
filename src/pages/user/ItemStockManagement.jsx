@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
 import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiPrinter, FiDownload, FiRefreshCw, FiEye, FiX } from 'react-icons/fi';
 import { QRCodeSVG } from 'qrcode.react';
+import ConfirmModal from '../../components/ConfirmModal';
 import { SkeletonTable } from '../../components/Skeleton';
 import PullToRefresh from '../../components/PullToRefresh';
 
@@ -21,6 +22,8 @@ const ItemStockManagement = () => {
   const [categorySearch, setCategorySearch] = useState('');
   const [showNewCategoryForm, setShowNewCategoryForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState({ open: false, itemId: null, itemName: '' });
+  const [overrideConfirm, setOverrideConfirm] = useState({ open: false, item: null });
   const [formData, setFormData] = useState({
     name: '',
     metal: 'gold',
@@ -117,9 +120,13 @@ const ItemStockManagement = () => {
   };
 
   // Delete item
-  const handleDeleteItem = async (itemId) => {
-    if (!window.confirm('Delete this item?')) return;
+  const handleDeleteItem = (itemId, itemName) => {
+    setDeleteConfirm({ open: true, itemId, itemName });
+  };
 
+  const confirmDelete = async () => {
+    const { itemId } = deleteConfirm;
+    setDeleteConfirm({ open: false, itemId: null, itemName: '' });
     try {
       await itemAPI.delete(itemId);
       toast.success('Item deleted!');
@@ -149,16 +156,19 @@ const ItemStockManagement = () => {
   };
 
   // Override sold status back to available (audit logged on backend)
-  const handleOverrideItem = async (item) => {
-    const reason = window.prompt('Enter override reason to mark this sold item as available:');
-    if (!reason || !reason.trim()) {
-      return;
-    }
+  const handleOverrideItem = (item) => {
+    setOverrideConfirm({ open: true, item });
+  };
+
+  const confirmOverride = async (reason) => {
+    const { item } = overrideConfirm;
+    setOverrideConfirm({ open: false, item: null });
+    if (!reason) return;
 
     try {
       await itemAPI.override(item._id, {
         action: 'mark_available',
-        reason: reason.trim()
+        reason
       });
       toast.success('Override applied. Item is now available.');
       fetchData();
@@ -663,7 +673,7 @@ const ItemStockManagement = () => {
                                 <FiEdit2 size={16} />
                               </button>
                               <button
-                                onClick={() => handleDeleteItem(item._id)}
+                                onClick={() => handleDeleteItem(item._id, item.name)}
                                 className="btn"
                                 title="Delete"
                                 style={{ padding: '0.5rem', color: '#ef4444' }}
@@ -691,6 +701,32 @@ const ItemStockManagement = () => {
             </div>
           )
         }
+        {/* Delete Confirmation Modal */}
+        <ConfirmModal
+          open={deleteConfirm.open}
+          title="Delete Item"
+          message={`Are you sure you want to delete "${deleteConfirm.itemName}"? This action cannot be undone.`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          variant="danger"
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteConfirm({ open: false, itemId: null, itemName: '' })}
+        />
+
+        {/* Override Confirmation Modal */}
+        <ConfirmModal
+          open={overrideConfirm.open}
+          title="Override Item Status"
+          message="Enter a reason to mark this sold item as available again."
+          confirmText="Override"
+          cancelText="Cancel"
+          variant="warning"
+          showInput
+          inputLabel="Reason"
+          inputRequired
+          onConfirm={confirmOverride}
+          onCancel={() => setOverrideConfirm({ open: false, item: null })}
+        />
       </div >
     </PullToRefresh >
   );

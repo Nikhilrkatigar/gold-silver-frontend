@@ -95,20 +95,23 @@ const getLedgerAmountBalance = (ledger) => {
 };
 
 // Must match /ledgers "Total Amount": include only positive billing vouchers.
+// For vouchers with mixed positive/negative items, sum positive item amounts.
 const getVoucherGrossBillAmount = (voucher) => {
   const paymentType = voucher?.paymentType;
   if (!['cash', 'credit'].includes(paymentType)) return 0;
 
   const explicitTotal = Number(voucher?.total);
-  if (Number.isFinite(explicitTotal)) {
-    return explicitTotal > 0 ? explicitTotal : 0;
+  if (Number.isFinite(explicitTotal) && explicitTotal > 0) {
+    return explicitTotal;
   }
 
-  const itemsTotal = (voucher?.items || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
-  const stoneAmount = parseFloat(voucher?.stoneAmount) || 0;
-  const fineAmount = parseFloat(voucher?.fineAmount) || 0;
-  const computedTotal = itemsTotal + stoneAmount + fineAmount;
-  return computedTotal > 0 ? computedTotal : 0;
+  // When voucher total is negative or zero, sum only positive item amounts
+  // so that partial sales within the voucher still count
+  const positiveItemsTotal = (voucher?.items || []).reduce((sum, item) => {
+    const amt = parseFloat(item.amount) || 0;
+    return sum + (amt > 0 ? amt : 0);
+  }, 0);
+  return positiveItemsTotal;
 };
 
 const StockManagement = () => {
@@ -145,7 +148,7 @@ const StockManagement = () => {
     [goldAmount, silverAmount]
   );
   const customerLiabilities = cashBreakdown?.customerLiabilities || 0;
-  const effectiveCashAfterLiabilities = cashInHand + customerLiabilities;
+  const effectiveCashAfterLiabilities = cashInHand - customerLiabilities;
 
   const resetDateTimeSelection = () => {
     const nowTime = getCurrentTimeParts();
@@ -431,8 +434,8 @@ const StockManagement = () => {
                 </div>
                 {(cashBreakdown.customerLiabilities || 0) > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                    <span style={{ color: 'var(--color-muted)' }}>Customer liabilities (we owe, not cash)</span>
-                    <span style={{ fontWeight: 600, color: '#d97706' }}>+{'\u20B9'}{(cashBreakdown.customerLiabilities || 0).toFixed(2)}</span>
+                    <span style={{ color: 'var(--color-muted)' }}>Customer liabilities (we owe)</span>
+                    <span style={{ fontWeight: 600, color: '#dc2626' }}>-{'\u20B9'}{(cashBreakdown.customerLiabilities || 0).toFixed(2)}</span>
                   </div>
                 )}
                 {(cashBreakdown.paidForPurchases || 0) > 0 && (
