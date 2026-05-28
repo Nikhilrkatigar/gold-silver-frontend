@@ -19,6 +19,7 @@ export default function Settlement() {
     metalRate: '',
     fineGiven: '',
     amount: '',
+    direction: 'payment',
     narration: ''
   });
   const [calculationSource, setCalculationSource] = useState(null); // Track which field was edited
@@ -107,6 +108,7 @@ export default function Settlement() {
         metalRate: '',
         fineGiven: '',
         amount: '',
+        direction: 'payment',
         narration: ''
       });
       setCalculationSource(null);
@@ -328,6 +330,22 @@ export default function Settlement() {
                 <option value="gold">Gold</option>
                 <option value="silver">Silver</option>
               </select>
+            </div>
+
+            <div className="input-group">
+              <label className="input-label">Stock Impact</label>
+              <select
+                className="input"
+                value={formData.direction}
+                onChange={(e) => setFormData({...formData, direction: e.target.value})}
+                disabled={!formData.ledgerId}
+              >
+                <option value="payment">Subtract stock / reduce balance</option>
+                <option value="receipt">Add stock / increase balance</option>
+              </select>
+              <div className="text-muted" style={{ marginTop: '0.4rem', fontSize: '0.875rem' }}>
+                Use payment when the customer takes metal or cash from you. Use receipt when the customer gives metal or cash to you.
+              </div>
             </div>
 
             {formData.ledgerId && (
