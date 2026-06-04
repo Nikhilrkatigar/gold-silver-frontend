@@ -39,6 +39,17 @@ export default function Karigar() {
     narration: ''
   });
 
+  const formatAmount = (amount) => {
+    const value = Number(amount) || 0;
+    const sign = value < 0 ? '-' : '';
+    return `${sign}\u20B9${Math.abs(value).toFixed(2)}`;
+  };
+
+  const getAmountDelta = (transaction) => {
+    const amount = parseFloat(transaction.chargeAmount) || 0;
+    return transaction.type === 'received' ? -amount : amount;
+  };
+
   useEffect(() => {
     fetchTransactions();
     fetchStock();
@@ -128,19 +139,31 @@ export default function Karigar() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.karigarName || !formData.itemName || !formData.fineWeight) {
-      toast.error('Please fill in Karigar name, item name, and fine weight');
+    if (!formData.karigarName || !formData.itemName) {
+      toast.error('Please fill in Karigar name and item name');
       return;
     }
 
-    const fineWeight = parseFloat(formData.fineWeight);
-    if (fineWeight <= 0) {
-      toast.error('Fine weight must be greater than 0');
+    const fineWeight = parseFloat(formData.fineWeight) || 0;
+    const chargeAmount = parseFloat(formData.chargeAmount) || 0;
+
+    if (fineWeight < 0) {
+      toast.error('Fine weight cannot be negative');
+      return;
+    }
+
+    if (chargeAmount < 0) {
+      toast.error('Amount cannot be negative');
+      return;
+    }
+
+    if (fineWeight <= 0 && chargeAmount <= 0) {
+      toast.error('Please enter fine weight or amount');
       return;
     }
 
     // Check stock if giving
-    if (formData.type === 'given') {
+    if (formData.type === 'given' && fineWeight > 0) {
       const availableStock = formData.metalType === 'gold' ? currentStock.gold : currentStock.silver;
       if (fineWeight > availableStock) {
         toast.error(`Insufficient ${formData.metalType} stock. Available: ${availableStock.toFixed(3)}g`);
@@ -156,7 +179,7 @@ export default function Karigar() {
         itemName: formData.itemName.trim(),
         metalType: formData.metalType,
         fineWeight: fineWeight,
-        chargeAmount: formData.chargeAmount ? parseFloat(formData.chargeAmount) : 0,
+        chargeAmount,
         narration: formData.narration
       });
 
@@ -256,8 +279,8 @@ export default function Karigar() {
             </div>
             ${transaction.chargeAmount ? `
             <div class="detail-item">
-              <div class="label">Charge Amount</div>
-              <div class="value">₹${parseFloat(transaction.chargeAmount).toFixed(2)}</div>
+              <div class="label">Amount</div>
+              <div class="value">${formatAmount(getAmountDelta(transaction))}</div>
             </div>
             ` : ''}
           </div>
@@ -298,26 +321,26 @@ export default function Karigar() {
     const karigarTxns = getKarigarTransactions(name);
     const givenGold = karigarTxns
       .filter(t => t.type === 'given' && t.metalType === 'gold')
-      .reduce((sum, t) => sum + parseFloat(t.fineWeight), 0);
+      .reduce((sum, t) => sum + (parseFloat(t.fineWeight) || 0), 0);
     const givenSilver = karigarTxns
       .filter(t => t.type === 'given' && t.metalType === 'silver')
-      .reduce((sum, t) => sum + parseFloat(t.fineWeight), 0);
+      .reduce((sum, t) => sum + (parseFloat(t.fineWeight) || 0), 0);
     const receivedGold = karigarTxns
       .filter(t => t.type === 'received' && t.metalType === 'gold')
-      .reduce((sum, t) => sum + parseFloat(t.fineWeight), 0);
+      .reduce((sum, t) => sum + (parseFloat(t.fineWeight) || 0), 0);
     const receivedSilver = karigarTxns
       .filter(t => t.type === 'received' && t.metalType === 'silver')
-      .reduce((sum, t) => sum + parseFloat(t.fineWeight), 0);
+      .reduce((sum, t) => sum + (parseFloat(t.fineWeight) || 0), 0);
     const totalCharge = karigarTxns
-      .reduce((sum, t) => sum + (parseFloat(t.chargeAmount) || 0), 0);
+      .reduce((sum, t) => sum + getAmountDelta(t), 0);
 
     return {
       givenGold,
       givenSilver,
       receivedGold,
       receivedSilver,
-      balanceGold: receivedGold - givenGold,
-      balanceSilver: receivedSilver - givenSilver,
+      balanceGold: givenGold - receivedGold,
+      balanceSilver: givenSilver - receivedSilver,
       totalCharge
     };
   };
@@ -369,9 +392,9 @@ export default function Karigar() {
               borderRadius: '6px',
               border: '1px solid var(--border-color)'
             }}>
-              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Total Charges</div>
+              <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Amount Balance</div>
               <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10b981', marginTop: '4px' }}>
-                ₹{transactions.reduce((sum, t) => sum + (parseFloat(t.chargeAmount) || 0), 0).toFixed(2)}
+                {formatAmount(transactions.reduce((sum, t) => sum + getAmountDelta(t), 0))}
               </div>
             </div>
           </div>
@@ -539,7 +562,7 @@ export default function Karigar() {
               </div>
 
               <div>
-                <label style={{ fontWeight: 500, display: 'block', marginBottom: '6px' }}>Fine Weight (g) *</label>
+                <label style={{ fontWeight: 500, display: 'block', marginBottom: '6px' }}>Fine Weight (g)</label>
                 <input
                   type="number"
                   name="fineWeight"
@@ -549,12 +572,11 @@ export default function Karigar() {
                   step="0.01"
                   className="input"
                   style={{ width: '100%' }}
-                  required
                 />
               </div>
 
               <div>
-                <label style={{ fontWeight: 500, display: 'block', marginBottom: '6px' }}>Charge Amount (₹)</label>
+                <label style={{ fontWeight: 500, display: 'block', marginBottom: '6px' }}>Amount ({'\u20B9'})</label>
                 <input
                   type="number"
                   name="chargeAmount"
@@ -749,8 +771,8 @@ export default function Karigar() {
                       <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#c0c0c0' }}>{stats.balanceSilver.toFixed(3)}g</div>
                     </div>
                     <div style={{ padding: '12px', background: 'var(--bg-primary)', borderRadius: '6px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '4px' }}>Total Charge</div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#10b981' }}>₹{stats.totalCharge.toFixed(2)}</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '4px' }}>Amount Balance</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#10b981' }}>{formatAmount(stats.totalCharge)}</div>
                     </div>
                   </>
                 );
@@ -772,7 +794,7 @@ export default function Karigar() {
                       <th style={{ borderBottom: '2px solid var(--border-color)', padding: '12px', textAlign: 'left' }}>Type</th>
                       <th style={{ borderBottom: '2px solid var(--border-color)', padding: '12px', textAlign: 'left' }}>Metal</th>
                       <th style={{ borderBottom: '2px solid var(--border-color)', padding: '12px', textAlign: 'left' }}>Fine (g)</th>
-                      <th style={{ borderBottom: '2px solid var(--border-color)', padding: '12px', textAlign: 'left' }}>Charge</th>
+                      <th style={{ borderBottom: '2px solid var(--border-color)', padding: '12px', textAlign: 'left' }}>Amount</th>
                       <th style={{ borderBottom: '2px solid var(--border-color)', padding: '12px', textAlign: 'center' }}>Actions</th>
                     </tr>
                   </thead>
@@ -798,7 +820,7 @@ export default function Karigar() {
                         <td style={{ padding: '12px', textTransform: 'capitalize' }}>{transaction.metalType}</td>
                         <td style={{ padding: '12px' }}>{parseFloat(transaction.fineWeight).toFixed(3)}</td>
                         <td style={{ padding: '12px' }}>
-                          {transaction.chargeAmount ? `₹${parseFloat(transaction.chargeAmount).toFixed(2)}` : '—'}
+                          {transaction.chargeAmount ? formatAmount(getAmountDelta(transaction)) : '---'}
                         </td>
                         <td style={{ padding: '12px', textAlign: 'center' }}>
                           <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
@@ -959,9 +981,9 @@ export default function Karigar() {
 
             {selectedTransaction.chargeAmount > 0 && (
               <div style={{ marginBottom: '16px' }}>
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Charge Amount</div>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Amount</div>
                 <div style={{ marginTop: '4px', fontSize: '1.1rem', fontWeight: 600 }}>
-                  ₹{parseFloat(selectedTransaction.chargeAmount).toFixed(2)}
+                  {formatAmount(getAmountDelta(selectedTransaction))}
                 </div>
               </div>
             )}
