@@ -1,8 +1,8 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
-import { stockAPI } from '../../services/api';
+import { expenseAPI, karigarAPI, settlementAPI, stockAPI, voucherAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import Layout from '../../components/Layout';
-import { FiDownload, FiPrinter, FiRotateCcw } from 'react-icons/fi';
+import { FiDownload, FiEye, FiPrinter, FiRotateCcw, FiX } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import { SkeletonStat, SkeletonTable } from '../../components/Skeleton';
 import PullToRefresh from '../../components/PullToRefresh';
@@ -114,6 +114,56 @@ const getVoucherGrossBillAmount = (voucher) => {
   return positiveItemsTotal;
 };
 
+const formatCurrency = (amount) => {
+  const value = toFiniteNumber(amount);
+  const sign = value < 0 ? '-' : '';
+  return `${sign}\u20B9${Math.abs(value).toFixed(2)}`;
+};
+
+const getKarigarAmountDelta = (transaction) => {
+  const amount = toFiniteNumber(transaction?.chargeAmount);
+  return transaction?.type === 'received' ? -amount : amount;
+};
+
+const getKarigarChargeBalance = (transactions = []) => (
+  transactions.reduce((sum, transaction) => sum + getKarigarAmountDelta(transaction), 0)
+);
+
+const getCashBreakdownWithKarigar = (breakdown, backendNet, karigarCharges) => {
+  const normalizedBreakdown = breakdown || {};
+  const backendKarigarCharges = Object.prototype.hasOwnProperty.call(normalizedBreakdown, 'karigarCharges')
+    ? toFiniteNumber(normalizedBreakdown.karigarCharges)
+    : 0;
+  const netBeforeKarigar = toFiniteNumber(backendNet) + backendKarigarCharges;
+  const net = netBeforeKarigar + karigarCharges;
+
+  return {
+    ...normalizedBreakdown,
+    cashFromSales: toFiniteNumber(normalizedBreakdown.cashFromSales),
+    customerLiabilities: toFiniteNumber(normalizedBreakdown.customerLiabilities),
+    paidForPurchases: toFiniteNumber(normalizedBreakdown.paidForPurchases),
+    stockAndExpenses: toFiniteNumber(normalizedBreakdown.stockAndExpenses),
+    karigarCharges,
+    net
+  };
+};
+
+const fetchAllPaginated = async (request, key) => {
+  const allItems = [];
+  let page = 1;
+  let pages = 1;
+
+  do {
+    const response = await request({ page, limit: 100 });
+    const data = response?.data || {};
+    allItems.push(...(data[key] || []));
+    pages = data.pagination?.pages || 1;
+    page += 1;
+  } while (page <= pages);
+
+  return allItems;
+};
+
 const StockManagement = () => {
   const { user } = useAuth();
 
@@ -138,6 +188,9 @@ const StockManagement = () => {
   const [error, setError] = useState('');
   const [cashInHand, setCashInHand] = useState(0);
   const [cashBreakdown, setCashBreakdown] = useState(null);
+  const [cashDetailsOpen, setCashDetailsOpen] = useState(false);
+  const [cashDetailsLoading, setCashDetailsLoading] = useState(false);
+  const [cashDetails, setCashDetails] = useState([]);
   const [stockDate, setStockDate] = useState(getTodayLocalDate());
   const [stockHour, setStockHour] = useState(getCurrentTimeParts().hour);
   const [stockMinute, setStockMinute] = useState(getCurrentTimeParts().minute);
@@ -163,11 +216,16 @@ const StockManagement = () => {
   // and accounts for stock purchases and cash expenses via Stock.cashInHand
   const calculateCashInHand = async () => {
     try {
-      const stockRes = await stockAPI.getStock();
+      const [stockRes, karigarRes] = await Promise.all([
+        stockAPI.getStock(),
+        fetchAllPaginated(karigarAPI.getAll, 'transactions')
+      ]);
       const breakdown = stockRes?.data?.stock?.cashBreakdown;
-      const net = stockRes?.data?.stock?.calculatedCashInHand ?? 0;
-      setCashInHand(net);
-      setCashBreakdown(breakdown || null);
+      const backendNet = stockRes?.data?.stock?.calculatedCashInHand ?? 0;
+      const karigarCharges = getKarigarChargeBalance(karigarRes);
+      const normalizedBreakdown = getCashBreakdownWithKarigar(breakdown, backendNet, karigarCharges);
+      setCashInHand(normalizedBreakdown.net);
+      setCashBreakdown(normalizedBreakdown);
     } catch (err) {
       console.error('Error fetching cash in hand:', err);
       setCashInHand(0);
@@ -189,6 +247,116 @@ const StockManagement = () => {
       setError('Failed to fetch stock data.');
     }
     setLoading(false);
+  };
+
+  const buildCashDetailGroups = ({ vouchers, expenses, stockInputs, karigarTransactions }) => {
+    const activeVouchers = vouchers.filter((voucher) => voucher.status !== 'cancelled');
+    const cashPaymentTypes = ['cash', 'add_cash', 'money_to_gold', 'money_to_silver'];
+
+    const saleRows = activeVouchers
+      .filter((voucher) => voucher.voucherType !== 'purchase' && cashPaymentTypes.includes(voucher.paymentType))
+      .map((voucher) => ({
+        id: voucher._id,
+        date: voucher.date,
+        title: voucher.customerName || voucher.ledgerId?.name || 'Customer cash',
+        subtitle: `Voucher ${voucher.voucherNumber || '-'}`,
+        amount: toFiniteNumber(voucher.cashReceived),
+        tone: 'in'
+      }))
+      .filter((row) => row.amount !== 0);
+
+    const purchaseRows = activeVouchers
+      .filter((voucher) => voucher.voucherType === 'purchase')
+      .map((voucher) => ({
+        id: voucher._id,
+        date: voucher.date,
+        title: voucher.customerName || voucher.ledgerId?.name || 'Old gold purchase',
+        subtitle: `Purchase voucher ${voucher.voucherNumber || '-'}`,
+        amount: -toFiniteNumber(voucher.cashReceived),
+        tone: 'out'
+      }))
+      .filter((row) => row.amount !== 0);
+
+    const stockRows = stockInputs
+      .map((entry) => ({
+        id: entry._id,
+        date: entry.date,
+        title: 'Stock purchase',
+        subtitle: `Gold ${toFiniteNumber(entry.gold).toFixed(3)}g, Silver ${toFiniteNumber(entry.silver).toFixed(3)}g`,
+        amount: -toFiniteNumber(entry.cashAmount),
+        tone: 'out'
+      }))
+      .filter((row) => row.amount !== 0);
+
+    const expenseRows = expenses
+      .filter((expense) => expense.paymentMethod === 'cash')
+      .map((expense) => ({
+        id: expense._id,
+        date: expense.date,
+        title: expense.category || 'Expense',
+        subtitle: expense.description || 'Cash expense',
+        amount: -toFiniteNumber(expense.amount),
+        tone: 'out'
+      }))
+      .filter((row) => row.amount !== 0);
+
+    const karigarRows = karigarTransactions
+      .map((transaction) => {
+        const amount = getKarigarAmountDelta(transaction);
+        const name = transaction.karigarName || transaction.itemName || 'Karigar';
+        return {
+          id: transaction._id,
+          date: transaction.date,
+          title: name,
+          subtitle: `${transaction.type === 'received' ? 'Received' : 'Given'} - ${transaction.itemName || 'work'}`,
+          amount,
+          tone: amount >= 0 ? 'in' : 'out'
+        };
+      })
+      .filter((row) => row.amount !== 0);
+
+    const groups = [
+      { key: 'sales', title: 'Cash received from customers', rows: saleRows },
+      { key: 'purchases', title: 'Paid for old gold purchases', rows: purchaseRows },
+      { key: 'stock', title: 'Stock purchases', rows: stockRows },
+      { key: 'expenses', title: 'Cash expenses', rows: expenseRows },
+      { key: 'karigar', title: 'Karigar amount balance', rows: karigarRows }
+    ];
+
+    return groups.map((group) => ({
+      ...group,
+      total: group.rows.reduce((sum, row) => sum + row.amount, 0)
+    }));
+  };
+
+  const loadCashDetails = async () => {
+    setCashDetailsLoading(true);
+    try {
+      const [vouchers, expensesRes, stockInputs, karigarTransactions] = await Promise.all([
+        fetchAllPaginated(voucherAPI.getAll, 'vouchers'),
+        expenseAPI.getAll({}),
+        fetchAllPaginated(stockAPI.getHistory, 'history'),
+        fetchAllPaginated(karigarAPI.getAll, 'transactions')
+      ]);
+
+      const groups = buildCashDetailGroups({
+        vouchers,
+        expenses: expensesRes?.data?.expenses || [],
+        stockInputs,
+        karigarTransactions
+      });
+      setCashDetails(groups);
+    } catch (err) {
+      console.error('Failed to load cash details:', err);
+      toast.error('Failed to load cash breakdown details.');
+    } finally {
+      setCashDetailsLoading(false);
+    }
+  };
+
+  const handleCashBreakdownOpen = () => {
+    setCashDetailsOpen(true);
+    loadCashDetails();
   };
 
   useEffect(() => {
@@ -409,7 +577,26 @@ const StockManagement = () => {
           </div>
 
           {/* â”€â”€ Cash in Hand â”€â”€ */}
-          <div style={{ marginBottom: 24, borderRadius: 10, overflow: 'hidden', border: `2px solid ${cashInHand < 0 ? '#ef4444' : '#22c55e'}` }}>
+          <div
+            role="button"
+            tabIndex={0}
+            onClick={handleCashBreakdownOpen}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                handleCashBreakdownOpen();
+              }
+            }}
+            title="View cash breakdown"
+            style={{
+              marginBottom: 24,
+              borderRadius: 10,
+              overflow: 'hidden',
+              border: `2px solid ${cashInHand < 0 ? '#ef4444' : '#22c55e'}`,
+              cursor: 'pointer',
+              boxShadow: cashDetailsOpen ? '0 0 0 3px rgba(34, 197, 94, 0.18)' : 'none'
+            }}
+          >
             {/* Header */}
             <div style={{
               padding: '12px 18px',
@@ -417,7 +604,8 @@ const StockManagement = () => {
               display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               borderBottom: `1px solid ${cashInHand < 0 ? '#fca5a5' : '#86efac'}`
             }}>
-              <span style={{ fontWeight: 700, fontSize: 15, color: cashInHand < 0 ? '#991b1b' : '#166534' }}>
+              <span style={{ fontWeight: 700, fontSize: 15, color: cashInHand < 0 ? '#991b1b' : '#166534', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <FiEye size={15} />
                 Cash in Hand
               </span>
               <span style={{ fontSize: 22, fontWeight: 800, color: cashInHand < 0 ? '#dc2626' : '#16a34a' }}>
@@ -450,10 +638,12 @@ const StockManagement = () => {
                     <span style={{ fontWeight: 600, color: '#dc2626' }}>-{'\u20B9'}{(cashBreakdown.stockAndExpenses || 0).toFixed(2)}</span>
                   </div>
                 )}
-                {(cashBreakdown.karigarCharges || 0) > 0 && (
+                {(cashBreakdown.karigarCharges || 0) !== 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                    <span style={{ color: 'var(--color-muted)' }}>Karigar making charges</span>
-                    <span style={{ fontWeight: 600, color: '#dc2626' }}>-{'\u20B9'}{(cashBreakdown.karigarCharges || 0).toFixed(2)}</span>
+                    <span style={{ color: 'var(--color-muted)' }}>Karigar amount balance</span>
+                    <span style={{ fontWeight: 600, color: (cashBreakdown.karigarCharges || 0) < 0 ? '#dc2626' : '#16a34a' }}>
+                      {(cashBreakdown.karigarCharges || 0) >= 0 ? '+' : ''}{formatCurrency(cashBreakdown.karigarCharges || 0)}
+                    </span>
                   </div>
                 )}
                 <div style={{ borderTop: '1px solid var(--border-color)', marginTop: 4, paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700 }}>
@@ -618,6 +808,102 @@ const StockManagement = () => {
           </div>
         </div>
       </PullToRefresh>
+
+      {cashDetailsOpen && (
+        <div
+          onClick={() => setCashDetailsOpen(false)}
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.55)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 16,
+            zIndex: 1000
+          }}
+        >
+          <div
+            className="card"
+            onClick={(event) => event.stopPropagation()}
+            style={{
+              width: 'min(760px, 100%)',
+              maxHeight: '86vh',
+              overflow: 'hidden',
+              padding: 0,
+              display: 'flex',
+              flexDirection: 'column'
+            }}
+          >
+            <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>Cash in Hand</h2>
+                <div style={{ marginTop: 4, fontSize: 13, color: 'var(--color-muted)' }}>
+                  Net {formatCurrency(cashInHand)}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setCashDetailsOpen(false)}
+                title="Close"
+                style={{ padding: 8, minWidth: 40, display: 'inline-flex', justifyContent: 'center' }}
+              >
+                <FiX size={18} />
+              </button>
+            </div>
+
+            <div style={{ padding: 22, overflow: 'auto' }}>
+              {cashDetailsLoading ? (
+                <div style={{ color: 'var(--color-muted)', padding: '20px 0' }}>Loading...</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {cashDetails.map((group) => (
+                    <div key={group.key} style={{ border: '1px solid var(--border-color)', borderRadius: 8, overflow: 'hidden' }}>
+                      <div style={{ padding: '10px 12px', background: 'var(--bg-secondary)', display: 'flex', justifyContent: 'space-between', gap: 12, fontWeight: 700 }}>
+                        <span>{group.title}</span>
+                        <span style={{ color: group.total < 0 ? '#dc2626' : '#16a34a' }}>
+                          {group.total >= 0 ? '+' : ''}{formatCurrency(group.total)}
+                        </span>
+                      </div>
+
+                      {group.rows.length === 0 ? (
+                        <div style={{ padding: '12px', color: 'var(--color-muted)', fontSize: 13 }}>No entries</div>
+                      ) : (
+                        <div>
+                          {group.rows.map((row) => (
+                            <div
+                              key={row.id || `${group.key}-${row.date}-${row.title}-${row.amount}`}
+                              style={{
+                                display: 'grid',
+                                gridTemplateColumns: '120px minmax(0, 1fr) auto',
+                                gap: 12,
+                                padding: '10px 12px',
+                                borderTop: '1px solid var(--border-color)',
+                                alignItems: 'center',
+                                fontSize: 13
+                              }}
+                            >
+                              <span style={{ color: 'var(--color-muted)' }}>{formatDate12Hour(row.date)}</span>
+                              <span style={{ minWidth: 0 }}>
+                                <span style={{ display: 'block', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.title}</span>
+                                <span style={{ display: 'block', color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.subtitle}</span>
+                              </span>
+                              <span style={{ fontWeight: 700, color: row.amount < 0 ? '#dc2626' : '#16a34a' }}>
+                                {row.amount >= 0 ? '+' : ''}{formatCurrency(row.amount)}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

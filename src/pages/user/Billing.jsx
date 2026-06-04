@@ -12,6 +12,10 @@ import PullToRefresh from '../../components/PullToRefresh';
 import { SkeletonTable, SkeletonStat } from '../../components/Skeleton';
 import ItemScanner from '../../components/ItemScanner';
 
+const SETTLEMENT_PAYMENT_TYPES = ['add_cash', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'];
+const FINE_WEIGHT_SETTLEMENT_TYPES = ['add_gold', 'add_silver'];
+const DIRECT_SETTLEMENT_PAYMENT_TYPES = ['add_cash', 'money_to_gold', 'money_to_silver'];
+
 // Voucher Print Template Component
 const VoucherTemplate = ({ formData, items, ledgers, user, voucherData }) => {
   const ledger = ledgers.find(l => l._id === formData.ledgerId);
@@ -768,12 +772,14 @@ export default function Billing() {
       errors.ledgerId = 'Please select a customer';
     }
 
-    // Only validate items for cash and credit payment types
-    const isSettlementType = ['add_cash', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'].includes(formData.paymentType);
+    // Gold/silver fine settlement modes use the same item table as cash bills.
+    const isSettlementType = SETTLEMENT_PAYMENT_TYPES.includes(formData.paymentType);
+    const isFineWeightSettlement = FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType);
+    const usesItemTable = !isSettlementType || isFineWeightSettlement;
 
-    if (!isSettlementType) {
+    if (usesItemTable) {
       if (items.length === 0) {
-        errors.items = 'Please add at least one item';
+        errors.items = isFineWeightSettlement ? 'Please add at least one fine weight row' : 'Please add at least one item';
       } else {
         const itemErrors = {};
         for (let i = 0; i < items.length; i++) {
@@ -790,6 +796,9 @@ export default function Billing() {
         }
       }
 
+      if (isFineWeightSettlement && calculateTotals().fineWeight <= 0) {
+        errors.items = 'Fine weight must be greater than 0';
+      }
     } else {
       const settlementValue = parseFloat(formData.cashReceived);
       if (!Number.isFinite(settlementValue) || settlementValue === 0) {
@@ -851,6 +860,10 @@ export default function Billing() {
     const cashBalance = parseFloat(selectedLedger?.balances?.cashBalance) || 0;
     const goldBalance = parseFloat(selectedLedger?.balances?.goldFineWeight) || 0;
     const silverBalance = parseFloat(selectedLedger?.balances?.silverFineWeight) || 0;
+    const settlementFineWeight = isFineWeightSettlement ? calculateTotals().fineWeight : 0;
+    const cashReceivedValue = isFineWeightSettlement
+      ? settlementFineWeight
+      : (parseFloat(formData.cashReceived) || 0);
 
     const balanceSnapshot = {
       oldBalance: {
@@ -861,11 +874,15 @@ export default function Billing() {
         silverFineWeight: silverBalance
       },
       currentBalance: {
-        amount: formData.paymentType === 'credit'
+        amount: isFineWeightSettlement ? cashBalance : formData.paymentType === 'credit'
           ? netBalanceOfThisBill + creditBalance + cashBalance
           : netBalanceOfThisBill + cashBalance,
-        goldFineWeight: formData.paymentType === 'credit' ? goldBalance + goldAddedInThisBill : goldBalance,
-        silverFineWeight: formData.paymentType === 'credit' ? silverBalance + silverAddedInThisBill : silverBalance
+        goldFineWeight: formData.paymentType === 'add_gold'
+          ? goldBalance - settlementFineWeight
+          : (formData.paymentType === 'credit' ? goldBalance + goldAddedInThisBill : goldBalance),
+        silverFineWeight: formData.paymentType === 'add_silver'
+          ? silverBalance - settlementFineWeight
+          : (formData.paymentType === 'credit' ? silverBalance + silverAddedInThisBill : silverBalance)
       }
     };
 
@@ -882,7 +899,7 @@ export default function Billing() {
       issue: { gross: parseFloat(formData.issueGross) || 0 },
       receipt: { gross: parseFloat(formData.receiptGross) || 0 },
       narration: formData.narration,
-      cashReceived: parseFloat(formData.cashReceived) || 0,
+      cashReceived: cashReceivedValue,
       roundOff: parseFloat(formData.roundOff) || 0,
       invoiceType: formData.invoiceType,
       balanceSnapshot,
@@ -894,7 +911,7 @@ export default function Billing() {
     };
 
     try {
-      const isSettlementType = ['add_cash', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'].includes(formData.paymentType);
+      const isSettlementType = SETTLEMENT_PAYMENT_TYPES.includes(formData.paymentType);
       const isItemModeBilling = user?.stockMode === 'item' && !isSettlementType;
 
       let voucherId;
@@ -1986,9 +2003,14 @@ export default function Billing() {
                   <input
                     type="number"
                     step="0.01"
-                    value={formData.cashReceived}
-                    onChange={(e) => setFormData(prev => ({ ...prev, cashReceived: e.target.value }))}
-                    placeholder="0.00"
+                    value={FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType) ? calculateTotals().fineWeight.toFixed(3) : formData.cashReceived}
+                    onChange={(e) => {
+                      if (!FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType)) {
+                        setFormData(prev => ({ ...prev, cashReceived: e.target.value }));
+                      }
+                    }}
+                    placeholder={FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType) ? '0.000' : '0.00'}
+                    readOnly={FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType)}
                     style={{
                       width: '100%',
                       padding: '8px',
@@ -2055,18 +2077,20 @@ export default function Billing() {
                       </optgroup>
                     </select>
                   </div><small style={{ display: 'block', marginTop: '2px', color: 'var(--color-muted)', fontSize: '10px' }}>
-                    {['add_cash', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'].includes(formData.paymentType) ? 'Settlement: Enter amount to adjust balance' : (formData.paymentType === 'credit' ? 'On Balance' : 'Immediate')}
+                    {FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType)
+                      ? 'Settlement: use item table to calculate fine weight'
+                      : (SETTLEMENT_PAYMENT_TYPES.includes(formData.paymentType) ? 'Settlement: Enter amount to adjust balance' : (formData.paymentType === 'credit' ? 'On Balance' : 'Immediate'))}
                   </small>
                 </div>
               </div>
 
-              {/* Items Section - Only show for cash and credit payment types */}
-              {!['add_cash', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'].includes(formData.paymentType) && (
+              {/* Items Section - Cash/credit plus gold/silver fine settlement modes */}
+              {(!SETTLEMENT_PAYMENT_TYPES.includes(formData.paymentType) || FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType)) && (
                 <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
-                  <h3>Items</h3>
+                  <h3>{FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType) ? 'Fine Weight Entries' : 'Items'}</h3>
 
                   {/* Item Scanner for Item Mode */}
-                  {user?.stockMode === 'item' && (
+                  {user?.stockMode === 'item' && !FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType) && (
                     <ItemScanner
                       onItemSelected={handleItemScanned}
                       existingItems={items.filter(item => item._itemId)}
@@ -2074,28 +2098,32 @@ export default function Billing() {
                   )}
 
                   <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
-                    <button type="button" onClick={() => addRow('gold')} style={{
-                      padding: '10px 15px',
-                      backgroundColor: '#FFD700',
-                      color: '#000',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontWeight: 'bold'
-                    }}>
-                      <FiPlus /> Add Gold Item
-                    </button>
-                    <button type="button" onClick={() => addRow('silver')} style={{
-                      padding: '10px 15px',
-                      backgroundColor: '#C0C0C0',
-                      color: '#000',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontWeight: 'bold'
-                    }}>
-                      <FiPlus /> Add Silver Item
-                    </button>
+                    {formData.paymentType !== 'add_silver' && (
+                      <button type="button" onClick={() => addRow('gold')} style={{
+                        padding: '10px 15px',
+                        backgroundColor: '#FFD700',
+                        color: '#000',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                      }}>
+                        <FiPlus /> Add Gold Item
+                      </button>
+                    )}
+                    {formData.paymentType !== 'add_gold' && (
+                      <button type="button" onClick={() => addRow('silver')} style={{
+                        padding: '10px 15px',
+                        backgroundColor: '#C0C0C0',
+                        color: '#000',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontWeight: 'bold'
+                      }}>
+                        <FiPlus /> Add Silver Item
+                      </button>
+                    )}
                   </div>
 
                   <div style={{ overflowX: 'auto' }}>
@@ -2332,8 +2360,8 @@ export default function Billing() {
                 </div>
               )}
 
-              {/* Settlement Section - Show for add_cash, add_gold, add_silver, money_to_gold, money_to_silver */}
-              {['add_cash', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'].includes(formData.paymentType) && (
+              {/* Direct settlement section - gold/silver fine modes use the item table above */}
+              {DIRECT_SETTLEMENT_PAYMENT_TYPES.includes(formData.paymentType) && (
                 <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', border: '2px solid var(--color-primary)' }}>
                   <h3 style={{ marginTop: 0, color: 'var(--color-primary)' }}>
                     {formData.paymentType === 'add_cash' && '💰 Add Cash to Balance'}
