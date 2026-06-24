@@ -1054,7 +1054,7 @@ export default function LedgerDetail() {
   }, [ledger, transactions, filters, user]);
 
   // ─── EXPORT: Premium PDF Statement ──────────────────────────────────────
-  const handleExportPDF = useCallback((fromDate, toDate) => {
+  const handleExportPDF = useCallback((fromDate, toDate, isSummaryOnly = false) => {
     // Filter transactions by export date range
     let exportTxns = [...transactions];
     if (fromDate) {
@@ -1066,7 +1066,7 @@ export default function LedgerDetail() {
       exportTxns = exportTxns.filter(t => new Date(t.date) <= endOfDay);
     }
 
-    if (exportTxns.length === 0) {
+    if (exportTxns.length === 0 && !isSummaryOnly) {
       toast.error('No transactions in the selected period');
       return;
     }
@@ -1242,7 +1242,14 @@ export default function LedgerDetail() {
         </div>
       </div>
 
-      <!-- TRANSACTION TABLE -->
+      <!-- TRANSACTION TABLE / SUMMARY SIGNATURE BLOCKS -->
+      ${isSummaryOnly ? `
+      <!-- SIGNATURE BLOCKS FOR SUMMARY STATEMENT -->
+      <div style="margin-top: 80px; display: flex; justify-content: space-between; padding: 0 40px; margin-bottom: 20px;">
+        <div style="width: 180px; text-align: center; border-top: 1px solid #ddd; padding-top: 8px; font-size: 10px; color: #555; font-weight: bold;">Customer Signature</div>
+        <div style="width: 180px; text-align: center; border-top: 1px solid #ddd; padding-top: 8px; font-size: 10px; color: #555; font-weight: bold;">Authorised Signatory</div>
+      </div>
+      ` : `
       <table style="width:100%;border-collapse:collapse;font-size:9px;margin-top:4px">
         <thead>
           <tr style="background:#1e3a8a;color:#fff">
@@ -1268,6 +1275,7 @@ export default function LedgerDetail() {
           </tr>
         </tfoot>
       </table>
+      `}
 
       <!-- FOOTER -->
       <div style="margin-top:14px;padding-top:8px;border-top:1px solid #ddd;display:flex;justify-content:space-between;font-size:8px;color:#999">
@@ -1284,7 +1292,7 @@ export default function LedgerDetail() {
     html2pdf()
       .set({
         margin: [5, 5, 5, 5],
-        filename: `Statement_${customerName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`,
+        filename: `${isSummaryOnly ? 'Summary_Statement' : 'Statement'}_${customerName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -1293,7 +1301,7 @@ export default function LedgerDetail() {
       .save()
       .then(() => {
         document.body.removeChild(container);
-        toast.success('Statement PDF downloaded!');
+        toast.success(`${isSummaryOnly ? 'Summary' : 'Detailed'} Statement PDF downloaded!`);
       })
       .catch(() => {
         document.body.removeChild(container);
@@ -2028,18 +2036,25 @@ export default function LedgerDetail() {
                     Cancel
                   </button>
                   <button
-                    onClick={() => handleExportPDF('', '')}
+                    onClick={() => handleExportPDF('', '', false)}
                     className="btn"
                     style={{ backgroundColor: '#6b7280', color: '#fff', border: 'none' }}
                   >
-                    Export All
+                    Export All (Detailed)
                   </button>
                   <button
-                    onClick={() => handleExportPDF(exportDates.from, exportDates.to)}
+                    onClick={() => handleExportPDF(exportDates.from, exportDates.to, true)}
+                    className="btn"
+                    style={{ backgroundColor: '#059669', color: '#fff', border: 'none', fontWeight: 600 }}
+                  >
+                    📋 Summary PDF
+                  </button>
+                  <button
+                    onClick={() => handleExportPDF(exportDates.from, exportDates.to, false)}
                     className="btn"
                     style={{ background: 'linear-gradient(135deg,#1e3a8a 0%,#3b82f6 100%)', color: '#fff', border: 'none', fontWeight: 600 }}
                   >
-                    📄 Download PDF
+                    📄 Detailed PDF
                   </button>
                 </div>
               </div>

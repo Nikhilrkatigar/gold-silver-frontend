@@ -2564,15 +2564,20 @@ export default function Billing() {
                 </div>
               )}
 
-              {/* Balance Summary Section - Now after Items, before Narration - Only for billing types */}
-              {!['add_cash', 'add_gold', 'add_silver'].includes(formData.paymentType) && (
+              {/* Balance Summary Section - Now after Items, before Narration - Only for billing and fine weight settlement types */}
+              {!['add_cash'].includes(formData.paymentType) && (
                 <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
                   <h3 style={{ marginTop: 0 }}>Balance Summary</h3>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', fontSize: '14px' }}>
                     <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
                       <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Net Balance</div>
                       <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--color-primary)' }}>
-                        ₹{((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)).toFixed(2)}
+                        ₹{(
+                          (items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + 
+                          (parseFloat(formData.stoneAmount) || 0) + 
+                          (parseFloat(formData.fineAmount) || 0)) - 
+                          (FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType) ? 0 : (parseFloat(formData.cashReceived) || 0))
+                        ).toFixed(2)}
                       </div>
                       <div style={{ fontSize: '10px', color: 'var(--color-muted)', marginTop: '3px' }}>Total - Cash Received</div>
                     </div>
@@ -2580,7 +2585,15 @@ export default function Billing() {
                     <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
                       <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Cur Bal Amount</div>
                       <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--color-primary)' }}>
-                        ₹{(((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)) + (formData.paymentType === 'credit' ? ((parseFloat(selectedLedger?.balances?.creditBalance) || 0) + (parseFloat(selectedLedger?.balances?.cashBalance) || 0)) : (parseFloat(selectedLedger?.balances?.cashBalance) || 0))).toFixed(2)}
+                        ₹{(
+                          ((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + 
+                          (parseFloat(formData.stoneAmount) || 0) + 
+                          (parseFloat(formData.fineAmount) || 0)) - 
+                          (FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType) ? 0 : (parseFloat(formData.cashReceived) || 0))) + 
+                          (formData.paymentType === 'credit' 
+                            ? ((parseFloat(selectedLedger?.balances?.creditBalance) || 0) + (parseFloat(selectedLedger?.balances?.cashBalance) || 0)) 
+                            : (parseFloat(selectedLedger?.balances?.cashBalance) || 0))
+                        ).toFixed(2)}
                       </div>
                       <div style={{ fontSize: '10px', color: 'var(--color-muted)', marginTop: '3px' }}>Net + Old Balance</div>
                     </div>
@@ -2588,14 +2601,22 @@ export default function Billing() {
                     <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
                       <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Cur Bal Gold Fine Wt</div>
                       <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#FFD700' }}>
-                        {formData.paymentType === 'credit' ? ((items.filter(item => item.metalType === 'gold').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.goldFineWeight) || 0)).toFixed(3) : (parseFloat(selectedLedger?.balances?.goldFineWeight) || 0).toFixed(3)}g
+                        {formData.paymentType === 'credit' 
+                          ? ((items.filter(item => item.metalType === 'gold').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.goldFineWeight) || 0)).toFixed(3) 
+                          : formData.paymentType === 'add_gold'
+                            ? ((parseFloat(selectedLedger?.balances?.goldFineWeight) || 0) - (calculateTotals().fineWeight || 0)).toFixed(3)
+                            : (parseFloat(selectedLedger?.balances?.goldFineWeight) || 0).toFixed(3)}g
                       </div>
                     </div>
 
                     <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
                       <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Cur Bal Silver Fine Wt</div>
                       <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#C0C0C0' }}>
-                        {formData.paymentType === 'credit' ? ((items.filter(item => item.metalType === 'silver').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.silverFineWeight) || 0)).toFixed(3) : (parseFloat(selectedLedger?.balances?.silverFineWeight) || 0).toFixed(3)}g
+                        {formData.paymentType === 'credit' 
+                          ? ((items.filter(item => item.metalType === 'silver').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.silverFineWeight) || 0)).toFixed(3) 
+                          : formData.paymentType === 'add_silver'
+                            ? ((parseFloat(selectedLedger?.balances?.silverFineWeight) || 0) - (calculateTotals().fineWeight || 0)).toFixed(3)
+                            : (parseFloat(selectedLedger?.balances?.silverFineWeight) || 0).toFixed(3)}g
                       </div>
                     </div>
 
@@ -2610,10 +2631,20 @@ export default function Billing() {
                 </div>
               )}
 
-              {/* Old Balance Details Section - Moved after Balance Summary - Only for billing types */}
-              {!['add_cash', 'add_gold', 'add_silver'].includes(formData.paymentType) && (
+              {/* Old Balance Details Section - Moved after Balance Summary - Only for billing and fine weight settlement types */}
+              {!['add_cash'].includes(formData.paymentType) && (
                 <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', border: `2px solid ${formData.paymentType === 'credit' ? 'var(--color-success, #4caf50)' : 'var(--color-warning, #ff9800)'}`, borderLeft: `4px solid ${formData.paymentType === 'credit' ? 'var(--color-success, #4caf50)' : 'var(--color-warning, #ff9800)'}` }}>
-                  <h3 style={{ marginTop: 0, color: 'var(--color-text)' }}>Old Balance Details ({formData.paymentType === 'credit' ? '📋 Credit Bill' : '💰 Cash Bill'})</h3>
+                  <h3 style={{ marginTop: 0, color: 'var(--color-text)' }}>
+                    Old Balance Details ({
+                      formData.paymentType === 'credit' 
+                        ? '📋 Credit Bill' 
+                        : formData.paymentType === 'add_gold'
+                          ? '🟡 Add Gold Fine Weight'
+                          : formData.paymentType === 'add_silver'
+                            ? '⚪ Add Silver Fine Weight'
+                            : '💰 Cash Bill'
+                    })
+                  </h3>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', fontSize: '14px' }}>
                     <div>
                       <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Old Bal Amount (₹)</label>
@@ -2658,10 +2689,12 @@ export default function Billing() {
                         fontWeight: 'bold',
                         fontSize: '14px'
                       }}>
-                        {formData.paymentType === 'credit' && selectedLedger?.balances?.goldFineWeight ? `${parseFloat(selectedLedger.balances.goldFineWeight).toFixed(3)}g` : '0.000g'}
+                        {selectedLedger?.balances?.goldFineWeight !== undefined ? `${parseFloat(selectedLedger.balances.goldFineWeight).toFixed(3)}g` : '0.000g'}
                       </div>
                       <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
-                        {formData.paymentType === 'credit' ? 'Auto-fetched from credit bills' : 'Not applicable for cash bills'}
+                        {['credit', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'].includes(formData.paymentType) 
+                          ? 'Auto-fetched from customer ledger' 
+                          : 'Not applicable for cash bills'}
                       </small>
                     </div>
 
@@ -2679,10 +2712,12 @@ export default function Billing() {
                         fontWeight: 'bold',
                         fontSize: '14px'
                       }}>
-                        {formData.paymentType === 'credit' && selectedLedger?.balances?.silverFineWeight ? `${parseFloat(selectedLedger.balances.silverFineWeight).toFixed(3)}g` : '0.000g'}
+                        {selectedLedger?.balances?.silverFineWeight !== undefined ? `${parseFloat(selectedLedger.balances.silverFineWeight).toFixed(3)}g` : '0.000g'}
                       </div>
                       <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
-                        {formData.paymentType === 'credit' ? 'Auto-fetched from credit bills' : 'Not applicable for cash bills'}
+                        {['credit', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'].includes(formData.paymentType) 
+                          ? 'Auto-fetched from customer ledger' 
+                          : 'Not applicable for cash bills'}
                       </small>
                     </div>
                   </div>

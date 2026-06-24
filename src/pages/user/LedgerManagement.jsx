@@ -269,6 +269,38 @@ export default function LedgerManagement() {
                   }, 0))}
                 </div>
               </div>
+
+              {/* Total Gold Balance Card */}
+              <div style={{
+                padding: '16px',
+                background: 'var(--bg-primary)',
+                borderRadius: '8px',
+                border: '2px solid #FFD700',
+                boxShadow: '0 2px 8px rgba(255, 215, 0, 0.15)'
+              }}>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Total Gold Balance</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#b45309', marginTop: '8px' }}>
+                  {filteredLedgers.reduce((sum, ledger) => {
+                    return sum + toFiniteNumber(ledger?.balances?.goldFineWeight);
+                  }, 0).toFixed(3)} g fine
+                </div>
+              </div>
+
+              {/* Total Silver Balance Card */}
+              <div style={{
+                padding: '16px',
+                background: 'var(--bg-primary)',
+                borderRadius: '8px',
+                border: '2px solid #9ca3af',
+                boxShadow: '0 2px 8px rgba(156, 163, 175, 0.15)'
+              }}>
+                <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Total Silver Balance</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#4b5563', marginTop: '8px' }}>
+                  {filteredLedgers.reduce((sum, ledger) => {
+                    return sum + toFiniteNumber(ledger?.balances?.silverFineWeight);
+                  }, 0).toFixed(3)} g fine
+                </div>
+              </div>
             </div>
           )}
 

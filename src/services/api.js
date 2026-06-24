@@ -93,6 +93,7 @@ export const settlementAPI = {
 export const stockAPI = {
   getStock: () => api.get('/api/stock'),
   addStock: (data) => api.post('/api/stock/add', data),
+  addCash: (data) => api.post('/api/stock/add-cash', data),
   getHistory: (params) => api.get('/api/stock/history', { params }),
   undoStock: () => api.post('/api/stock/undo'),
   setDailyRates: (data) => api.put('/api/stock/daily-rates', data),

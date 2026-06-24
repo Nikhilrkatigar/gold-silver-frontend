@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
@@ -22,6 +22,22 @@ export default function AccountInfo() {
     defaultGSTRate: user?.gstSettings?.defaultGSTRate || 18
   });
   const [savingGST, setSavingGST] = useState(false);
+
+  const [editingShop, setEditingShop] = useState(false);
+  const [shopFormData, setShopFormData] = useState({
+    shopName: user?.shopName || '',
+    phoneNumber: user?.phoneNumber || ''
+  });
+  const [savingShop, setSavingShop] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setShopFormData({
+        shopName: user.shopName || '',
+        phoneNumber: user.phoneNumber || ''
+      });
+    }
+  }, [user]);
 
   const indianStates = [
     { code: '01', name: 'Jammu and Kashmir' },
@@ -148,6 +164,32 @@ export default function AccountInfo() {
     }
   };
 
+  const handleSaveShop = async () => {
+    if (!shopFormData.shopName.trim() || !shopFormData.phoneNumber.trim()) {
+      toast.error('Shop Name and Phone Number are required');
+      return;
+    }
+
+    if (!/^[0-9]{10}$/.test(shopFormData.phoneNumber.replace(/\D/g, ''))) {
+      toast.error('Phone number must be exactly 10 digits');
+      return;
+    }
+
+    setSavingShop(true);
+    try {
+      await updateUserSettings({
+        shopName: shopFormData.shopName.trim(),
+        phoneNumber: shopFormData.phoneNumber.replace(/\D/g, '')
+      });
+      setEditingShop(false);
+      toast.success('Shop details saved successfully');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to save shop details');
+    } finally {
+      setSavingShop(false);
+    }
+  };
+
   const themeOptions = [
     { value: 'light', label: 'Light', icon: FiSun },
     { value: 'dark', label: 'Dark', icon: FiMoon },
@@ -159,31 +201,107 @@ export default function AccountInfo() {
       <div style={{ maxWidth: '800px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <h1 style={{ margin: 0 }}>Account Information</h1>
-          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>v3.4</span>
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>v3.5</span>
         </div>
 
         <div className="card" style={{ marginBottom: '1.5rem' }}>
-          <h3 style={{ marginBottom: '1.5rem' }}>Shop Details</h3>
-          <div className="grid grid-2">
-            <div>
-              <div className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Shop Name</div>
-              <div style={{ fontWeight: 600 }}>{user?.shopName}</div>
-            </div>
-            <div>
-              <div className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Phone Number</div>
-              <div style={{ fontWeight: 600 }}>{user?.phoneNumber}</div>
-            </div>
-            <div>
-              <div className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>License Expires</div>
-              <div style={{ fontWeight: 600 }}>{format(new Date(user?.licenseExpiryDate), 'dd MMM yyyy')}</div>
-            </div>
-            <div>
-              <div className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Days Remaining</div>
-              <div style={{ fontWeight: 600, color: daysRemaining <= 7 ? 'var(--color-warning)' : 'inherit' }}>
-                {daysRemaining} days
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+            <h3 style={{ margin: 0 }}>Shop Details</h3>
+            {!editingShop && (
+              <button
+                onClick={() => setEditingShop(true)}
+                className="btn btn-sm"
+                style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem' }}
+              >
+                <FiEdit2 size={16} /> Edit
+              </button>
+            )}
+          </div>
+
+          {editingShop ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>
+                  Shop Name *
+                </label>
+                <input
+                  type="text"
+                  value={shopFormData.shopName}
+                  onChange={(e) => setShopFormData(prev => ({ ...prev, shopName: e.target.value }))}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    borderRadius: '4px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--color-text)',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '0.875rem' }}>
+                  Phone Number *
+                </label>
+                <input
+                  type="text"
+                  value={shopFormData.phoneNumber}
+                  onChange={(e) => setShopFormData(prev => ({ ...prev, phoneNumber: e.target.value }))}
+                  placeholder="e.g., 9876543210"
+                  maxLength={10}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    borderRadius: '4px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--color-text)',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+                <button
+                  onClick={handleSaveShop}
+                  disabled={savingShop}
+                  className="btn btn-primary"
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                >
+                  <FiSave size={16} /> {savingShop ? 'Saving...' : 'Save'}
+                </button>
+                <button
+                  onClick={() => setEditingShop(false)}
+                  className="btn btn-secondary"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}
+                >
+                  <FiX size={16} /> Cancel
+                </button>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="grid grid-2">
+              <div>
+                <div className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Shop Name</div>
+                <div style={{ fontWeight: 600 }}>{user?.shopName}</div>
+              </div>
+              <div>
+                <div className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Phone Number</div>
+                <div style={{ fontWeight: 600 }}>{user?.phoneNumber}</div>
+              </div>
+              <div>
+                <div className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>License Expires</div>
+                <div style={{ fontWeight: 600 }}>{format(new Date(user?.licenseExpiryDate), 'dd MMM yyyy')}</div>
+              </div>
+              <div>
+                <div className="text-muted" style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Days Remaining</div>
+                <div style={{ fontWeight: 600, color: daysRemaining <= 7 ? 'var(--color-warning)' : 'inherit' }}>
+                  {daysRemaining} days
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {user?.gstEnabled && (
