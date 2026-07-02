@@ -122,7 +122,7 @@ const formatCurrency = (amount) => {
 
 const getKarigarAmountDelta = (transaction) => {
   const amount = toFiniteNumber(transaction?.chargeAmount);
-  return transaction?.type === 'received' ? -amount : amount;
+  return transaction?.type === 'received' ? -amount : 0;
 };
 
 const getKarigarChargeBalance = (transactions = []) => (
