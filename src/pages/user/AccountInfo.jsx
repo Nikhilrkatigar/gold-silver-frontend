@@ -3,10 +3,13 @@ import Layout from '../../components/Layout';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
 import { format, differenceInDays } from 'date-fns';
-import { FiSun, FiMoon, FiMonitor, FiLock, FiEdit2, FiSave, FiX } from 'react-icons/fi';
+import { FiSun, FiMoon, FiMonitor, FiLock, FiEdit2, FiSave, FiX, FiCompass } from 'react-icons/fi';
+import { useLang, LANGUAGES } from '../../i18n';
+import { startGuide } from '../../guides';
 
 export default function AccountInfo() {
   const { user, updateTheme, updateVoucherSettings, logout, theme, updateGSTSettings, updateLabourChargeSettings, updateUserSettings } = useAuth();
+  const { t, lang, setLang } = useLang();
   const [voucherMode, setVoucherMode] = useState(user?.voucherSettings?.autoIncrement ?? true);
   const [labourChargeType, setLabourChargeType] = useState(user?.labourChargeSettings?.type ?? 'full');
   const [reversalEnabled, setReversalEnabled] = useState(
@@ -472,6 +475,21 @@ export default function AccountInfo() {
             </div>
           </div>
         )}
+
+        <div className="card" style={{ marginBottom: '1.5rem' }}>
+          <h3 style={{ marginBottom: '1rem' }}>{t('account.langTitle')}</h3>
+          <div className="segmented" role="group" aria-label={t('account.language')}>
+            {LANGUAGES.map((l) => (
+              <button key={l.code} type="button" className={lang === l.code ? 'active' : ''} aria-pressed={lang === l.code} onClick={() => setLang(l.code)}>
+                {l.native}
+              </button>
+            ))}
+          </div>
+          <p className="field-hint" style={{ marginTop: '0.75rem' }}>{t('account.langNote')}</p>
+          <button type="button" className="btn btn-secondary" style={{ marginTop: '1rem' }} onClick={() => startGuide('app')}>
+            <FiCompass aria-hidden="true" /> {t('account.replay')}
+          </button>
+        </div>
 
         <div className="card" style={{ marginBottom: '1.5rem' }}>
           <h3 style={{ marginBottom: '1.5rem' }}>Theme Preference</h3>

@@ -5,9 +5,11 @@ import { ToastContainer } from 'react-toastify';
 import { MotionConfig } from 'motion/react';
 import 'react-toastify/dist/ReactToastify.css';
 import ErrorBoundary from './components/ErrorBoundary';
+import { LangProvider } from './i18n';
 
 // Pages
 import Login from './pages/Login';
+import NotFound from './pages/NotFound';
 import AdminDashboard from './pages/admin/Dashboard';
 import AddUser from './pages/admin/AddUser';
 import UserList from './pages/admin/UserList';
@@ -94,7 +96,7 @@ function AppRoutes() {
 
       {/* Default redirect */}
       <Route path="/" element={<Navigate to={user ? (user.role === 'admin' ? '/admin' : '/dashboard') : '/login'} replace />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
@@ -104,9 +106,11 @@ function App() {
     <MotionConfig reducedMotion="user">
     <BrowserRouter>
       <AuthProvider>
+        <LangProvider>
         <ErrorBoundary>
           <AppRoutes />
         </ErrorBoundary>
+        </LangProvider>
         <ToastContainer
           position="top-right"
           autoClose={3000}

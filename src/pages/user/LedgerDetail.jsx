@@ -1659,7 +1659,7 @@ export default function LedgerDetail() {
                 </tr>
               </thead>
               <tbody>
-                {transactions.map((txn) => {
+                {transactions.map((txn, i) => {
                   // Check if it's a settlement voucher (created via Voucher API with settlement paymentType)
                   const isSettlementVoucher = ['add_cash', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'].includes(txn.paymentType);
                   const isSettlementType = txn.type === 'settlement' || isSettlementVoucher;
@@ -1698,6 +1698,7 @@ export default function LedgerDetail() {
                               }}
                               className="btn btn-sm btn-secondary"
                               title="Edit"
+                              data-tour={i === 0 ? 'txn-edit' : undefined}
                             >
                               <FiEdit2 />
                             </button>
@@ -1706,6 +1707,7 @@ export default function LedgerDetail() {
                             onClick={() => isSettlementType ? handlePreviewSettlement(txn) : handlePreviewVoucher(txn)}
                             className="btn btn-sm btn-secondary"
                             title="Preview"
+                            data-tour={i === 0 ? 'txn-view' : undefined}
                           >
                             <FiEye />
                           </button>
@@ -1727,6 +1729,7 @@ export default function LedgerDetail() {
                             onClick={() => isSettlementType ? handleDeleteSettlement(txn._id) : handleDeleteVoucher(txn._id)}
                             className="btn btn-sm btn-danger"
                             title={isSettlementType ? 'Delete Settlement' : 'Delete Voucher'}
+                            data-tour={i === 0 ? 'txn-delete' : undefined}
                           >
                             <FiTrash2 />
                           </button>

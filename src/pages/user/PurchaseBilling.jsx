@@ -277,7 +277,7 @@ export default function PurchaseBilling() {
                         <button onClick={handlePrint} style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid var(--border-color)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
                             <FiPrinter /> Print
                         </button>
-                        <button onClick={handleSubmit} disabled={isLoading} style={{ padding: '8px 18px', borderRadius: 6, border: 'none', background: 'var(--color-primary)', color: 'var(--color-on-primary)', fontWeight: 600, cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <button onClick={handleSubmit} disabled={isLoading} data-tour="pur-save" style={{ padding: '8px 18px', borderRadius: 6, border: 'none', background: 'var(--color-primary)', color: 'var(--color-on-primary)', fontWeight: 600, cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
                             <FiSave /> {isLoading ? 'Saving...' : 'Save Voucher'}
                         </button>
                     </div>
@@ -288,7 +288,7 @@ export default function PurchaseBilling() {
                     <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 20, marginBottom: 16 }}>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
                             {/* Customer */}
-                            <div style={{ position: 'relative' }}>
+                            <div style={{ position: 'relative' }} data-tour="pur-customer">
                                 <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500 }}>Customer *</label>
                                 <input
                                     placeholder="Search customer..."
@@ -340,7 +340,7 @@ export default function PurchaseBilling() {
                                 <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500 }}>Cash Paid to Customer (₹)</label>
                                 <input type="number" placeholder="0.00" value={formData.cashPaid} onChange={e => setFormData(f => ({ ...f, cashPaid: e.target.value }))} style={inputStyle()} />
                             </div>
-                            <div>
+                            <div data-tour="pur-type">
                                 <label htmlFor="purchase-type" style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500 }}>Bill Type</label>
                                 <select id="purchase-type" value={formData.purchaseType} onChange={e => setFormData(f => ({ ...f, purchaseType: e.target.value }))} style={inputStyle()}>
                                     {PURCHASE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
@@ -407,7 +407,7 @@ export default function PurchaseBilling() {
                     </div>
 
                     {/* Items Table */}
-                    <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 20, marginBottom: 16 }}>
+                    <div data-tour="pur-items" style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 20, marginBottom: 16 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                             <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Items Purchased</h3>
                             <button type="button" onClick={addItem} style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: 'var(--color-primary)', color: 'var(--color-on-primary)', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 5 }}>

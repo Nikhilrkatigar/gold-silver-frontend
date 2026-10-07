@@ -1695,7 +1695,7 @@ export default function Billing() {
 
           {/* Customer Selection */}
           {!isLoading && (
-            <div className="card fade-in" style={{ marginBottom: '1rem' }}>
+            <div className="card fade-in" style={{ marginBottom: '1rem' }} data-tour="bill-customer">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
                 <h3 className="section-title" style={{ marginBottom: 0 }}>Customer</h3>
                 <button
@@ -1804,7 +1804,7 @@ export default function Billing() {
           {/* Voucher Details */}
           {!isLoading && (
             <form onSubmit={handleSubmit} style={{ marginBottom: '30px' }} className="fade-in">
-              <div className="card" style={{ marginBottom: '1rem' }}>
+              <div className="card" style={{ marginBottom: '1rem' }} data-tour="bill-voucher">
               <h3 className="section-title">Voucher</h3>
               <div className="form-grid">
                 <div>
@@ -1862,7 +1862,7 @@ export default function Billing() {
               </div>
               </div>
 
-              <div className="card" style={{ marginBottom: '1rem' }}>
+              <div className="card" style={{ marginBottom: '1rem' }} data-tour="bill-rates">
               <h3 className="section-title">Rates &amp; Amounts</h3>
               <div className="form-grid">
                 <div>
@@ -1986,7 +1986,7 @@ export default function Billing() {
 
               {/* Items Section - Cash/credit plus gold/silver fine settlement modes */}
               {(!SETTLEMENT_PAYMENT_TYPES.includes(formData.paymentType) || FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType)) && (
-                <div className="card" style={{ marginBottom: '1rem' }}>
+                <div className="card" style={{ marginBottom: '1rem' }} data-tour="bill-items">
                   <h3 className="section-title">{FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType) ? 'Fine Weight Entries' : 'Items'}</h3>
 
                   {/* Item Scanner for Item Mode */}
@@ -2450,7 +2450,7 @@ export default function Billing() {
 
               {/* Balance Summary Section - Now after Items, before Narration - Only for billing and fine weight settlement types */}
               {!['add_cash'].includes(formData.paymentType) && (
-                <div className="card" style={{ marginBottom: '1rem' }}>
+                <div className="card" style={{ marginBottom: '1rem' }} data-tour="bill-summary">
                   <h3 className="section-title">Balance Summary</h3>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', fontSize: '14px' }}>
                     <div style={{ padding: '0.875rem 1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius)', border: '1px solid var(--border-color)' }}>
@@ -2622,7 +2622,7 @@ export default function Billing() {
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'flex-end' }} data-tour="bill-save">
                 <button type="button" onClick={handlePrint} className="btn btn-secondary">
                   <FiPrinter /> Print
                 </button>

@@ -3,6 +3,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import ConfirmDialog from './ConfirmDialog';
+import Onboarding, { HelpMenu } from './Onboarding';
+import { useLang } from '../i18n';
 import {
   FiHome, FiUsers, FiClock, FiLogOut, FiMenu, FiX,
   FiBook, FiTrendingUp, FiSettings, FiFileText, FiShoppingBag,
@@ -40,6 +42,9 @@ export default function Layout({ children }) {
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { user, logout, isAdmin } = useAuth();
   const { pathname } = useLocation();
+  const { t } = useLang();
+  const label = (item) => (isAdmin ? item.label : t(`nav.${item.path}`));
+  const shortLabel = (item) => (isAdmin ? item.short : t(`short.${item.path}`));
 
   const navItems = isAdmin ? adminNav : userNav.filter((item) => {
     if (item.requiresGST) return user?.gstEnabled === true;
@@ -65,7 +70,7 @@ export default function Layout({ children }) {
           <img src="/favicon.svg" alt="" className="brand-mark" />
           <div className="sidebar-brand-text">
             <div className="sidebar-brand-name">{user?.shopName}</div>
-            <div className="sidebar-brand-role">{isAdmin ? 'Admin' : 'Shop account'}</div>
+            <div className="sidebar-brand-role">{isAdmin ? 'Admin' : t('nav.role')}</div>
           </div>
           <button type="button" className="btn btn-icon sidebar-close" onClick={closeSidebar} aria-label="Close menu">
             <FiX size={20} />
@@ -73,7 +78,8 @@ export default function Layout({ children }) {
         </div>
 
         <nav className="sidebar-nav">
-          {navItems.map(({ path, icon: Icon, label }) => {
+          {navItems.map((item) => {
+            const { path, icon: Icon } = item;
             const active = isActivePath(pathname, path);
             return (
               <Link
@@ -82,9 +88,10 @@ export default function Layout({ children }) {
                 onClick={closeSidebar}
                 className={`nav-link${active ? ' active' : ''}`}
                 aria-current={active ? 'page' : undefined}
+                data-tour={path}
               >
                 <Icon size={18} aria-hidden="true" />
-                {label}
+                {label(item)}
               </Link>
             );
           })}
@@ -93,7 +100,7 @@ export default function Layout({ children }) {
         <div className="sidebar-footer">
           <button type="button" className="nav-link danger" onClick={() => { closeSidebar(); setShowLogoutConfirm(true); }}>
             <FiLogOut size={18} aria-hidden="true" />
-            Logout
+            {t('nav.logout')}
           </button>
         </div>
       </aside>
@@ -111,7 +118,8 @@ export default function Layout({ children }) {
           >
             <FiMenu size={20} />
           </button>
-          <div className="topbar-title">{current?.label || user?.shopName}</div>
+          <div className="topbar-title">{current ? label(current) : user?.shopName}</div>
+          {!isAdmin && <HelpMenu />}
           {!isAdmin && user?.daysUntilExpiry <= 7 && (
             <span className="badge badge-warning">
               License: {user.daysUntilExpiry}d left
@@ -131,7 +139,8 @@ export default function Layout({ children }) {
       </div>
 
       <nav className="bottom-nav" aria-label="Quick navigation">
-        {tabItems.map(({ path, icon: Icon, short }) => {
+        {tabItems.map((item) => {
+          const { path, icon: Icon } = item;
           const active = isActivePath(pathname, path);
           return (
             <Link
@@ -141,26 +150,28 @@ export default function Layout({ children }) {
               aria-current={active ? 'page' : undefined}
             >
               <Icon size={20} aria-hidden="true" />
-              {short}
+              {shortLabel(item)}
             </Link>
           );
         })}
         {!isAdmin && (
           <button type="button" className="bottom-nav-item" onClick={() => setSidebarOpen(true)}>
             <FiMenu size={20} aria-hidden="true" />
-            More
+            {t('nav.more')}
           </button>
         )}
       </nav>
+
+      {!isAdmin && <Onboarding navItems={navItems} setSidebarOpen={setSidebarOpen} />}
 
       <ConfirmDialog
         isOpen={showLogoutConfirm}
         onClose={() => setShowLogoutConfirm(false)}
         onConfirm={logout}
-        title="Logout"
-        message="Are you sure you want to logout?"
-        confirmText="Logout"
-        cancelText="Cancel"
+        title={t('nav.logout')}
+        message={t('logout.message')}
+        confirmText={t('nav.logout')}
+        cancelText={t('logout.cancel')}
         danger={false}
       />
     </div>

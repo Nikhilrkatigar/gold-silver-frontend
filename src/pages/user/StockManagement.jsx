@@ -610,7 +610,7 @@ const StockManagement = () => {
           </div>
 
           {/* â”€â”€ Current Stock â”€â”€ */}
-          <div style={{ marginBottom: 24, padding: 16, backgroundColor: 'var(--bg-secondary)', borderRadius: 8, border: '2px solid var(--color-primary)' }}>
+          <div data-tour="stock-current" style={{ marginBottom: 24, padding: 16, backgroundColor: 'var(--bg-secondary)', borderRadius: 8, border: '2px solid var(--color-primary)' }}>
             <h3 style={{ fontWeight: 600, marginBottom: 12, marginTop: 0 }}>Current Stock</h3>
             {loading ? (
               <SkeletonStat count={2} />
@@ -630,6 +630,7 @@ const StockManagement = () => {
 
           {/* â”€â”€ Cash in Hand â”€â”€ */}
           <div
+            data-tour="stock-cash"
             role="button"
             tabIndex={0}
             onClick={handleCashBreakdownOpen}
@@ -729,7 +730,7 @@ const StockManagement = () => {
           </div>
 
           {/* —— Tabs for Add Stock vs Add Money —— */}
-          <div style={{ display: 'flex', gap: 12, marginBottom: 20, borderBottom: '1px solid var(--border-color)', paddingBottom: 8 }}>
+          <div data-tour="stock-add" style={{ display: 'flex', gap: 12, marginBottom: 20, borderBottom: '1px solid var(--border-color)', paddingBottom: 8 }}>
             <button
               onClick={() => { setActiveTab('stock'); setError(''); }}
               type="button"
@@ -939,7 +940,7 @@ const StockManagement = () => {
             </form>
           )}
 
-          <div>
+          <div data-tour="stock-history">
             <h3 style={{ fontWeight: 600, marginBottom: 12 }}>Stock Input History</h3>
             {loading ? (
               <SkeletonTable rows={5} columns={5} />

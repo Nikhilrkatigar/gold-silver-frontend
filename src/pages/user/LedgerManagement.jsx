@@ -189,6 +189,7 @@ export default function LedgerManagement() {
                 setShowModal(true);
               }}
               className="btn btn-primary"
+              data-tour="ledger-add"
             >
               <FiPlus /> Add Ledger
             </button>
@@ -309,6 +310,7 @@ export default function LedgerManagement() {
             <div>
               <input
                 type="text"
+                data-tour="ledger-search"
                 placeholder="Search ledgers by name or phone number..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -351,7 +353,7 @@ export default function LedgerManagement() {
                 </tr>
               </thead>
               <tbody>
-                {filteredLedgers.map((ledger) => (
+                {filteredLedgers.map((ledger, i) => (
                   <tr key={ledger._id}>
                     <td>{ledger.name}</td>
                     <td>{ledger.phoneNumber}</td>
@@ -382,7 +384,7 @@ export default function LedgerManagement() {
                     </td>
                     <td>
                       <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <Link to={`/ledgers/${ledger._id}`} className="btn btn-sm btn-secondary">
+                        <Link to={`/ledgers/${ledger._id}`} className="btn btn-sm btn-secondary" data-tour={i === 0 ? 'ledger-first' : undefined}>
                           <FiEye /> View
                         </Link>
                         <button onClick={() => handleEdit(ledger)} className="btn btn-sm btn-secondary">

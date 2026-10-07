@@ -34,8 +34,8 @@ const StatCard = ({ label, value, sub, tone }) => (
     </div>
 );
 
-const Section = ({ title, sub, children }) => (
-    <section className="card" style={{ marginBottom: '1rem' }}>
+const Section = ({ title, sub, children, tour }) => (
+    <section className="card" style={{ marginBottom: '1rem' }} data-tour={tour}>
         <h3 className="section-title" style={{ marginBottom: sub ? 2 : '0.75rem' }}>{title}</h3>
         {sub && <div className="stat-sub" style={{ marginBottom: '0.75rem' }}>{sub}</div>}
         {children}
@@ -313,7 +313,7 @@ export default function Reports() {
                     </div>
 
                     <div className="report-controls no-print">
-                        <div className="segmented" role="group" aria-label="Date range">
+                        <div className="segmented" role="group" aria-label="Date range" data-tour="rep-range">
                             {PRESETS.map((p, i) => (
                                 <button key={p.label} type="button" className={preset === i ? 'active' : ''} aria-pressed={preset === i} onClick={() => applyPreset(i)}>
                                     {p.label}
@@ -349,7 +349,7 @@ export default function Reports() {
                 {!loading && data && (
                     <>
                         {/* Key figures */}
-                        <div className="stat-grid" style={{ marginBottom: '1rem' }}>
+                        <div className="stat-grid" style={{ marginBottom: '1rem' }} data-tour="rep-kpis">
                             <StatCard label="Total sales" value={fmtAmt(data.totalSales)} sub={`${data.saleCount} vouchers`} />
                             <StatCard label="Cash collected" value={fmtAmt(data.totalCashReceived)} />
                             <StatCard label="Credit sales" value={fmtAmt(data.totalCreditValue)} sub={`${data.creditVouchers.length} bills`} />
@@ -398,7 +398,7 @@ export default function Reports() {
                             </Section>
                         </div>
 
-                        <Section title="Daily sales">
+                        <Section title="Daily sales" tour="rep-daily">
                             {data.daily.length === 0 ? <Empty>No sales in this period</Empty> : (
                                 <ReportTable head={['Date', 'Vouchers', 'Gold (g)', 'Silver (g)', 'Sales amount']}>
                                     {data.daily.map((d, i) => (
