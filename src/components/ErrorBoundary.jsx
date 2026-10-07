@@ -1,4 +1,5 @@
 import React from 'react';
+import { FiAlertTriangle } from 'react-icons/fi';
 
 /**
  * ErrorBoundary — catches any unhandled render error in child components
@@ -38,7 +39,7 @@ class ErrorBoundary extends React.Component {
                     justifyContent: 'center',
                     minHeight: '100vh',
                     padding: '2rem',
-                    fontFamily: 'Arial, sans-serif',
+                    fontFamily: 'inherit',
                     backgroundColor: 'var(--bg-primary, #fff)',
                     color: 'var(--text-primary, #333)'
                 }}>
@@ -51,12 +52,12 @@ class ErrorBoundary extends React.Component {
                         boxShadow: '0 4px 24px rgba(0,0,0,0.08)'
                     }}>
                         {/* Icon */}
-                        <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>⚠️</div>
+                        <FiAlertTriangle size={48} style={{ color: 'var(--color-warning)', marginBottom: '1rem' }} aria-hidden="true" />
 
                         <h2 style={{ margin: '0 0 0.75rem', fontSize: '1.4rem', fontWeight: '700' }}>
                             Something went wrong
                         </h2>
-                        <p style={{ margin: '0 0 0.5rem', color: '#666', fontSize: '0.95rem' }}>
+                        <p style={{ margin: '0 0 0.5rem', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
                             The application encountered an unexpected error.
                         </p>
 
@@ -100,8 +101,8 @@ class ErrorBoundary extends React.Component {
                                     padding: '0.6rem 1.4rem',
                                     borderRadius: '6px',
                                     border: 'none',
-                                    background: '#f59e0b',
-                                    color: '#fff',
+                                    background: 'var(--color-primary)',
+                                    color: 'var(--color-on-primary)',
                                     cursor: 'pointer',
                                     fontSize: '0.9rem',
                                     fontWeight: '600'

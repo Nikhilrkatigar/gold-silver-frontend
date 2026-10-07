@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { FiTrash2, FiArrowLeft, FiEye, FiX, FiPrinter, FiShare2, FiEdit2 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import html2pdf from 'html2pdf.js';
+import { getPurchaseType } from '../../utils/billingUtils';
 
 const toFiniteNumber = (value, fallback = 0) => {
   const parsed = Number(value);
@@ -785,7 +786,7 @@ export default function LedgerDetail() {
                 <div>
                   <p>PDF downloaded! Share it via:</p>
                   <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{ marginRight: '10px', color: '#25D366', textDecoration: 'none', fontWeight: 'bold' }}>
-                    📱 WhatsApp
+                    WhatsApp
                   </a>
                 </div>,
                 { autoClose: 5000 }
@@ -929,7 +930,7 @@ export default function LedgerDetail() {
                 <div>
                   <p>PDF downloaded! Share it via:</p>
                   <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{ marginRight: '10px', color: '#25D366', textDecoration: 'none', fontWeight: 'bold' }}>
-                    📱 WhatsApp
+                    WhatsApp
                   </a>
                 </div>,
                 { autoClose: 5000 }
@@ -1187,7 +1188,7 @@ export default function LedgerDetail() {
       <!-- HEADER: Blue gradient branded bar -->
       <div style="background:linear-gradient(135deg,#1e3a8a 0%,#3b82f6 100%);color:#fff;padding:14px 18px;border-radius:8px 8px 0 0;display:flex;justify-content:space-between;align-items:center">
         <div>
-          <div style="font-size:15px;font-weight:800;letter-spacing:0.5px">\ud83d\udc8e Katigar Softwares</div>
+          <div style="font-size:15px;font-weight:800;letter-spacing:0.5px">\ud83d\udc8e Shakti Softwares</div>
           <div style="font-size:9px;opacity:0.85;margin-top:2px">JEWELLERY MANAGEMENT SOFTWARE</div>
         </div>
         <div style="text-align:right">
@@ -1279,7 +1280,7 @@ export default function LedgerDetail() {
 
       <!-- FOOTER -->
       <div style="margin-top:14px;padding-top:8px;border-top:1px solid #ddd;display:flex;justify-content:space-between;font-size:8px;color:#999">
-        <span>\ud83d\udc8e Katigar Softwares | 8904286980</span>
+        <span>\ud83d\udc8e Built and developed by Shakti Softwares | 8904286980</span>
         <span>Computer-generated statement</span>
         <span>${format(new Date(), 'dd-MMM-yyyy')}</span>
       </div>
@@ -1402,7 +1403,7 @@ export default function LedgerDetail() {
             <div>
               <span style={{ color: 'var(--color-muted)', fontWeight: '500' }}>Ledger Type:</span>
               <span className={`badge ${ledger?.ledgerType === 'gst' ? 'badge-success' : 'badge-info'}`} style={{ marginLeft: '8px' }}>
-                {ledger?.ledgerType === 'gst' ? '📄 GST' : '💰 Regular'}
+                {ledger?.ledgerType === 'gst' ? 'GST' : 'Regular'}
               </span>
             </div>
             {ledger?.gstDetails?.hasGST && (
@@ -1410,7 +1411,7 @@ export default function LedgerDetail() {
                 <div>
                   <span style={{ color: 'var(--color-muted)', fontWeight: '500' }}>GST Status:</span>
                   <span style={{ marginLeft: '8px', padding: '2px 8px', backgroundColor: 'var(--color-success)', color: '#fff', borderRadius: '4px', fontWeight: 'bold' }}>
-                    ✅ Yes
+                    Yes
                   </span>
                 </div>
                 {ledger?.gstDetails?.gstNumber && (
@@ -1480,12 +1481,12 @@ export default function LedgerDetail() {
                   <div style={{ marginTop: '1.25rem', borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border-color)' }}>
                     {/* Header */}
                     <div style={{ padding: '10px 16px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', gap: 8 }}>
-                      ⚖️ Our Balance to Customer
+                      Our Balance to Customer
                     </div>
 
                     {allClear ? (
                       <div style={{ padding: '14px 16px', background: '#f0fdf4', color: '#166534', fontWeight: 700, fontSize: 14, textAlign: 'center' }}>
-                        ✅ All Clear — No dues on either side
+                        All Clear — No dues on either side
                       </div>
                     ) : (
                       <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1501,8 +1502,8 @@ export default function LedgerDetail() {
                           }}>
                             <span style={{ fontSize: 13 }}>
                               {shopOwesCash
-                                ? '🟢 We owe customer (Cash)'
-                                : '🔴 Customer owes us (Cash)'}
+                                ? 'We owe customer (Cash)'
+                                : 'Customer owes us (Cash)'}
                             </span>
                             <span style={{ fontSize: 18, fontWeight: 800 }}>
                               ₹{Math.abs(cashBal).toFixed(2)}
@@ -1521,8 +1522,8 @@ export default function LedgerDetail() {
                           }}>
                             <span style={{ fontSize: 13 }}>
                               {shopOwesGold
-                                ? '🟡 We owe customer (Gold Fine Wt)'
-                                : '🔴 Customer owes us (Gold Fine Wt)'}
+                                ? 'We owe customer (Gold Fine Wt)'
+                                : 'Customer owes us (Gold Fine Wt)'}
                             </span>
                             <span style={{ fontSize: 18, fontWeight: 800 }}>
                               {Math.abs(goldBal).toFixed(3)} g
@@ -1541,8 +1542,8 @@ export default function LedgerDetail() {
                           }}>
                             <span style={{ fontSize: 13 }}>
                               {shopOwesSilver
-                                ? '⚪ We owe customer (Silver Fine Wt)'
-                                : '🔴 Customer owes us (Silver Fine Wt)'}
+                                ? 'We owe customer (Silver Fine Wt)'
+                                : 'Customer owes us (Silver Fine Wt)'}
                             </span>
                             <span style={{ fontSize: 18, fontWeight: 800 }}>
                               {Math.abs(silverBal).toFixed(3)} g
@@ -1560,7 +1561,7 @@ export default function LedgerDetail() {
               {(ledger?.openingBalance?.amount || ledger?.openingBalance?.goldFineWeight || ledger?.openingBalance?.silverFineWeight) ? (
                 <div style={{ marginTop: '1rem', padding: '12px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px dashed var(--border-color)' }}>
                   <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px' }}>
-                    📋 Opening Balance (set during creation)
+                    Opening Balance (set during creation)
                   </div>
                   <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', fontSize: '0.85rem' }}>
                     {ledger.openingBalance.amount ? (
@@ -1572,13 +1573,13 @@ export default function LedgerDetail() {
                     {ledger.openingBalance.goldFineWeight ? (
                       <div>
                         <span style={{ color: 'var(--text-secondary)' }}>Gold Fine: </span>
-                        <strong style={{ color: '#FFD700' }}>{parseFloat(ledger.openingBalance.goldFineWeight).toFixed(3)}g</strong>
+                        <strong style={{ color: 'var(--metal-gold)' }}>{parseFloat(ledger.openingBalance.goldFineWeight).toFixed(3)}g</strong>
                       </div>
                     ) : null}
                     {ledger.openingBalance.silverFineWeight ? (
                       <div>
                         <span style={{ color: 'var(--text-secondary)' }}>Silver Fine: </span>
-                        <strong style={{ color: '#C0C0C0' }}>{parseFloat(ledger.openingBalance.silverFineWeight).toFixed(3)}g</strong>
+                        <strong style={{ color: 'var(--metal-silver)' }}>{parseFloat(ledger.openingBalance.silverFineWeight).toFixed(3)}g</strong>
                       </div>
                     ) : null}
                   </div>
@@ -1593,7 +1594,7 @@ export default function LedgerDetail() {
             <h3>Transactions</h3>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <button onClick={handleRecalculateBalance} className="btn btn-sm btn-secondary">
-                🔄 Recalculate Balance
+                Recalculate Balance
               </button>
               <button onClick={handleDeleteAllVouchers} className="btn btn-sm btn-danger">
                 <FiTrash2 /> Delete All Vouchers
@@ -1633,16 +1634,16 @@ export default function LedgerDetail() {
             <button
               onClick={handleExportCSV}
               className="btn btn-sm"
-              style={{ padding: '6px 16px', backgroundColor: '#16a34a', color: '#fff', border: 'none', borderRadius: '6px' }}
+              style={{ padding: '6px 16px', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '6px' }}
             >
-              📊 Export CSV
+              Export CSV
             </button>
             <button
               onClick={() => { setExportDates({ from: '', to: '' }); setShowExportModal(true); }}
               className="btn btn-sm"
-              style={{ padding: '6px 16px', background: 'linear-gradient(135deg,#1e3a8a 0%,#3b82f6 100%)', color: '#fff', border: 'none', borderRadius: '6px', fontWeight: 600 }}
+              style={{ padding: '6px 16px', background: 'var(--color-primary)', color: 'var(--color-on-primary)', border: 'none', borderRadius: '6px', fontWeight: 600 }}
             >
-              📄 Export Statement
+              Export Statement
             </button>
           </div>
 
@@ -1670,11 +1671,11 @@ export default function LedgerDetail() {
                         {isSettlementType ? (
                           <span className="badge badge-success">Settlement</span>
                         ) : txn.voucherType === 'purchase' ? (
-                          <span className="badge" style={{ backgroundColor: '#7c3aed', color: '#fff' }}>🛒 Purchase</span>
+                          <span className="badge" style={{ backgroundColor: 'var(--color-info)', color: '#fff' }}>{getPurchaseType(txn.purchaseType)?.short || 'Purchase'}</span>
                         ) : txn.invoiceType === 'gst' ? (
-                          <span className="badge badge-warning">📄 GST Sale</span>
+                          <span className="badge badge-warning">GST Sale</span>
                         ) : (
-                          <span className="badge badge-info">🛍️ Sale</span>
+                          <span className="badge badge-info">Sale</span>
                         )}
                       </td>
                       <td>
@@ -1804,8 +1805,8 @@ export default function LedgerDetail() {
                               {selectedItem.items.map((item, idx) => (
                                 <tr key={idx}>
                                   <td>{item.itemName}</td>
-                                  <td style={{ fontWeight: 'bold', color: item.metalType === 'gold' ? '#ffa500' : '#c0c0c0' }}>
-                                    {item.metalType === 'gold' ? '🟡 GOLD' : '⚪ SILVER'}
+                                  <td style={{ fontWeight: 'bold', color: item.metalType === 'gold' ? 'var(--metal-gold)' : 'var(--metal-silver)' }}>
+                                    {item.metalType === 'gold' ? 'GOLD' : 'SILVER'}
                                   </td>
                                   <td>{item.pieces}</td>
                                   <td>{parseFloat(item.netWeight).toFixed(3)}</td>
@@ -1878,8 +1879,8 @@ export default function LedgerDetail() {
                       {/* Customer Balance Box */}
                       <div style={{ border: '1px solid var(--border-color)', padding: '1rem', backgroundColor: 'var(--bg-primary)' }}>
                         <div style={{ fontWeight: 'bold', marginBottom: '0.75rem', fontSize: '0.95rem', color: 'var(--text-primary)' }}>Customer Balance</div>
-                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#FFD700', fontWeight: 500 }}>Fine Gold: {(-previewBalanceDetails?.currentGold)?.toFixed(3) || '0.000'} g</div>
-                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: '#C0C0C0', fontWeight: 500 }}>Fine Silver: {(-previewBalanceDetails?.currentSilver)?.toFixed(3) || '0.000'} g</div>
+                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--metal-gold)', fontWeight: 500 }}>Fine Gold: {(-previewBalanceDetails?.currentGold)?.toFixed(3) || '0.000'} g</div>
+                        <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', color: 'var(--metal-silver)', fontWeight: 500 }}>Fine Silver: {(-previewBalanceDetails?.currentSilver)?.toFixed(3) || '0.000'} g</div>
                         <div style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>Cash Balance: {formatSignedCurrency(-previewBalanceDetails?.currentAmount)}</div>
                       </div>
                     </div>
@@ -1999,7 +2000,7 @@ export default function LedgerDetail() {
           <div className="modal-overlay" onClick={() => setShowExportModal(false)}>
             <div className="modal" style={{ maxWidth: '420px' }} onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
-                <h3 className="modal-title">📄 Export Statement</h3>
+                <h3 className="modal-title">Export Statement</h3>
                 <button onClick={() => setShowExportModal(false)} className="btn btn-sm" style={{ position: 'absolute', right: '1rem', top: '1rem' }}>
                   <FiX />
                 </button>
@@ -2047,14 +2048,14 @@ export default function LedgerDetail() {
                     className="btn"
                     style={{ backgroundColor: '#059669', color: '#fff', border: 'none', fontWeight: 600 }}
                   >
-                    📋 Summary PDF
+                    Summary PDF
                   </button>
                   <button
                     onClick={() => handleExportPDF(exportDates.from, exportDates.to, false)}
                     className="btn"
-                    style={{ background: 'linear-gradient(135deg,#1e3a8a 0%,#3b82f6 100%)', color: '#fff', border: 'none', fontWeight: 600 }}
+                    style={{ background: 'var(--color-primary)', color: 'var(--color-on-primary)', border: 'none', fontWeight: 600 }}
                   >
-                    📄 Detailed PDF
+                    Detailed PDF
                   </button>
                 </div>
               </div>

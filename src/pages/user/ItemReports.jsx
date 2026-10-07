@@ -69,7 +69,6 @@ const ItemReports = () => {
     return [
       {
         metal: 'Gold',
-        icon: '🟨',
         total: gold.length,
         available: gold.filter(i => i.status === 'available').length,
         sold: gold.filter(i => i.status === 'sold').length,
@@ -79,7 +78,6 @@ const ItemReports = () => {
       },
       {
         metal: 'Silver',
-        icon: '⚪',
         total: silver.length,
         available: silver.filter(i => i.status === 'available').length,
         sold: silver.filter(i => i.status === 'sold').length,
@@ -283,8 +281,8 @@ const ItemReports = () => {
                           <td style={{ padding: '1rem' }}>{cat.name}</td>
                           <td style={{ padding: '1rem' }}>{cat.type}</td>
                           <td style={{ padding: '1rem', textAlign: 'center' }}>{cat.total}</td>
-                          <td style={{ padding: '1rem', textAlign: 'center', color: '#10b981' }}>{cat.available}</td>
-                          <td style={{ padding: '1rem', textAlign: 'center', color: '#ef4444' }}>{cat.sold}</td>
+                          <td style={{ padding: '1rem', textAlign: 'center', color: 'var(--color-success)' }}>{cat.available}</td>
+                          <td style={{ padding: '1rem', textAlign: 'center', color: 'var(--color-danger)' }}>{cat.sold}</td>
                           <td style={{ padding: '1rem', textAlign: 'right' }}>{cat.totalGrossWeight.toFixed(2)}</td>
                           <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>{cat.totalNetWeight.toFixed(2)}</td>
                         </tr>
@@ -313,10 +311,10 @@ const ItemReports = () => {
                     <tbody>
                       {getMetalSummary().map((metal, idx) => (
                         <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                          <td style={{ padding: '1rem' }}>{metal.icon} {metal.metal}</td>
+                          <td style={{ padding: '1rem' }}><span aria-hidden="true" style={{ color: metal.metal === 'Gold' ? 'var(--metal-gold)' : 'var(--metal-silver)' }}>●</span> {metal.metal}</td>
                           <td style={{ padding: '1rem', textAlign: 'center' }}>{metal.total}</td>
-                          <td style={{ padding: '1rem', textAlign: 'center', color: '#10b981' }}>{metal.available}</td>
-                          <td style={{ padding: '1rem', textAlign: 'center', color: '#ef4444' }}>{metal.sold}</td>
+                          <td style={{ padding: '1rem', textAlign: 'center', color: 'var(--color-success)' }}>{metal.available}</td>
+                          <td style={{ padding: '1rem', textAlign: 'center', color: 'var(--color-danger)' }}>{metal.sold}</td>
                           <td style={{ padding: '1rem', textAlign: 'right' }}>{metal.totalGrossWeight.toFixed(2)}</td>
                           <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>{metal.totalNetWeight.toFixed(2)}</td>
                           <td style={{ padding: '1rem', textAlign: 'right' }}>{metal.avgValue}</td>
@@ -373,8 +371,8 @@ const ItemReports = () => {
                         <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
                           <td style={{ padding: '1rem' }}>{day.date}</td>
                           <td style={{ padding: '1rem', textAlign: 'center' }}>{day.count}</td>
-                          <td style={{ padding: '1rem', textAlign: 'center' }}>🟨 {day.goldCount}</td>
-                          <td style={{ padding: '1rem', textAlign: 'center' }}>⚪ {day.silverCount}</td>
+                          <td style={{ padding: '1rem', textAlign: 'center' }}>{day.goldCount}</td>
+                          <td style={{ padding: '1rem', textAlign: 'center' }}>{day.silverCount}</td>
                           <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>{day.totalNetWeight.toFixed(2)}</td>
                         </tr>
                       ))}
@@ -390,15 +388,15 @@ const ItemReports = () => {
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
                     <div style={{ padding: '1.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
                       <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Total Labour Income</div>
-                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#10b981' }}>₹{getLabourSummary().total.toFixed(2)}</div>
+                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--color-success)' }}>₹{getLabourSummary().total.toFixed(2)}</div>
                     </div>
                     <div style={{ padding: '1.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
                       <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Gold Labour</div>
-                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#FFD700' }}>₹{getLabourSummary().gold.toFixed(2)}</div>
+                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--metal-gold)' }}>₹{getLabourSummary().gold.toFixed(2)}</div>
                     </div>
                     <div style={{ padding: '1.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
                       <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Silver Labour</div>
-                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#C0C0C0' }}>₹{getLabourSummary().silver.toFixed(2)}</div>
+                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--metal-silver)' }}>₹{getLabourSummary().silver.toFixed(2)}</div>
                     </div>
                     <div style={{ padding: '1.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
                       <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Items Sold</div>
@@ -406,7 +404,7 @@ const ItemReports = () => {
                     </div>
                     <div style={{ padding: '1.5rem', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
                       <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>Avg Labour/Item</div>
-                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#3b82f6' }}>₹{getLabourSummary().averagePerItem.toFixed(2)}</div>
+                      <div style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--color-info)' }}>₹{getLabourSummary().averagePerItem.toFixed(2)}</div>
                     </div>
                   </div>
                 </div>

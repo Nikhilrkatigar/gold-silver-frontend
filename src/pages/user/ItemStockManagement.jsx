@@ -282,11 +282,11 @@ const ItemStockManagement = () => {
             </div>
             <div className="card" style={{ padding: '1rem' }}>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Available</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 'bold', marginTop: '0.5rem', color: '#10b981' }}>{allStats.available}</div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 'bold', marginTop: '0.5rem', color: 'var(--color-success)' }}>{allStats.available}</div>
             </div>
             <div className="card" style={{ padding: '1rem' }}>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Sold</div>
-              <div style={{ fontSize: '1.8rem', fontWeight: 'bold', marginTop: '0.5rem', color: '#ef4444' }}>{allStats.sold}</div>
+              <div style={{ fontSize: '1.8rem', fontWeight: 'bold', marginTop: '0.5rem', color: 'var(--color-danger)' }}>{allStats.sold}</div>
             </div>
             <div className="card" style={{ padding: '1rem' }}>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Available Net Wt</div>
@@ -294,7 +294,7 @@ const ItemStockManagement = () => {
             </div>
             <div className="card" style={{ padding: '1rem' }}>
               <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Stock Value</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginTop: '0.5rem', color: '#8b5cf6' }}>₹{allStats.totalCostPrice.toFixed(0)}</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 'bold', marginTop: '0.5rem', color: 'var(--color-info)' }}>₹{allStats.totalCostPrice.toFixed(0)}</div>
             </div>
           </div>
         </div>
@@ -313,7 +313,7 @@ const ItemStockManagement = () => {
             className="btn"
             style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
           >
-            📁 Add Category
+            Add Category
           </button>
           <button
             onClick={handleExportCSV}
@@ -625,20 +625,20 @@ const ItemStockManagement = () => {
                         {item.huid && (
                           <div style={{ marginTop: 3 }}>
                             <span style={{ fontSize: 10, backgroundColor: '#fef3c7', color: '#92400e', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>
-                              🏅 {item.huid}
+                              {item.huid}
                             </span>
                           </div>
                         )}
                       </td>
                       <td style={{ padding: '1rem' }}>
-                        {item.metal === 'gold' ? '🟨 Gold' : '⚪ Silver'}
+                        {item.metal === 'gold' ? 'Gold' : 'Silver'}
                       </td>
                       <td style={{ padding: '1rem' }}>{item.purity}</td>
                       <td style={{ padding: '1rem', textAlign: 'right' }}>{item.grossWeight.toFixed(2)}</td>
                       <td style={{ padding: '1rem', textAlign: 'right' }}>{item.lessWeight.toFixed(2)}</td>
                       <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 'bold' }}>{item.netWeight.toFixed(2)}</td>
                       <td style={{ padding: '1rem', textAlign: 'right', color: 'var(--text-secondary)' }}>{item.purchaseRate ? `₹${item.purchaseRate.toFixed(0)}` : '-'}</td>
-                      <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 600, color: '#8b5cf6' }}>{item.costPrice ? `₹${item.costPrice.toFixed(0)}` : '-'}</td>
+                      <td style={{ padding: '1rem', textAlign: 'right', fontWeight: 600, color: 'var(--color-info)' }}>{item.costPrice ? `₹${item.costPrice.toFixed(0)}` : '-'}</td>
                       <td style={{ padding: '1rem', textAlign: 'center' }}>
                         <span style={{
                           display: 'inline-block',
@@ -676,7 +676,7 @@ const ItemStockManagement = () => {
                                 onClick={() => handleDeleteItem(item._id, item.name)}
                                 className="btn"
                                 title="Delete"
-                                style={{ padding: '0.5rem', color: '#ef4444' }}
+                                style={{ padding: '0.5rem', color: 'var(--color-danger)' }}
                               >
                                 <FiTrash2 size={16} />
                               </button>
@@ -687,7 +687,7 @@ const ItemStockManagement = () => {
                               onClick={() => handleOverrideItem(item)}
                               className="btn"
                               title="Override to Available"
-                              style={{ padding: '0.5rem', color: '#f59e0b' }}
+                              style={{ padding: '0.5rem', color: 'var(--color-primary)' }}
                             >
                               <FiRefreshCw size={16} />
                             </button>

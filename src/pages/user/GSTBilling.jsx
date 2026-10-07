@@ -106,7 +106,7 @@ const GSTInvoiceTemplate = ({ formData, items, ledgers, user, gstType, gstBreakd
           display: 'inline-block',
           borderRadius: '4px'
         }}>
-          📄 TAX INVOICE
+          TAX INVOICE
         </p>
       </div>
 
@@ -266,7 +266,7 @@ const GSTInvoiceTemplate = ({ formData, items, ledgers, user, gstType, gstBreakd
               <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>-</td>
               <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>-</td>
               <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right' }}>-</td>
-              <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', fontWeight: 'bold', color: parseFloat(formData.roundOff) > 0 ? '#27ae60' : '#e74c3c' }}>
+              <td style={{ border: '1px solid #000', padding: '4px', textAlign: 'right', fontWeight: 'bold', color: parseFloat(formData.roundOff) > 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>
                 {parseFloat(formData.roundOff).toFixed(2)}
               </td>
             </tr>
@@ -346,7 +346,7 @@ const GSTInvoiceTemplate = ({ formData, items, ledgers, user, gstType, gstBreakd
                   </tr>
                 </>
               )}
-              <tr style={{ backgroundColor: '#27ae60', color: '#fff', fontWeight: 'bold' }}>
+              <tr style={{ backgroundColor: 'var(--color-success)', color: '#fff', fontWeight: 'bold' }}>
                 <td style={{ padding: '6px' }}>TOTAL (GST Incl.)</td>
                 <td style={{ padding: '6px', textAlign: 'right' }}>₹ {finalTotal.toFixed(2)}</td>
               </tr>
@@ -1137,7 +1137,7 @@ export default function GSTBilling() {
               <div>
                 <p>PDF downloaded! Share it via:</p>
                 <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{ marginRight: '10px', color: '#25D366', textDecoration: 'none', fontWeight: 'bold' }}>
-                  📱 WhatsApp
+                  WhatsApp
                 </a>
               </div>,
               { autoClose: 5000 }
@@ -1183,7 +1183,7 @@ export default function GSTBilling() {
     <Layout>
       <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', gap: '10px' }}>
-          <h1 style={{ marginBottom: 0, color: 'var(--color-text)' }}>📄 GST Tax Invoice</h1>
+          <h1 style={{ marginBottom: 0, color: 'var(--color-text)' }}>GST Tax Invoice</h1>
 
           {/* Manual Refresh Button */}
           <button
@@ -1387,7 +1387,7 @@ export default function GSTBilling() {
               borderRadius: '4px',
               marginBottom: '20px'
             }}>
-              <h4 style={{ margin: '0 0 10px 0', color: 'var(--color-primary)' }}>Customer Details</h4>
+              <h4 style={{ margin: '0 0 10px 0', color: 'var(--text-primary)' }}>Customer Details</h4>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', fontSize: '14px', color: 'var(--color-text)' }}>
                 <div><strong>Name:</strong> {selectedLedger.name}</div>
                 <div><strong>Phone:</strong> {selectedLedger.phoneNumber}</div>
@@ -1542,7 +1542,7 @@ export default function GSTBilling() {
                   onClick={() => addRow('gold')}
                   style={{
                     padding: '8px 15px',
-                    backgroundColor: '#FFD700',
+                    backgroundColor: 'var(--metal-gold)',
                     color: '#000',
                     border: 'none',
                     borderRadius: '4px',
@@ -1558,7 +1558,7 @@ export default function GSTBilling() {
                   onClick={() => addRow('silver')}
                   style={{
                     padding: '8px 15px',
-                    backgroundColor: '#C0C0C0',
+                    backgroundColor: 'var(--metal-silver)',
                     color: '#000',
                     border: 'none',
                     borderRadius: '4px',
@@ -1581,7 +1581,7 @@ export default function GSTBilling() {
                 border: '1px solid var(--border-color)'
               }}>
                 <thead>
-                  <tr style={{ backgroundColor: 'var(--color-primary)', color: '#fff' }}>
+                  <tr style={{ backgroundColor: 'var(--color-primary)', color: 'var(--color-on-primary)' }}>
                     <th style={{ border: '1px solid var(--border-color)', padding: '10px', textAlign: 'left' }}>Item Name</th>
                     <th style={{ border: '1px solid var(--border-color)', padding: '10px', textAlign: 'right' }}>Pieces</th>
                     <th style={{ border: '1px solid var(--border-color)', padding: '10px', textAlign: 'right' }}>Gross Wt (g)</th>
@@ -1946,7 +1946,7 @@ export default function GSTBilling() {
               }}
               title="Share GST Invoice via PDF"
             >
-              📤 Share
+              Share
             </button>
             <button
               type="submit"

@@ -43,7 +43,6 @@ export const authAPI = {
   login: (credentials) => api.post('/api/auth/login', credentials),
   getMe: () => api.get('/api/auth/me'),
   updateSettings: (settings) => api.patch('/api/auth/settings', settings),
-  createAdmin: (data) => api.post('/api/auth/create-admin', data),
 };
 
 // Admin APIs

@@ -154,7 +154,7 @@ export default function AddUser() {
 
             <div className="input-group">
               <label className="input-label">
-                📦 Stock Management Mode
+                Stock Management Mode
               </label>
               <select
                 name="stockMode"
@@ -202,8 +202,8 @@ export default function AddUser() {
                     onChange={handleChange}
                     style={{ marginBottom: '0.5rem' }}
                   >
-                    <option value="user">👤 User can edit their GST settings</option>
-                    <option value="admin">🔐 Admin only (user cannot edit)</option>
+                    <option value="user">User can edit their GST settings</option>
+                    <option value="admin">Admin only (user cannot edit)</option>
                   </select>
                   <small style={{ display: 'block', color: 'var(--text-secondary)' }}>
                     {formData.gstEditPermission === 'user'

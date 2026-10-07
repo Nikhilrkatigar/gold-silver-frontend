@@ -1,224 +1,158 @@
-import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { useAuth } from '../context/AuthContext';
 import ConfirmDialog from './ConfirmDialog';
 import {
   FiHome, FiUsers, FiClock, FiLogOut, FiMenu, FiX,
-  FiDollarSign, FiBook, FiTrendingUp, FiSettings,
-  FiFileText, FiShoppingBag, FiBarChart2
+  FiBook, FiTrendingUp, FiSettings, FiFileText, FiShoppingBag,
+  FiBarChart2, FiPackage, FiTool, FiPercent, FiUserPlus, FiGrid
 } from 'react-icons/fi';
+
+const adminNav = [
+  { path: '/admin', icon: FiHome, label: 'Dashboard', short: 'Home' },
+  { path: '/admin/add-user', icon: FiUserPlus, label: 'Add User', short: 'Add' },
+  { path: '/admin/users', icon: FiUsers, label: 'User List', short: 'Users' },
+  { path: '/admin/expiring', icon: FiClock, label: 'Expiring Soon', short: 'Expiring' },
+];
+
+const userNav = [
+  { path: '/dashboard', icon: FiHome, label: 'Dashboard', short: 'Home' },
+  { path: '/billing', icon: FiFileText, label: 'Billing', short: 'Billing' },
+  { path: '/gst-billing', icon: FiPercent, label: 'GST Billing', requiresGST: true },
+  { path: '/purchase-billing', icon: FiShoppingBag, label: 'Purchase / Old Gold' },
+  { path: '/ledgers', icon: FiBook, label: 'Ledgers', short: 'Ledgers' },
+  { path: '/gst-ledger', icon: FiBook, label: 'GST Ledger', requiresGST: true },
+  { path: '/expenses', icon: FiTrendingUp, label: 'Expenses' },
+  { path: '/karigar', icon: FiTool, label: 'Karigar' },
+  { path: '/stock', icon: FiPackage, label: 'Stock', short: 'Stock' },
+  { path: '/item-reports', icon: FiGrid, label: 'Item Reports', requiresItemMode: true },
+  { path: '/reports', icon: FiBarChart2, label: 'Reports & Analytics' },
+  { path: '/account', icon: FiSettings, label: 'Account' },
+];
+
+const isActivePath = (pathname, path) => (
+  pathname === path || (path !== '/admin' && pathname.startsWith(`${path}/`))
+);
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { user, logout, isAdmin } = useAuth();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const { pathname } = useLocation();
 
-  const adminNav = [
-    { path: '/admin', icon: FiHome, label: 'Dashboard' },
-    { path: '/admin/add-user', icon: FiUsers, label: 'Add User' },
-    { path: '/admin/users', icon: FiBook, label: 'User List' },
-    { path: '/admin/expiring', icon: FiClock, label: 'Expiring Soon' },
-  ];
-
-  const userNav = [
-    { path: '/dashboard', icon: FiHome, label: 'Dashboard' },
-    { path: '/billing', icon: FiFileText, label: 'Billing' },
-    { path: '/gst-billing', icon: FiFileText, label: 'GST Billing', requiresGST: true },
-    { path: '/purchase-billing', icon: FiShoppingBag, label: 'Purchase / Old Gold' },
-    { path: '/ledgers', icon: FiBook, label: 'Ledgers' },
-    { path: '/gst-ledger', icon: FiFileText, label: 'GST Ledger', requiresGST: true },
-    { path: '/expenses', icon: FiTrendingUp, label: 'Expenses' },
-    { path: '/karigar', icon: FiDollarSign, label: 'Karigar' },
-    { path: '/stock', icon: FiDollarSign, label: 'Stock Management' },
-    { path: '/item-reports', icon: FiFileText, label: 'Item Reports', requiresItemMode: true },
-    { path: '/reports', icon: FiBarChart2, label: 'Reports & Analytics' },
-    { path: '/account', icon: FiSettings, label: 'Account' },
-  ];
-
-  // Filter navigation items based on user permissions
-  const filteredUserNav = userNav.filter(item => {
-    // If item requires GST, only show it if user has GST enabled
-    if (item.requiresGST) {
-      return user?.gstEnabled === true;
-    }
-    if (item.requiresItemMode) {
-      return user?.stockMode === 'item';
-    }
+  const navItems = isAdmin ? adminNav : userNav.filter((item) => {
+    if (item.requiresGST) return user?.gstEnabled === true;
+    if (item.requiresItemMode) return user?.stockMode === 'item';
     return true;
   });
+  const tabItems = navItems.filter((item) => item.short);
+  const current = navItems.find((item) => isActivePath(pathname, item.path));
 
-  const navItems = isAdmin ? adminNav : filteredUserNav;
+  useEffect(() => {
+    if (!sidebarOpen) return undefined;
+    const onKey = (e) => e.key === 'Escape' && setSidebarOpen(false);
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [sidebarOpen]);
 
-  const handleLogout = () => {
-    setShowLogoutConfirm(true);
-  };
+  const closeSidebar = () => setSidebarOpen(false);
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Sidebar */}
-      <aside style={{
-        width: sidebarOpen ? '260px' : '0',
-        position: 'fixed',
-        left: 0,
-        top: 0,
-        bottom: 0,
-        background: 'var(--bg-primary)',
-        borderRight: '1px solid var(--border-color)',
-        transition: 'width 0.3s',
-        overflow: 'hidden',
-        zIndex: 1000
-      }}>
-        <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                background: 'linear-gradient(135deg, #f59e0b, #fbbf24)',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.25rem'
-              }}>
-                ✨
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{user?.shopName}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                  {isAdmin ? 'Admin' : 'User'}
-                </div>
-              </div>
-            </div>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--text-secondary)',
-                padding: '0.5rem'
-              }}
-            >
-              <FiX size={20} />
-            </button>
+    <div className="app-shell">
+      <aside className={`sidebar${sidebarOpen ? ' open' : ''}`} aria-label="Main navigation">
+        <div className="sidebar-brand">
+          <img src="/favicon.svg" alt="" className="brand-mark" />
+          <div className="sidebar-brand-text">
+            <div className="sidebar-brand-name">{user?.shopName}</div>
+            <div className="sidebar-brand-role">{isAdmin ? 'Admin' : 'Shop account'}</div>
           </div>
+          <button type="button" className="btn btn-icon sidebar-close" onClick={closeSidebar} aria-label="Close menu">
+            <FiX size={20} />
+          </button>
         </div>
 
-        <nav style={{ padding: '1rem' }}>
-          {navItems.map((item) => {
-            const isActive = location.pathname === item.path;
-            const Icon = item.icon;
-
+        <nav className="sidebar-nav">
+          {navItems.map(({ path, icon: Icon, label }) => {
+            const active = isActivePath(pathname, path);
             return (
               <Link
-                key={item.path}
-                to={item.path}
-                onClick={() => setSidebarOpen(false)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  padding: '0.875rem 1rem',
-                  borderRadius: '8px',
-                  marginBottom: '0.5rem',
-                  textDecoration: 'none',
-                  color: isActive ? 'var(--color-primary)' : 'var(--text-primary)',
-                  background: isActive ? 'rgba(245, 158, 11, 0.1)' : 'transparent',
-                  fontWeight: isActive ? 600 : 500,
-                  transition: 'all 0.2s'
-                }}
+                key={path}
+                to={path}
+                onClick={closeSidebar}
+                className={`nav-link${active ? ' active' : ''}`}
+                aria-current={active ? 'page' : undefined}
               >
-                <Icon size={18} />
-                {item.label}
+                <Icon size={18} aria-hidden="true" />
+                {label}
               </Link>
             );
           })}
+        </nav>
 
-          <button
-            onClick={handleLogout}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.75rem',
-              padding: '0.875rem 1rem',
-              borderRadius: '8px',
-              marginTop: '1rem',
-              width: '100%',
-              textAlign: 'left',
-              background: 'none',
-              border: 'none',
-              color: 'var(--color-danger)',
-              fontWeight: 500,
-              cursor: 'pointer',
-              transition: 'all 0.2s',
-              fontSize: '1rem'
-            }}
-          >
-            <FiLogOut size={18} />
+        <div className="sidebar-footer">
+          <button type="button" className="nav-link danger" onClick={() => { closeSidebar(); setShowLogoutConfirm(true); }}>
+            <FiLogOut size={18} aria-hidden="true" />
             Logout
           </button>
-        </nav>
+        </div>
       </aside>
 
-      {/* Main Content */}
-      <div style={{
-        flex: 1,
-        marginLeft: sidebarOpen ? '260px' : '0',
-        transition: 'margin-left 0.3s',
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column'
-      }}>
-        {/* Header */}
-        <header style={{
-          background: 'var(--bg-primary)',
-          borderBottom: '1px solid var(--border-color)',
-          padding: '1rem 1.5rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          position: 'sticky',
-          top: 0,
-          zIndex: 100
-        }}>
+      {sidebarOpen && <div className="sidebar-backdrop" onClick={closeSidebar} aria-hidden="true" />}
+
+      <div className="app-main">
+        <header className="topbar">
           <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="btn btn-secondary"
-            style={{ padding: '0.625rem' }}
+            type="button"
+            className="btn btn-secondary btn-icon menu-toggle"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open menu"
+            aria-expanded={sidebarOpen}
           >
             <FiMenu size={20} />
           </button>
-
+          <div className="topbar-title">{current?.label || user?.shopName}</div>
           {!isAdmin && user?.daysUntilExpiry <= 7 && (
-            <div className="badge badge-warning">
-              License expires in {user.daysUntilExpiry} days
-            </div>
+            <span className="badge badge-warning">
+              License: {user.daysUntilExpiry}d left
+            </span>
           )}
         </header>
 
-        {/* Page Content */}
-        <main style={{ flex: 1, padding: '2rem 1.5rem' }}>
+        <motion.main
+          key={pathname}
+          className="page-content"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+        >
           {children}
-        </main>
+        </motion.main>
       </div>
 
-      {/* Sidebar overlay for mobile */}
-      {sidebarOpen && (
-        <div
-          onClick={() => setSidebarOpen(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 999
-          }}
-        />
-      )}
+      <nav className="bottom-nav" aria-label="Quick navigation">
+        {tabItems.map(({ path, icon: Icon, short }) => {
+          const active = isActivePath(pathname, path);
+          return (
+            <Link
+              key={path}
+              to={path}
+              className={`bottom-nav-item${active ? ' active' : ''}`}
+              aria-current={active ? 'page' : undefined}
+            >
+              <Icon size={20} aria-hidden="true" />
+              {short}
+            </Link>
+          );
+        })}
+        {!isAdmin && (
+          <button type="button" className="bottom-nav-item" onClick={() => setSidebarOpen(true)}>
+            <FiMenu size={20} aria-hidden="true" />
+            More
+          </button>
+        )}
+      </nav>
 
-      {/* Logout Confirmation Dialog */}
       <ConfirmDialog
         isOpen={showLogoutConfirm}
         onClose={() => setShowLogoutConfirm(false)}

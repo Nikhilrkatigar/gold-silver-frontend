@@ -1,10 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <defs>
-    <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#d97706;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-  <circle cx="50" cy="50" r="45" fill="url(#goldGradient)"/>
-  <text x="50" y="65" font-family="Arial, sans-serif" font-size="45" font-weight="bold" fill="white" text-anchor="middle">✨</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#1f1b16"/>
+  <polygon points="76.5,335.2 252.5,335.2 231.4,278.9 97.6,278.9" fill="#a9aeb6"/>
+  <polygon points="97.6,278.9 231.4,278.9 217.3,256.0 111.7,256.0" fill="#d8dbe0"/>
+  <polygon points="259.5,335.2 435.5,335.2 414.4,278.9 280.6,278.9" fill="#c9a35c"/>
+  <polygon points="280.6,278.9 414.4,278.9 400.3,256.0 294.7,256.0" fill="#e8cd93"/>
+  <polygon points="168.0,256.0 344.0,256.0 322.9,199.7 189.1,199.7" fill="#c9a35c"/>
+  <polygon points="189.1,199.7 322.9,199.7 308.8,176.8 203.2,176.8" fill="#e8cd93"/>
 </svg>

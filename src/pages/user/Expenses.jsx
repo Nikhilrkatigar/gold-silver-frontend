@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import { expenseAPI, ledgerAPI, voucherAPI } from '../../services/api';
 import { toast } from 'react-toastify';
-import { FiSave, FiTrash2, FiEdit2, FiX, FiCheck } from 'react-icons/fi';
+import { FiSave, FiTrash2, FiEdit2, FiX, FiCheck, FiBarChart2 } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { format } from 'date-fns';
 import { SkeletonCard, SkeletonStat, SkeletonTable } from '../../components/Skeleton';
@@ -245,7 +245,7 @@ export default function Expenses() {
                                 border: '1px solid var(--border-color)'
                             }}>
                                 <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Total Expenses (filtered)</div>
-                                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#667eea', marginTop: '4px' }}>
+                                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary)', marginTop: '4px' }}>
                                     ₹{getTotalExpenses().toFixed(2)}
                                 </div>
                             </div>
@@ -523,7 +523,7 @@ export default function Expenses() {
 
                     {expenses.length === 0 && (
                         <div className="card" style={{ textAlign: 'center', padding: '3rem' }}>
-                            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📊</div>
+                            <FiBarChart2 size={40} style={{ color: 'var(--text-tertiary)', marginBottom: '1rem' }} aria-hidden="true" />
                             <h3>No Expenses Found</h3>
                             <p style={{ color: 'var(--text-secondary)' }}>Add your first expense using the form above</p>
                         </div>

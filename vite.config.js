@@ -8,15 +8,15 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],
+      includeAssets: ['favicon.ico', 'favicon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Gold & Silver Shop Manager',
         short_name: 'GoldSilver',
         description: 'Professional accounting system for gold and silver shops',
-        theme_color: '#f59e0b',
-        background_color: '#ffffff',
+        theme_color: '#1f1b16',
+        background_color: '#f7f5f1',
         display: 'standalone',
-        orientation: 'portrait',
+        orientation: 'any',
         scope: '/',
         start_url: '/',
         icons: [
@@ -31,10 +31,10 @@ export default defineConfig({
             type: 'image/png'
           },
           {
-            src: '/pwa-512x512.png',
+            src: '/maskable-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'any maskable'
+            purpose: 'maskable'
           }
         ]
       },

@@ -4,7 +4,7 @@ import { ledgerAPI, voucherAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 import { FiPlus, FiX, FiSave, FiPrinter } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
-import { calculateNetWeight, calculateFineWeight, calculateLabourCharge, calculateItemAmount } from '../../utils/billingUtils';
+import { calculateNetWeight, calculateFineWeight, calculateLabourCharge, calculateItemAmount, PURCHASE_TYPES, getPurchaseType } from '../../utils/billingUtils';
 
 const emptyItem = () => ({
     metalType: 'gold',
@@ -37,6 +37,7 @@ export default function PurchaseBilling() {
         silverRate: '',
         cashPaid: '',
         narration: '',
+        purchaseType: 'old_purchase',
         paymentType: 'cash',
         invoiceType: 'normal',      // 'normal' | 'gst'
         invoiceNumber: '',
@@ -141,8 +142,9 @@ export default function PurchaseBilling() {
                 })),
                 total: grandTotal,
                 cashReceived: cashPaid,
-                narration: formData.narration || 'Old Gold Purchase',
+                narration: formData.narration || getPurchaseType(formData.purchaseType)?.label,
                 voucherType: 'purchase',
+                purchaseType: formData.purchaseType,
                 ...(isGST && {
                     gstDetails: {
                         sellerGSTNumber: formData.sellerGSTNumber,
@@ -160,7 +162,7 @@ export default function PurchaseBilling() {
                 }),
             };
             await voucherAPI.create(payload);
-            toast.success('✅ Purchase voucher created successfully');
+            toast.success('Purchase voucher created successfully');
             setItems([emptyItem()]);
             setCustomerSearch('');
             setSelectedLedger(null);
@@ -208,7 +210,8 @@ export default function PurchaseBilling() {
       </style></head><body>
       <div class="hdr">
         <h2 style="margin:0">${user?.shopName || 'JEWELLERY SHOP'}</h2>
-        <p style="margin:4px 0">${isGST ? 'GST PURCHASE RECEIPT' : 'PURCHASE RECEIPT / OLD GOLD RECEIPT'}</p>
+        <p style="margin:4px 0">${isGST ? 'GST PURCHASE RECEIPT' : 'PURCHASE RECEIPT'}</p>
+        <p style="margin:2px 0;font-weight:bold">${(getPurchaseType(formData.purchaseType)?.label || '').toUpperCase()}</p>
         ${formData.sellerGSTNumber ? `<p style="margin:2px 0;font-size:11px">GSTIN: ${formData.sellerGSTNumber}</p>` : ''}
         ${formData.invoiceNumber ? `<p style="margin:2px 0;font-size:11px">Invoice No: ${formData.invoiceNumber}</p>` : ''}
       </div>
@@ -237,7 +240,7 @@ export default function PurchaseBilling() {
     const inputStyle = (err) => ({
         padding: '8px 10px',
         borderRadius: 4,
-        border: err ? '2px solid #e74c3c' : '1px solid var(--border-color)',
+        border: err ? '2px solid var(--color-danger)' : '1px solid var(--border-color)',
         background: 'var(--bg-primary)',
         color: 'var(--color-text)',
         fontSize: 13,
@@ -255,7 +258,7 @@ export default function PurchaseBilling() {
                 {/* Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
                     <div>
-                        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>🛒 Purchase Billing</h1>
+                        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700 }}>Purchase Billing</h1>
                         <p style={{ margin: '4px 0 0', color: 'var(--color-muted)', fontSize: 13 }}>Buy old gold / silver from customers</p>
                     </div>
                     <div style={{ display: 'flex', gap: 10 }}>
@@ -274,7 +277,7 @@ export default function PurchaseBilling() {
                         <button onClick={handlePrint} style={{ padding: '8px 16px', borderRadius: 6, border: '1px solid var(--border-color)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}>
                             <FiPrinter /> Print
                         </button>
-                        <button onClick={handleSubmit} disabled={isLoading} style={{ padding: '8px 18px', borderRadius: 6, border: 'none', background: 'var(--color-primary)', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <button onClick={handleSubmit} disabled={isLoading} style={{ padding: '8px 18px', borderRadius: 6, border: 'none', background: 'var(--color-primary)', color: 'var(--color-on-primary)', fontWeight: 600, cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6 }}>
                             <FiSave /> {isLoading ? 'Saving...' : 'Save Voucher'}
                         </button>
                     </div>
@@ -294,7 +297,7 @@ export default function PurchaseBilling() {
                                     onFocus={() => setShowDropdown(true)}
                                     style={inputStyle(formErrors.ledgerId)}
                                 />
-                                {formErrors.ledgerId && <div style={{ color: '#e74c3c', fontSize: 11, marginTop: 3 }}>⚠ {formErrors.ledgerId}</div>}
+                                {formErrors.ledgerId && <div style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 3 }}>⚠ {formErrors.ledgerId}</div>}
                                 {showDropdown && filteredLedgers.length > 0 && (
                                     <div style={{ position: 'absolute', zIndex: 20, left: 0, right: 0, top: '100%', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 6, maxHeight: 200, overflowY: 'auto', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                                         {filteredLedgers.map(l => (
@@ -337,12 +340,18 @@ export default function PurchaseBilling() {
                                 <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500 }}>Cash Paid to Customer (₹)</label>
                                 <input type="number" placeholder="0.00" value={formData.cashPaid} onChange={e => setFormData(f => ({ ...f, cashPaid: e.target.value }))} style={inputStyle()} />
                             </div>
+                            <div>
+                                <label htmlFor="purchase-type" style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500 }}>Bill Type</label>
+                                <select id="purchase-type" value={formData.purchaseType} onChange={e => setFormData(f => ({ ...f, purchaseType: e.target.value }))} style={inputStyle()}>
+                                    {PURCHASE_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                                </select>
+                            </div>
                         </div>
 
                         {/* GST Fields — shown only when GST invoice selected */}
                         {isGST && (
                             <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px dashed var(--border-color)' }}>
-                                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--color-primary)' }}>🧾 GST Details</div>
+                                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12, color: 'var(--color-primary)' }}>GST Details</div>
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
                                     <div>
                                         <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500 }}>GST Type</label>
@@ -364,7 +373,7 @@ export default function PurchaseBilling() {
                                     <div>
                                         <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500 }}>Seller GSTIN *</label>
                                         <input type="text" placeholder="27XXXXX..." value={formData.sellerGSTNumber} onChange={e => setFormData(f => ({ ...f, sellerGSTNumber: e.target.value.toUpperCase() }))} style={inputStyle(formErrors.sellerGST)} maxLength={15} />
-                                        {formErrors.sellerGST && <div style={{ color: '#e74c3c', fontSize: 11, marginTop: 3 }}>⚠ {formErrors.sellerGST}</div>}
+                                        {formErrors.sellerGST && <div style={{ color: 'var(--color-danger)', fontSize: 11, marginTop: 3 }}>⚠ {formErrors.sellerGST}</div>}
                                     </div>
                                     <div>
                                         <label style={{ display: 'block', marginBottom: 6, fontSize: 13, fontWeight: 500 }}>Seller State</label>
@@ -401,11 +410,11 @@ export default function PurchaseBilling() {
                     <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 20, marginBottom: 16 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                             <h3 style={{ margin: 0, fontSize: 15, fontWeight: 600 }}>Items Purchased</h3>
-                            <button type="button" onClick={addItem} style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: 'var(--color-primary)', color: '#fff', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 5 }}>
+                            <button type="button" onClick={addItem} style={{ padding: '7px 14px', borderRadius: 6, border: 'none', background: 'var(--color-primary)', color: 'var(--color-on-primary)', cursor: 'pointer', fontSize: 13, display: 'flex', alignItems: 'center', gap: 5 }}>
                                 <FiPlus /> Add Item
                             </button>
                         </div>
-                        {formErrors.items && <div style={{ color: '#e74c3c', fontSize: 12, marginBottom: 10 }}>⚠ {formErrors.items}</div>}
+                        {formErrors.items && <div style={{ color: 'var(--color-danger)', fontSize: 12, marginBottom: 10 }}>⚠ {formErrors.items}</div>}
                         <div style={{ overflowX: 'auto' }}>
                             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
                                 <thead>
@@ -438,7 +447,7 @@ export default function PurchaseBilling() {
                                                 </td>
                                             ))}
                                             <td style={{ padding: '6px 4px' }}>
-                                                <button type="button" onClick={() => removeItem(i)} style={{ background: 'none', border: 'none', color: '#e74c3c', cursor: 'pointer', padding: 4 }}><FiX /></button>
+                                                <button type="button" onClick={() => removeItem(i)} style={{ background: 'none', border: 'none', color: 'var(--color-danger)', cursor: 'pointer', padding: 4 }}><FiX /></button>
                                             </td>
                                         </tr>
                                     ))}

@@ -371,7 +371,7 @@ export default function Karigar() {
               border: '1px solid var(--border-color)'
             }}>
               <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Gold Stock</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f59e0b', marginTop: '4px' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary)', marginTop: '4px' }}>
                 {currentStock.gold.toFixed(3)} g
               </div>
             </div>
@@ -382,7 +382,7 @@ export default function Karigar() {
               border: '1px solid var(--border-color)'
             }}>
               <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Silver Stock</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#c0c0c0', marginTop: '4px' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--metal-silver)', marginTop: '4px' }}>
                 {currentStock.silver.toFixed(3)} g
               </div>
             </div>
@@ -393,7 +393,7 @@ export default function Karigar() {
               border: '1px solid var(--border-color)'
             }}>
               <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Amount Balance</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#10b981', marginTop: '4px' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-success)', marginTop: '4px' }}>
                 {formatAmount(transactions.reduce((sum, t) => sum + getAmountDelta(t), 0))}
               </div>
             </div>
@@ -506,13 +506,13 @@ export default function Karigar() {
                         style={{
                           padding: '12px 16px',
                           cursor: 'pointer',
-                          background: 'rgba(245, 158, 11, 0.1)',
+                          background: 'var(--accent-soft)',
                           color: 'var(--color-primary)',
                           fontWeight: 600,
                           transition: 'background-color 0.2s'
                         }}
-                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(245, 158, 11, 0.2)'}
-                        onMouseLeave={(e) => e.currentTarget.style.background = 'rgba(245, 158, 11, 0.1)'}
+                        onMouseEnter={(e) => e.currentTarget.style.background = 'var(--accent-soft-strong)'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = 'var(--accent-soft)'}
                       >
                         + Create "{searchInput.toLowerCase().trim()}"
                       </div>
@@ -676,7 +676,7 @@ export default function Karigar() {
                                 }}
                                 onMouseEnter={(e) => {
                                   e.currentTarget.style.borderColor = 'var(--color-primary)';
-                                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(245, 158, 11, 0.2)';
+                                  e.currentTarget.style.boxShadow = '0 4px 12px var(--accent-soft-strong)';
                                 }}
                                 onMouseLeave={(e) => {
                                   e.currentTarget.style.borderColor = 'var(--border-color)';
@@ -691,10 +691,10 @@ export default function Karigar() {
                                     Total Transactions: <strong>{txns.length}</strong>
                                   </div>
                                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.875rem' }}>
-                                    <div>Gold Given: <strong style={{ color: '#f59e0b' }}>{stats.givenGold.toFixed(3)}g</strong></div>
-                                    <div>Gold Received: <strong style={{ color: '#f59e0b' }}>{stats.receivedGold.toFixed(3)}g</strong></div>
-                                    <div>Silver Given: <strong style={{ color: '#c0c0c0' }}>{stats.givenSilver.toFixed(3)}g</strong></div>
-                                    <div>Silver Received: <strong style={{ color: '#c0c0c0' }}>{stats.receivedSilver.toFixed(3)}g</strong></div>
+                                    <div>Gold Given: <strong style={{ color: 'var(--color-primary)' }}>{stats.givenGold.toFixed(3)}g</strong></div>
+                                    <div>Gold Received: <strong style={{ color: 'var(--color-primary)' }}>{stats.receivedGold.toFixed(3)}g</strong></div>
+                                    <div>Silver Given: <strong style={{ color: 'var(--metal-silver)' }}>{stats.givenSilver.toFixed(3)}g</strong></div>
+                                    <div>Silver Received: <strong style={{ color: 'var(--metal-silver)' }}>{stats.receivedSilver.toFixed(3)}g</strong></div>
                                   </div>
                                 </div>
                                 <FiChevronRight size={24} style={{ color: 'var(--color-primary)', marginLeft: '16px', flexShrink: 0 }} />
@@ -748,31 +748,31 @@ export default function Karigar() {
                   <>
                     <div style={{ padding: '12px', background: 'var(--bg-primary)', borderRadius: '6px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '4px' }}>Gold Given</div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f59e0b' }}>{stats.givenGold.toFixed(3)}g</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-primary)' }}>{stats.givenGold.toFixed(3)}g</div>
                     </div>
                     <div style={{ padding: '12px', background: 'var(--bg-primary)', borderRadius: '6px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '4px' }}>Gold Received</div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f59e0b' }}>{stats.receivedGold.toFixed(3)}g</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-primary)' }}>{stats.receivedGold.toFixed(3)}g</div>
                     </div>
                     <div style={{ padding: '12px', background: 'var(--bg-primary)', borderRadius: '6px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '4px' }}>Gold Balance</div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#f59e0b' }}>{stats.balanceGold.toFixed(3)}g</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-primary)' }}>{stats.balanceGold.toFixed(3)}g</div>
                     </div>
                     <div style={{ padding: '12px', background: 'var(--bg-primary)', borderRadius: '6px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '4px' }}>Silver Given</div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#c0c0c0' }}>{stats.givenSilver.toFixed(3)}g</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--metal-silver)' }}>{stats.givenSilver.toFixed(3)}g</div>
                     </div>
                     <div style={{ padding: '12px', background: 'var(--bg-primary)', borderRadius: '6px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '4px' }}>Silver Received</div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#c0c0c0' }}>{stats.receivedSilver.toFixed(3)}g</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--metal-silver)' }}>{stats.receivedSilver.toFixed(3)}g</div>
                     </div>
                     <div style={{ padding: '12px', background: 'var(--bg-primary)', borderRadius: '6px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '4px' }}>Silver Balance</div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#c0c0c0' }}>{stats.balanceSilver.toFixed(3)}g</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--metal-silver)' }}>{stats.balanceSilver.toFixed(3)}g</div>
                     </div>
                     <div style={{ padding: '12px', background: 'var(--bg-primary)', borderRadius: '6px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500, marginBottom: '4px' }}>Amount Balance</div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: '#10b981' }}>{formatAmount(stats.totalCharge)}</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-success)' }}>{formatAmount(stats.totalCharge)}</div>
                     </div>
                   </>
                 );

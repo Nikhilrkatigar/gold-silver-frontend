@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ToastContainer } from 'react-toastify';
+import { MotionConfig } from 'motion/react';
 import 'react-toastify/dist/ReactToastify.css';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -36,9 +37,9 @@ const ProtectedRoute = ({ children, adminOnly = false }) => {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        height: '100vh'
+        height: '100dvh'
       }}>
-        <div className="loading" style={{ width: '40px', height: '40px' }}></div>
+        <div className="loading" style={{ width: '40px', height: '40px', color: 'var(--color-primary)', borderColor: 'var(--border-color)', borderTopColor: 'var(--color-primary)' }}></div>
       </div>
     );
   }
@@ -100,6 +101,7 @@ function AppRoutes() {
 
 function App() {
   return (
+    <MotionConfig reducedMotion="user">
     <BrowserRouter>
       <AuthProvider>
         <ErrorBoundary>
@@ -119,6 +121,7 @@ function App() {
         />
       </AuthProvider>
     </BrowserRouter>
+    </MotionConfig>
   );
 }
 

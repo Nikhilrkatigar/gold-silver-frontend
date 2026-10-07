@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-toastify';
+import { motion } from 'motion/react';
 import { FiLogIn, FiPhone, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
 
 export default function Login() {
@@ -42,84 +43,72 @@ export default function Login() {
 
   return (
     <div style={{
-      minHeight: '100vh',
+      minHeight: '100dvh',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-      padding: '1rem'
+      background: 'var(--bg-secondary)',
+      padding: '1.5rem 1rem calc(1.5rem + env(safe-area-inset-bottom))'
     }}>
-      <div className="card" style={{ maxWidth: '440px', width: '100%' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{
-            width: '80px',
-            height: '80px',
-            background: 'linear-gradient(135deg, #f59e0b, #fbbf24)',
-            borderRadius: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 1.5rem',
-            fontSize: '2.5rem',
-            boxShadow: '0 10px 30px rgba(245, 158, 11, 0.3)'
-          }}>
-            ✨
-          </div>
-          <h1 style={{ fontSize: '1.875rem', marginBottom: '0.5rem' }}>
-            Gold & Silver Manager
+      <motion.div
+        className="card"
+        style={{ maxWidth: '400px', width: '100%', padding: '2rem 1.5rem', boxShadow: 'var(--shadow-lg)' }}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+      >
+        <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+          <img src="/favicon.svg" alt="" width="64" height="64" style={{ borderRadius: 16, margin: '0 auto 1rem', display: 'block' }} />
+          <h1 style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>
+            Gold &amp; Silver Manager
           </h1>
-          <p className="text-muted">
-            Professional accounting for your shop
+          <p className="text-muted" style={{ fontSize: '0.9375rem' }}>
+            Sign in to your shop account
           </p>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <div className="input-group">
-            <label className="input-label">
-              <FiPhone style={{ display: 'inline', marginRight: '0.5rem' }} />
-              Phone Number
-            </label>
-            <input
-              type="tel"
-              className="input"
-              placeholder="Enter your phone number"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              disabled={loading}
-            />
+            <label className="input-label" htmlFor="login-phone">Phone number</label>
+            <div style={{ position: 'relative' }}>
+              <FiPhone aria-hidden="true" style={iconStyle} />
+              <input
+                id="login-phone"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="username"
+                className="input"
+                placeholder="10-digit mobile number"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                disabled={loading}
+                style={{ paddingLeft: '2.5rem' }}
+              />
+            </div>
           </div>
 
           <div className="input-group">
-            <label className="input-label">
-              <FiLock style={{ display: 'inline', marginRight: '0.5rem' }} />
-              Password
-            </label>
-            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <label className="input-label" htmlFor="login-password">Password</label>
+            <div style={{ position: 'relative' }}>
+              <FiLock aria-hidden="true" style={iconStyle} />
               <input
-                type={showPassword ? "text" : "password"}
+                id="login-password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
                 className="input"
-                placeholder="Enter your password"
+                placeholder="Your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 disabled={loading}
-                style={{ paddingRight: '40px' }}
+                style={{ paddingLeft: '2.5rem', paddingRight: '3rem' }}
               />
               <button
                 type="button"
+                className="btn btn-icon"
                 onClick={() => setShowPassword(!showPassword)}
                 disabled={loading}
-                style={{
-                  position: 'absolute',
-                  right: '12px',
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text-secondary)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '0',
-                  fontSize: '1rem'
-                }}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                style={{ position: 'absolute', right: 2, top: '50%', transform: 'translateY(-50%)', background: 'none' }}
               >
                 {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
               </button>
@@ -134,18 +123,27 @@ export default function Login() {
           >
             {loading ? (
               <>
-                <span className="loading"></span>
+                <span className="loading" aria-hidden="true"></span>
                 Signing in...
               </>
             ) : (
               <>
-                <FiLogIn />
+                <FiLogIn aria-hidden="true" />
                 Sign In
               </>
             )}
           </button>
         </form>
-      </div>
+      </motion.div>
     </div>
   );
 }
+
+const iconStyle = {
+  position: 'absolute',
+  left: '0.875rem',
+  top: '50%',
+  transform: 'translateY(-50%)',
+  color: 'var(--text-tertiary)',
+  pointerEvents: 'none'
+};

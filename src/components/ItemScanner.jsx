@@ -490,8 +490,8 @@ const ItemScanner = ({ onItemSelected, existingItems = [] }) => {
               void startCameraScanner();
             }, 120);
           }}
-          className="btn btn-primary"
-          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', width: '100%', justifyContent: 'center' }}
+          className="btn btn-secondary"
+          style={{ marginBottom: '0.75rem' }}
         >
           <FiSearch /> Scan Item QR Code
         </button>

@@ -616,13 +616,13 @@ const StockManagement = () => {
               <SkeletonStat count={2} />
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }} className="fade-in">
-                <div style={{ padding: 12, backgroundColor: 'var(--bg-primary)', borderRadius: 6, borderLeft: '4px solid #FFD700' }}>
+                <div style={{ padding: 12, backgroundColor: 'var(--bg-primary)', borderRadius: 6, borderLeft: '4px solid var(--metal-gold)' }}>
                   <div style={{ fontSize: '0.9rem', color: 'var(--color-muted)', marginBottom: 4 }}>Gold</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#FFD700' }}>{parseFloat(goldStock).toFixed(4)} g</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--metal-gold)' }}>{parseFloat(goldStock).toFixed(4)} g</div>
                 </div>
-                <div style={{ padding: 12, backgroundColor: 'var(--bg-primary)', borderRadius: 6, borderLeft: '4px solid #C0C0C0' }}>
+                <div style={{ padding: 12, backgroundColor: 'var(--bg-primary)', borderRadius: 6, borderLeft: '4px solid var(--metal-silver)' }}>
                   <div style={{ fontSize: '0.9rem', color: 'var(--color-muted)', marginBottom: 4 }}>Silver</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#C0C0C0' }}>{parseFloat(silverStock).toFixed(2)} g</div>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--metal-silver)' }}>{parseFloat(silverStock).toFixed(2)} g</div>
                 </div>
               </div>
             )}
@@ -644,7 +644,7 @@ const StockManagement = () => {
               marginBottom: 24,
               borderRadius: 10,
               overflow: 'hidden',
-              border: `2px solid ${cashInHand < 0 ? '#ef4444' : '#22c55e'}`,
+              border: `2px solid ${cashInHand < 0 ? 'var(--color-danger)' : '#22c55e'}`,
               cursor: 'pointer',
               boxShadow: cashDetailsOpen ? '0 0 0 3px rgba(34, 197, 94, 0.18)' : 'none'
             }}
@@ -660,7 +660,7 @@ const StockManagement = () => {
                 <FiEye size={15} />
                 Cash in Hand
               </span>
-              <span style={{ fontSize: 22, fontWeight: 800, color: cashInHand < 0 ? '#dc2626' : '#16a34a' }}>
+              <span style={{ fontSize: 22, fontWeight: 800, color: cashInHand < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
                 {cashInHand < 0 ? '-' : ''}{'\u20B9'}{Math.abs(cashInHand).toFixed(2)}
               </span>
             </div>
@@ -670,56 +670,56 @@ const StockManagement = () => {
               <div style={{ padding: '10px 18px', background: 'var(--bg-secondary)', display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                   <span style={{ color: 'var(--color-muted)' }}>Cash received from customers</span>
-                  <span style={{ fontWeight: 600, color: '#16a34a' }}>+{'\u20B9'}{(cashBreakdown.cashFromSales || 0).toFixed(2)}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--color-success)' }}>+{'\u20B9'}{(cashBreakdown.cashFromSales || 0).toFixed(2)}</span>
                 </div>
                 {(cashBreakdown.cashAdded || 0) > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                     <span style={{ color: 'var(--color-muted)' }}>Cash additions (injected)</span>
-                    <span style={{ fontWeight: 600, color: '#16a34a' }}>+{'\u20B9'}{(cashBreakdown.cashAdded || 0).toFixed(2)}</span>
+                    <span style={{ fontWeight: 600, color: 'var(--color-success)' }}>+{'\u20B9'}{(cashBreakdown.cashAdded || 0).toFixed(2)}</span>
                   </div>
                 )}
                 {(cashBreakdown.customerLiabilities || 0) > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                     <span style={{ color: 'var(--color-muted)' }}>Customer liabilities (we owe)</span>
-                    <span style={{ fontWeight: 600, color: '#dc2626' }}>-{'\u20B9'}{(cashBreakdown.customerLiabilities || 0).toFixed(2)}</span>
+                    <span style={{ fontWeight: 600, color: 'var(--color-danger)' }}>-{'\u20B9'}{(cashBreakdown.customerLiabilities || 0).toFixed(2)}</span>
                   </div>
                 )}
                 {(cashBreakdown.paidForPurchases || 0) > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                     <span style={{ color: 'var(--color-muted)' }}>Paid for old gold purchases</span>
-                    <span style={{ fontWeight: 600, color: '#dc2626' }}>-{'\u20B9'}{(cashBreakdown.paidForPurchases || 0).toFixed(2)}</span>
+                    <span style={{ fontWeight: 600, color: 'var(--color-danger)' }}>-{'\u20B9'}{(cashBreakdown.paidForPurchases || 0).toFixed(2)}</span>
                   </div>
                 )}
                 {(cashBreakdown.stockPurchases || 0) > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                     <span style={{ color: 'var(--color-muted)' }}>Stock purchases</span>
-                    <span style={{ fontWeight: 600, color: '#dc2626' }}>-{'\u20B9'}{(cashBreakdown.stockPurchases || 0).toFixed(2)}</span>
+                    <span style={{ fontWeight: 600, color: 'var(--color-danger)' }}>-{'\u20B9'}{(cashBreakdown.stockPurchases || 0).toFixed(2)}</span>
                   </div>
                 )}
                 {(cashBreakdown.cashExpenses || 0) > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                     <span style={{ color: 'var(--color-muted)' }}>Cash expenses</span>
-                    <span style={{ fontWeight: 600, color: '#dc2626' }}>-{'\u20B9'}{(cashBreakdown.cashExpenses || 0).toFixed(2)}</span>
+                    <span style={{ fontWeight: 600, color: 'var(--color-danger)' }}>-{'\u20B9'}{(cashBreakdown.cashExpenses || 0).toFixed(2)}</span>
                   </div>
                 )}
                 {(cashBreakdown.karigarCharges || 0) !== 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
                     <span style={{ color: 'var(--color-muted)' }}>Karigar amount balance</span>
-                    <span style={{ fontWeight: 600, color: (cashBreakdown.karigarCharges || 0) < 0 ? '#dc2626' : '#16a34a' }}>
+                    <span style={{ fontWeight: 600, color: (cashBreakdown.karigarCharges || 0) < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
                       {(cashBreakdown.karigarCharges || 0) >= 0 ? '+' : ''}{formatCurrency(cashBreakdown.karigarCharges || 0)}
                     </span>
                   </div>
                 )}
                 <div style={{ borderTop: '1px solid var(--border-color)', marginTop: 4, paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700 }}>
                   <span>Net Cash in Hand</span>
-                  <span style={{ color: cashInHand < 0 ? '#dc2626' : '#16a34a' }}>
+                  <span style={{ color: cashInHand < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
                     {cashInHand < 0 ? '-' : ''}{'\u20B9'}{Math.abs(cashInHand).toFixed(2)}
                   </span>
                 </div>
                 {customerLiabilities > 0 && (
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700 }}>
                     <span>Effective Cash After Liabilities</span>
-                    <span style={{ color: effectiveCashAfterLiabilities < 0 ? '#dc2626' : '#16a34a' }}>
+                    <span style={{ color: effectiveCashAfterLiabilities < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
                       {effectiveCashAfterLiabilities < 0 ? '-' : ''}{'\u20B9'}{Math.abs(effectiveCashAfterLiabilities).toFixed(2)}
                     </span>
                   </div>
@@ -760,7 +760,7 @@ const StockManagement = () => {
                 transition: 'all 0.2s'
               }}
             >
-              💰 Add Money (Cash)
+              Add Money (Cash)
             </button>
           </div>
 
@@ -966,7 +966,7 @@ const StockManagement = () => {
                           <span style={{ fontSize: '0.8rem', backgroundColor: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>Cash Added</span>
                         ) : Number(entry.gold || 0).toFixed(3)}</td>
                         <td>{entry.type === 'cash_addition' ? '-' : Number(entry.silver || 0).toFixed(2)}</td>
-                        <td style={{ color: entry.type === 'cash_addition' ? '#16a34a' : 'inherit', fontWeight: entry.type === 'cash_addition' ? 700 : 'normal' }}>
+                        <td style={{ color: entry.type === 'cash_addition' ? 'var(--color-success)' : 'inherit', fontWeight: entry.type === 'cash_addition' ? 700 : 'normal' }}>
                           {entry.type === 'cash_addition' ? '+' : ''}{Number(entry.cashAmount || 0).toFixed(2)}
                         </td>
                       </tr>
@@ -1032,7 +1032,7 @@ const StockManagement = () => {
                     <div key={group.key} style={{ border: '1px solid var(--border-color)', borderRadius: 8, overflow: 'hidden' }}>
                       <div style={{ padding: '10px 12px', background: 'var(--bg-secondary)', display: 'flex', justifyContent: 'space-between', gap: 12, fontWeight: 700 }}>
                         <span>{group.title}</span>
-                        <span style={{ color: group.total < 0 ? '#dc2626' : '#16a34a' }}>
+                        <span style={{ color: group.total < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
                           {group.total >= 0 ? '+' : ''}{formatCurrency(group.total)}
                         </span>
                       </div>
@@ -1059,7 +1059,7 @@ const StockManagement = () => {
                                 <span style={{ display: 'block', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.title}</span>
                                 <span style={{ display: 'block', color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.subtitle}</span>
                               </span>
-                              <span style={{ fontWeight: 700, color: row.amount < 0 ? '#dc2626' : '#16a34a' }}>
+                              <span style={{ fontWeight: 700, color: row.amount < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
                                 {row.amount >= 0 ? '+' : ''}{formatCurrency(row.amount)}
                               </span>
                             </div>

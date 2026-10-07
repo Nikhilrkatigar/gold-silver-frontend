@@ -34,10 +34,10 @@ export default function AdminDashboard() {
   }
 
   const statCards = [
-    { label: 'Total Users', value: stats?.totalUsers || 0, icon: FiUsers, color: '#3b82f6' },
-    { label: 'Active Users', value: stats?.activeUsers || 0, icon: FiCheckCircle, color: '#10b981' },
-    { label: 'Expired Users', value: stats?.expiredUsers || 0, icon: FiXCircle, color: '#ef4444' },
-    { label: 'Expiring Soon', value: stats?.expiringUsers || 0, icon: FiClock, color: '#f59e0b' },
+    { label: 'Total Users', value: stats?.totalUsers || 0, icon: FiUsers, color: 'var(--color-info)' },
+    { label: 'Active Users', value: stats?.activeUsers || 0, icon: FiCheckCircle, color: 'var(--color-success)' },
+    { label: 'Expired Users', value: stats?.expiredUsers || 0, icon: FiXCircle, color: 'var(--color-danger)' },
+    { label: 'Expiring Soon', value: stats?.expiringUsers || 0, icon: FiClock, color: 'var(--color-primary)' },
   ];
 
   return (

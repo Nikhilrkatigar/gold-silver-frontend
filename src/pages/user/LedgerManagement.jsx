@@ -212,11 +212,11 @@ export default function LedgerManagement() {
                 padding: '16px',
                 background: 'var(--bg-primary)',
                 borderRadius: '8px',
-                border: '2px solid #3b82f6',
+                border: '1px solid var(--color-info)',
                 boxShadow: '0 2px 8px rgba(59, 130, 246, 0.1)'
               }}>
                 <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Total Ledgers</div>
-                <div style={{ fontSize: '2rem', fontWeight: 700, color: '#3b82f6', marginTop: '8px' }}>
+                <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--color-info)', marginTop: '8px' }}>
                   {filteredLedgers.length}
                 </div>
                 {searchTerm && (
@@ -231,11 +231,11 @@ export default function LedgerManagement() {
                 padding: '16px',
                 background: 'var(--bg-primary)',
                 borderRadius: '8px',
-                border: '2px solid #667eea',
-                boxShadow: '0 2px 8px rgba(102, 126, 234, 0.1)'
+                border: '1px solid var(--color-primary)',
+                boxShadow: '0 2px 8px var(--accent-soft)'
               }}>
                 <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Total Amount</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#667eea', marginTop: '8px' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary)', marginTop: '8px' }}>
                   ₹{(() => {
                     const ledgerIds = filteredLedgers.map(l => l._id);
 
@@ -259,11 +259,11 @@ export default function LedgerManagement() {
                 padding: '16px',
                 background: 'var(--bg-primary)',
                 borderRadius: '8px',
-                border: '2px solid #f5576c',
+                border: '1px solid var(--color-danger)',
                 boxShadow: '0 2px 8px rgba(245, 87, 108, 0.1)'
               }}>
                 <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Balance Amount</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#f5576c', marginTop: '8px' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-danger)', marginTop: '8px' }}>
                   ₹{formatSignedAmount(filteredLedgers.reduce((sum, ledger) => {
                     return sum + getLedgerDisplayCashBalance(ledger);
                   }, 0))}
@@ -275,7 +275,7 @@ export default function LedgerManagement() {
                 padding: '16px',
                 background: 'var(--bg-primary)',
                 borderRadius: '8px',
-                border: '2px solid #FFD700',
+                border: '1px solid var(--metal-gold)',
                 boxShadow: '0 2px 8px rgba(255, 215, 0, 0.15)'
               }}>
                 <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Total Gold Balance</div>
@@ -291,7 +291,7 @@ export default function LedgerManagement() {
                 padding: '16px',
                 background: 'var(--bg-primary)',
                 borderRadius: '8px',
-                border: '2px solid #9ca3af',
+                border: '1px solid var(--metal-silver)',
                 boxShadow: '0 2px 8px rgba(156, 163, 175, 0.15)'
               }}>
                 <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Total Silver Balance</div>
@@ -309,7 +309,7 @@ export default function LedgerManagement() {
             <div>
               <input
                 type="text"
-                placeholder="🔍 Search ledgers by name or phone number..."
+                placeholder="Search ledgers by name or phone number..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
@@ -332,7 +332,7 @@ export default function LedgerManagement() {
             </div>
             {filteredLedgers.length > 0 && (
               <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)', background: 'var(--bg-secondary)', padding: '8px 12px', borderRadius: '6px' }}>
-                📊 {filteredLedgers.length} ledger{filteredLedgers.length !== 1 ? 's' : ''} (A-Z sorted)
+                {filteredLedgers.length} ledger{filteredLedgers.length !== 1 ? 's' : ''} (A-Z sorted)
               </div>
             )}
           </div>
@@ -357,7 +357,7 @@ export default function LedgerManagement() {
                     <td>{ledger.phoneNumber}</td>
                     <td>
                       <span className={`badge ${ledger.ledgerType === 'gst' ? 'badge-success' : 'badge-info'}`}>
-                        {ledger.ledgerType === 'gst' ? '📄 GST' : '💰 Regular'}
+                        {ledger.ledgerType === 'gst' ? 'GST' : 'Regular'}
                       </span>
                     </td>
                     <td>
@@ -367,16 +367,16 @@ export default function LedgerManagement() {
                     </td>
                     <td>
                       <div style={{ fontSize: '12px' }}>
-                        <div style={{ color: '#FFD700', fontWeight: 'bold' }}>
+                        <div style={{ color: 'var(--metal-gold)', fontWeight: 'bold' }}>
                           Gold: {ledger.balances?.goldFineWeight?.toFixed(3) || '0.000'} g fine
                         </div>
-                        <div style={{ color: '#C0C0C0', fontWeight: 'bold' }}>
+                        <div style={{ color: 'var(--metal-silver)', fontWeight: 'bold' }}>
                           Silver: {ledger.balances?.silverFineWeight?.toFixed(3) || '0.000'} g fine
                         </div>
                       </div>
                     </td>
                     <td>
-                      <div style={{ fontWeight: 'bold', color: '#667eea', fontSize: '1.125rem', textAlign: 'center' }}>
+                      <div style={{ fontWeight: 'bold', color: 'var(--color-primary)', fontSize: '1.125rem', textAlign: 'center' }}>
                         {getVoucherCountForLedger(ledger._id)}
                       </div>
                     </td>
@@ -454,7 +454,7 @@ export default function LedgerManagement() {
                           />
                         </div>
                         <div>
-                          <label style={{ fontSize: '0.75rem', color: '#FFD700', display: 'block', marginBottom: '3px' }}>Gold Fine (g)</label>
+                          <label style={{ fontSize: '0.75rem', color: 'var(--metal-gold)', display: 'block', marginBottom: '3px' }}>Gold Fine (g)</label>
                           <input
                             type="number"
                             className="input"
@@ -466,7 +466,7 @@ export default function LedgerManagement() {
                           />
                         </div>
                         <div>
-                          <label style={{ fontSize: '0.75rem', color: '#C0C0C0', display: 'block', marginBottom: '3px' }}>Silver Fine (g)</label>
+                          <label style={{ fontSize: '0.75rem', color: 'var(--metal-silver)', display: 'block', marginBottom: '3px' }}>Silver Fine (g)</label>
                           <input
                             type="number"
                             className="input"

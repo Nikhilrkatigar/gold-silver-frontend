@@ -236,7 +236,7 @@ Stock: ${formatBytes(breakdown.stock?.bytes || 0)} (${breakdown.stock?.count || 
                   </td>
                   <td>
                     <span className={`badge ${user.gstEnabled ? 'badge-success' : 'badge-secondary'}`}>
-                      {user.gstEnabled ? '✅ GST Enabled' : '❌ Non-GST'}
+                      {user.gstEnabled ? 'GST Enabled' : 'Non-GST'}
                     </span>
                   </td>
                   <td>
@@ -245,7 +245,7 @@ Stock: ${formatBytes(breakdown.stock?.bytes || 0)} (${breakdown.stock?.count || 
                       title={formatBreakdown(user.storageUsage?.breakdown)}
                       style={{ cursor: 'help', fontWeight: 'bold' }}
                     >
-                      💾 {formatStorageSize(user.storageUsage)}
+                      {formatStorageSize(user.storageUsage)}
                     </span>
                   </td>
                   <td>

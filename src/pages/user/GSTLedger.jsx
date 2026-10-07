@@ -213,7 +213,7 @@ export default function GSTLedger() {
                             border: '1px solid var(--border-color)'
                         }}>
                             <div style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>Total Amount</div>
-                            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#667eea', marginTop: '4px' }}>
+                            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-primary)', marginTop: '4px' }}>
                                 ₹{(() => {
                                     const ledgerIds = filteredLedgers.map(l => l._id);
                                     const totalAmount = vouchers
@@ -237,7 +237,7 @@ export default function GSTLedger() {
                     <div style={{ marginBottom: '1.5rem' }}>
                         <input
                             type="text"
-                            placeholder="🔍 Search ledgers by name or phone number..."
+                            placeholder="Search ledgers by name or phone number..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             style={{
@@ -321,10 +321,10 @@ export default function GSTLedger() {
                                         </td>
                                         <td>
                                             <div style={{ fontSize: '12px' }}>
-                                                <div style={{ color: '#FFD700', fontWeight: 'bold' }}>
+                                                <div style={{ color: 'var(--metal-gold)', fontWeight: 'bold' }}>
                                                     Gold: {ledger.balances?.goldFineWeight?.toFixed(3) || '0.000'} g fine
                                                 </div>
-                                                <div style={{ color: '#C0C0C0', fontWeight: 'bold' }}>
+                                                <div style={{ color: 'var(--metal-silver)', fontWeight: 'bold' }}>
                                                     Silver: {ledger.balances?.silverFineWeight?.toFixed(3) || '0.000'} g fine
                                                 </div>
                                             </div>
@@ -358,8 +358,8 @@ export default function GSTLedger() {
                                         <td colSpan="3" style={{ textAlign: 'right', paddingRight: '1rem' }}>Total:</td>
                                         <td>
                                             <div style={{ fontSize: '12px' }}>
-                                                <div style={{ color: '#FFD700' }}>Gold: {totals.goldFineWeight.toFixed(3)} g fine</div>
-                                                <div style={{ color: '#C0C0C0' }}>Silver: {totals.silverFineWeight.toFixed(3)} g fine</div>
+                                                <div style={{ color: 'var(--metal-gold)' }}>Gold: {totals.goldFineWeight.toFixed(3)} g fine</div>
+                                                <div style={{ color: 'var(--metal-silver)' }}>Silver: {totals.silverFineWeight.toFixed(3)} g fine</div>
                                             </div>
                                         </td>
                                         <td></td>
@@ -420,7 +420,7 @@ export default function GSTLedger() {
                                                     }}
                                                     style={{ marginRight: '8px', cursor: 'pointer' }}
                                                 />
-                                                <span>✅ Customer has GST</span>
+                                                <span>Customer has GST</span>
                                             </label>
 
                                             {formData.hasGST && (

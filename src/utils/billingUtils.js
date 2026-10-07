@@ -125,3 +125,14 @@ export const calculateTotals = (items, labourChargeType = 'full') => {
         amount: 0,
     });
 };
+
+/**
+ * Why the shop bought metal on a purchase voucher (stored as voucher.purchaseType).
+ */
+export const PURCHASE_TYPES = [
+  { value: 'old_purchase', label: 'Old Gold / Silver Purchase', short: 'Old Purchase' },
+  { value: 'exchange', label: 'Exchange (Old for New)', short: 'Exchange' },
+  { value: 'new_purchase', label: 'New Gold / Silver Purchase', short: 'New Purchase' },
+];
+
+export const getPurchaseType = (value) => PURCHASE_TYPES.find((t) => t.value === value);

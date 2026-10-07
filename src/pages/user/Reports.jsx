@@ -4,6 +4,7 @@ import { reportAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { toast } from 'react-toastify';
 import { SkeletonStat, SkeletonCard, SkeletonTable } from '../../components/Skeleton';
+import { FiPrinter } from 'react-icons/fi';
 
 // Date helpers
 const fmt = (d) => new Date(d).toLocaleDateString('en-IN');
@@ -25,36 +26,39 @@ const PRESETS = [
     { label: 'Last 30 Days', from: daysAgo(29), to: todayISO() },
 ];
 
-// Mini bar chart using CSS widths only
-const MiniBar = ({ value, max, color = '#f59e0b' }) => (
-    <div style={{ height: 8, background: '#f0f0f0', borderRadius: 4, overflow: 'hidden', minWidth: 60 }}>
-        <div style={{
-            height: '100%',
-            width: `${max > 0 ? Math.min(100, (value / max) * 100) : 0}%`,
-            background: color,
-            borderRadius: 4,
-            transition: 'width 0.5s ease'
-        }} />
+const StatCard = ({ label, value, sub, tone }) => (
+    <div className="stat-tile">
+        <div className="stat-label">{label}</div>
+        <div className="stat-value" style={tone ? { color: `var(--color-${tone})` } : undefined}>{value}</div>
+        {sub && <div className="stat-sub">{sub}</div>}
     </div>
 );
 
-const StatCard = ({ label, value, sub, color = 'var(--color-primary)' }) => (
-    <div style={{
-        background: 'var(--bg-primary)',
-        border: '1px solid var(--border-color)',
-        borderRadius: 10,
-        padding: '16px 20px',
-        borderLeft: `4px solid ${color}`
-    }}>
-        <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 4 }}>{label}</div>
-        <div style={{ fontSize: 22, fontWeight: 700, color }}>{value}</div>
-        {sub && <div style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 4 }}>{sub}</div>}
+const Section = ({ title, sub, children }) => (
+    <section className="card" style={{ marginBottom: '1rem' }}>
+        <h3 className="section-title" style={{ marginBottom: sub ? 2 : '0.75rem' }}>{title}</h3>
+        {sub && <div className="stat-sub" style={{ marginBottom: '0.75rem' }}>{sub}</div>}
+        {children}
+    </section>
+);
+
+const Empty = ({ children }) => <div className="text-muted" style={{ fontSize: 13, padding: '0.25rem 0' }}>{children}</div>;
+
+// First column is a label, the rest are figures (right-aligned)
+const ReportTable = ({ head, children }) => (
+    <div style={{ overflowX: 'auto' }}>
+        <table className="table report-table no-scroll">
+            <thead>
+                <tr>{head.map((h, i) => <th key={h} className={i ? 'text-right' : undefined}>{h}</th>)}</tr>
+            </thead>
+            <tbody>{children}</tbody>
+        </table>
     </div>
 );
 
 export default function Reports() {
     const { user } = useAuth();
-    const [preset, setPreset] = useState(0); // index into PRESETS
+    const [preset, setPreset] = useState(2); // index into PRESETS (matches the default dates below)
     const [fromDate, setFromDate] = useState(PRESETS[2].from);
     const [toDate, setToDate] = useState(PRESETS[2].to);
     const [loading, setLoading] = useState(false);
@@ -144,7 +148,7 @@ export default function Reports() {
                 .sort((a, b) => (b.balances?.cashBalance || 0) - (a.balances?.cashBalance || 0))
                 .slice(0, 5);
 
-            // ────── AI DEMAND FORECASTING ──────────────────────────────
+            // ────── SALES TRENDS / FORECAST ──────────────────────────────
             // Day-of-week analysis
             const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
             const dayOfWeekMap = {};
@@ -257,7 +261,7 @@ export default function Reports() {
                     atRisk: Math.floor((new Date() - c.lastVisit) / 86400000) > 30
                 }));
 
-            // ── AI HEALTH SCORE (0-100) ──
+            // ── HEALTH SCORE (0-100) ──
             const revenueScore = Math.min(25, (totalSales > 0 ? 15 : 0) + (growthRate > 0 ? 10 : growthRate > -10 ? 5 : 0));
             const creditRiskScore = totalSales > 0 ? Math.min(25, 25 - Math.min(25, (totalCreditValue / totalSales) * 50)) : 12;
             const expenseScore = totalSales > 0 ? Math.min(25, 25 - Math.min(25, (totalExpenses / totalSales) * 50)) : 12;
@@ -291,54 +295,44 @@ export default function Reports() {
         setToDate(PRESETS[idx].to);
     };
 
-    const fmtAmt = (n) => `₹${(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
+    const fmtAmt = (n) => `₹${(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
     const fmtWt = (n) => `${(n || 0).toFixed(3)} g`;
 
-    const maxDaily = data ? Math.max(...(data.daily.map(d => d.amount)), 1) : 1;
-    const maxCust = data ? Math.max(...(data.topCustomers.map(c => c.amount)), 1) : 1;
+    const healthTone = data ? (data.healthScore >= 70 ? 'success' : data.healthScore >= 40 ? 'warning' : 'danger') : undefined;
+    const healthLabel = data ? (data.healthScore >= 70 ? 'Healthy' : data.healthScore >= 40 ? 'Needs attention' : 'Critical') : '';
+    const payTotal = data ? (data.paymentBreakdown.cashAmount + data.paymentBreakdown.creditAmount) || 1 : 1;
 
     return (
         <Layout>
-            <div style={{ padding: '20px', maxWidth: 1100, margin: '0 auto' }}>
+            <div style={{ maxWidth: 1200, margin: '0 auto' }}>
                 {/* Header */}
-                <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+                <div className="report-head">
                     <div>
-                        <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700 }}>📊 Reports & Analytics</h1>
-                        <p style={{ margin: '4px 0 0', color: 'var(--color-muted)', fontSize: 13 }}>
-                            {user?.shopName}
-                        </p>
+                        <h1 style={{ fontSize: '1.375rem' }}>Reports</h1>
+                        <div className="stat-sub">{user?.shopName} · {fmt(fromDate)} – {fmt(toDate)}</div>
                     </div>
 
-                    {/* Date Range Controls */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                        {PRESETS.map((p, i) => (
-                            <button
-                                key={i}
-                                onClick={() => applyPreset(i)}
-                                style={{
-                                    padding: '6px 12px',
-                                    borderRadius: 6,
-                                    border: '1px solid var(--border-color)',
-                                    background: preset === i ? 'var(--color-primary)' : 'transparent',
-                                    color: preset === i ? '#fff' : 'var(--color-text)',
-                                    cursor: 'pointer',
-                                    fontSize: 12,
-                                    fontWeight: 500
-                                }}
-                            >{p.label}</button>
-                        ))}
-                        <input type="date" value={fromDate} onChange={e => { setFromDate(e.target.value); setPreset(-1); }}
-                            style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--color-text)', fontSize: 12 }} />
-                        <input type="date" value={toDate} onChange={e => { setToDate(e.target.value); setPreset(-1); }}
-                            style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--color-text)', fontSize: 12 }} />
-                        <button onClick={fetchAll} disabled={loading}
-                            style={{ padding: '6px 14px', borderRadius: 6, border: 'none', background: '#f59e0b', color: '#fff', fontWeight: 600, cursor: 'pointer', fontSize: 12 }}>
-                            {loading ? '...' : 'Apply'}
+                    <div className="report-controls no-print">
+                        <div className="segmented" role="group" aria-label="Date range">
+                            {PRESETS.map((p, i) => (
+                                <button key={p.label} type="button" className={preset === i ? 'active' : ''} aria-pressed={preset === i} onClick={() => applyPreset(i)}>
+                                    {p.label}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="report-dates">
+                            <label className="sr-only" htmlFor="rep-from">From date</label>
+                            <input id="rep-from" type="date" className="input" value={fromDate} onChange={e => { setFromDate(e.target.value); setPreset(-1); }} />
+                            <span className="text-muted" style={{ fontSize: 13 }}>to</span>
+                            <label className="sr-only" htmlFor="rep-to">To date</label>
+                            <input id="rep-to" type="date" className="input" value={toDate} onChange={e => { setToDate(e.target.value); setPreset(-1); }} />
+                        </div>
+                        <button type="button" className="btn btn-primary btn-sm" onClick={fetchAll} disabled={loading}>
+                            {loading ? 'Loading…' : 'Apply'}
                         </button>
                         {!loading && data && (
-                            <button onClick={() => window.print()}
-                                style={{ padding: '6px 14px', borderRadius: 6, border: '1px solid var(--border-color)', background: 'var(--bg-primary)', color: 'var(--color-text)', fontWeight: 500, cursor: 'pointer', fontSize: 12 }}>
-                                🖨️ Print
+                            <button type="button" className="btn btn-secondary btn-sm" onClick={() => window.print()}>
+                                <FiPrinter aria-hidden="true" /> Print
                             </button>
                         )}
                     </div>
@@ -347,307 +341,227 @@ export default function Reports() {
                 {loading && (
                     <div>
                         <SkeletonStat count={6} />
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 28 }}>
-                            <SkeletonCard count={1} />
-                            <SkeletonCard count={1} />
-                        </div>
-                        <SkeletonTable rows={5} columns={6} />
-                        <div style={{ marginTop: 28 }}><SkeletonCard count={1} /></div>
+                        <SkeletonTable rows={5} columns={5} />
+                        <div style={{ marginTop: 16 }}><SkeletonCard count={1} /></div>
                     </div>
                 )}
 
                 {!loading && data && (
                     <>
-                        {/* Summary Cards */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 28 }}>
-                            <StatCard label="Total Sales" value={fmtAmt(data.totalSales)} sub={`${data.saleCount} vouchers`} color="#f59e0b" />
-                            <StatCard label="Gold Sold" value={fmtWt(data.goldSold)} sub="Fine weight" color="#B8860B" />
-                            <StatCard label="Silver Sold" value={fmtWt(data.silverSold)} sub="Fine weight" color="#555" />
-                            <StatCard label="Cash Collected" value={fmtAmt(data.totalCashReceived)} color="#10b981" />
-                            <StatCard label="Total Expenses" value={fmtAmt(data.totalExpenses)} color="#ef4444" />
-                            <StatCard label="Credit Sales" value={fmtAmt(data.totalCreditValue)} sub={`${data.creditVouchers.length} bills`} color="#8b5cf6" />
+                        {/* Key figures */}
+                        <div className="stat-grid" style={{ marginBottom: '1rem' }}>
+                            <StatCard label="Total sales" value={fmtAmt(data.totalSales)} sub={`${data.saleCount} vouchers`} />
+                            <StatCard label="Cash collected" value={fmtAmt(data.totalCashReceived)} />
+                            <StatCard label="Credit sales" value={fmtAmt(data.totalCreditValue)} sub={`${data.creditVouchers.length} bills`} />
+                            <StatCard label="Expenses" value={fmtAmt(data.totalExpenses)} />
+                            <StatCard label="Net profit" value={fmtAmt(data.netProfit)} sub={`Margin ${data.profitMargin.toFixed(1)}%`} tone={data.netProfit >= 0 ? 'success' : 'danger'} />
+                            <StatCard
+                                label="vs previous period"
+                                value={`${data.momChange >= 0 ? '▲' : '▼'} ${Math.abs(data.momChange).toFixed(1)}%`}
+                                sub={`Previous: ${fmtAmt(data.prevSales)}`}
+                                tone={data.momChange >= 0 ? 'success' : 'danger'}
+                            />
+                            <StatCard label="Gold sold (fine)" value={fmtWt(data.goldSold)} />
+                            <StatCard label="Silver sold (fine)" value={fmtWt(data.silverSold)} />
                             {data.totalPurchase > 0 && (
-                                <StatCard label="Purchases (Old Gold)" value={fmtAmt(data.totalPurchase)} sub={`Gold: ${fmtWt(data.goldBought)}`} color="#06b6d4" />
+                                <StatCard label="Purchases" value={fmtAmt(data.totalPurchase)} sub={`Gold bought: ${fmtWt(data.goldBought)}`} />
                             )}
+                            <StatCard label="Health score" value={`${data.healthScore}/100`} sub={healthLabel} tone={healthTone} />
                         </div>
 
-                        {/* Profit & Loss + MoM + Payment Breakdown */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14, marginBottom: 28 }}>
-                            <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: '16px 20px', borderLeft: `4px solid ${data.netProfit >= 0 ? '#10b981' : '#ef4444'}` }}>
-                                <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 4 }}>💰 Net Profit</div>
-                                <div style={{ fontSize: 22, fontWeight: 700, color: data.netProfit >= 0 ? '#10b981' : '#ef4444' }}>{fmtAmt(data.netProfit)}</div>
-                                <div style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 4 }}>Margin: {data.profitMargin.toFixed(1)}%</div>
-                            </div>
-                            <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: '16px 20px', borderLeft: '4px solid #3b82f6' }}>
-                                <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 4 }}>📈 vs Previous Period</div>
-                                <div style={{ fontSize: 22, fontWeight: 700, color: data.momChange >= 0 ? '#10b981' : '#ef4444' }}>
-                                    {data.momChange >= 0 ? '▲' : '▼'} {Math.abs(data.momChange).toFixed(1)}%
-                                </div>
-                                <div style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 4 }}>Prev: {fmtAmt(data.prevSales)}</div>
-                            </div>
-                            <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: '16px 20px', borderLeft: '4px solid #8b5cf6' }}>
-                                <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 8 }}>💳 Payment Split</div>
-                                <div style={{ display: 'flex', height: 22, borderRadius: 4, overflow: 'hidden', marginBottom: 6 }}>
-                                    {data.paymentBreakdown.cashAmount > 0 && <div style={{ width: `${(data.paymentBreakdown.cashAmount / (data.paymentBreakdown.cashAmount + data.paymentBreakdown.creditAmount || 1)) * 100}%`, background: '#10b981', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 9, fontWeight: 700 }}>Cash</div>}
-                                    {data.paymentBreakdown.creditAmount > 0 && <div style={{ width: `${(data.paymentBreakdown.creditAmount / (data.paymentBreakdown.cashAmount + data.paymentBreakdown.creditAmount || 1)) * 100}%`, background: '#8b5cf6', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 9, fontWeight: 700 }}>Credit</div>}
-                                </div>
-                                <div style={{ fontSize: 11, color: 'var(--color-muted)' }}>
-                                    Cash: {fmtAmt(data.paymentBreakdown.cashAmount)} ({data.paymentBreakdown.cashCount}) · Credit: {fmtAmt(data.paymentBreakdown.creditAmount)} ({data.paymentBreakdown.creditCount})
-                                </div>
-                            </div>
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 28 }}>
-                            {/* Top Customers */}
-                            <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 20 }}>
-                                <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600 }}>🏆 Top Customers (by Amount)</h3>
-                                {data.topCustomers.length === 0 && <div style={{ color: 'var(--color-muted)', fontSize: 13 }}>No transactions in range</div>}
-                                {data.topCustomers.map((c, i) => (
-                                    <div key={i} style={{ marginBottom: 12 }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 4 }}>
-                                            <span style={{ fontWeight: 500 }}>{i + 1}. {c.name}</span>
-                                            <span style={{ color: '#f59e0b', fontWeight: 600 }}>{fmtAmt(c.amount)}</span>
-                                        </div>
-                                        <MiniBar value={c.amount} max={maxCust} color="#f59e0b" />
-                                        <div style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 2 }}>{c.count} vouchers</div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Due Customers */}
-                            <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 20 }}>
-                                <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600 }}>⏰ Highest Outstanding Balances</h3>
-                                {data.dueCustomers.length === 0 && <div style={{ color: 'var(--color-muted)', fontSize: 13 }}>No outstanding balances</div>}
-                                {data.dueCustomers.map((l, i) => (
-                                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--border-color)', fontSize: 13 }}>
-                                        <span>{i + 1}. {l.name}</span>
-                                        <span style={{ color: '#ef4444', fontWeight: 600 }}>{fmtAmt(l.balances?.cashBalance)}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Daily Breakdown Table */}
-                        <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 20, marginBottom: 28 }}>
-                            <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600 }}>📅 Daily Sales Breakdown</h3>
-                            {data.daily.length === 0 ? (
-                                <div style={{ color: 'var(--color-muted)', fontSize: 13 }}>No data in selected range</div>
-                            ) : (
-                                <div style={{ overflowX: 'auto' }}>
-                                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                                        <thead>
-                                            <tr style={{ background: 'var(--bg-secondary)' }}>
-                                                {['Date', 'Vouchers', 'Sales Amount', 'Gold (g)', 'Silver (g)', 'Bar'].map(h => (
-                                                    <th key={h} style={{ padding: '10px 12px', textAlign: h === 'Bar' || h === 'Sales Amount' ? 'right' : 'left', fontWeight: 600, borderBottom: '2px solid var(--border-color)' }}>{h}</th>
-                                                ))}
+                        <div className="two-col">
+                            <Section title="Top customers" sub="By sales amount">
+                                {data.topCustomers.length === 0 ? <Empty>No transactions in this period</Empty> : (
+                                    <ReportTable head={['Customer', 'Bills', 'Amount']}>
+                                        {data.topCustomers.map((c, i) => (
+                                            <tr key={i}>
+                                                <td>{c.name}</td>
+                                                <td className="text-right">{c.count}</td>
+                                                <td className="text-right">{fmtAmt(c.amount)}</td>
                                             </tr>
-                                        </thead>
-                                        <tbody>
-                                            {data.daily.map((d, i) => (
-                                                <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                                    <td style={{ padding: '10px 12px' }}>{fmt(d.date)}</td>
-                                                    <td style={{ padding: '10px 12px' }}>{d.count}</td>
-                                                    <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: 600, color: '#f59e0b' }}>{fmtAmt(d.amount)}</td>
-                                                    <td style={{ padding: '10px 12px', color: '#B8860B' }}>{d.gold.toFixed(3)}</td>
-                                                    <td style={{ padding: '10px 12px', color: '#555' }}>{d.silver.toFixed(3)}</td>
-                                                    <td style={{ padding: '10px 12px', textAlign: 'right', minWidth: 100 }}>
-                                                        <MiniBar value={d.amount} max={maxDaily} />
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            )}
+                                        ))}
+                                    </ReportTable>
+                                )}
+                            </Section>
+
+                            <Section title="Highest outstanding balances" sub="Customers who owe the shop">
+                                {data.dueCustomers.length === 0 ? <Empty>No outstanding balances</Empty> : (
+                                    <ReportTable head={['Customer', 'Balance']}>
+                                        {data.dueCustomers.map((l, i) => (
+                                            <tr key={i}>
+                                                <td>{l.name}</td>
+                                                <td className="text-right" style={{ color: 'var(--color-danger)', fontWeight: 600 }}>{fmtAmt(l.balances?.cashBalance)}</td>
+                                            </tr>
+                                        ))}
+                                    </ReportTable>
+                                )}
+                            </Section>
                         </div>
 
-                        {/* Expense Breakdown */}
-                        {Object.keys(data.expCatMap).length > 0 && (
-                            <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 20 }}>
-                                <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600 }}>💸 Expense Breakdown</h3>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 12 }}>
-                                    {Object.entries(data.expCatMap).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => (
-                                        <div key={cat} style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: '12px 14px' }}>
-                                            <div style={{ fontSize: 12, color: 'var(--color-muted)', marginBottom: 4 }}>{cat}</div>
-                                            <div style={{ fontSize: 16, fontWeight: 700, color: '#ef4444' }}>{fmtAmt(amt)}</div>
-                                        </div>
+                        <Section title="Daily sales">
+                            {data.daily.length === 0 ? <Empty>No sales in this period</Empty> : (
+                                <ReportTable head={['Date', 'Vouchers', 'Gold (g)', 'Silver (g)', 'Sales amount']}>
+                                    {data.daily.map((d, i) => (
+                                        <tr key={i}>
+                                            <td>{fmt(d.date)}</td>
+                                            <td className="text-right">{d.count}</td>
+                                            <td className="text-right">{d.gold.toFixed(3)}</td>
+                                            <td className="text-right">{d.silver.toFixed(3)}</td>
+                                            <td className="text-right" style={{ fontWeight: 600 }}>{fmtAmt(d.amount)}</td>
+                                        </tr>
                                     ))}
-                                </div>
-                            </div>
-                        )}
+                                </ReportTable>
+                            )}
+                        </Section>
 
-                        {/* Hourly Sales Heatmap + Customer Loyalty */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginTop: 28, marginBottom: 28 }}>
-                            {/* Hourly Heatmap */}
-                            <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 20 }}>
-                                <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600 }}>📊 Hourly Sales Heatmap</h3>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(12, 1fr)', gap: 4 }}>
+                        <div className="two-col">
+                            <Section title="Payment split">
+                                <div className="split-bar" aria-hidden="true">
+                                    <div style={{ width: `${(data.paymentBreakdown.cashAmount / payTotal) * 100}%`, background: 'var(--color-primary)' }} />
+                                    <div style={{ width: `${(data.paymentBreakdown.creditAmount / payTotal) * 100}%`, background: 'var(--color-primary-light)' }} />
+                                </div>
+                                <ReportTable head={['Mode', 'Bills', 'Amount']}>
+                                    <tr>
+                                        <td><span className="legend-dot" style={{ background: 'var(--color-primary)' }} />Cash</td>
+                                        <td className="text-right">{data.paymentBreakdown.cashCount}</td>
+                                        <td className="text-right">{fmtAmt(data.paymentBreakdown.cashAmount)}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><span className="legend-dot" style={{ background: 'var(--color-primary-light)' }} />Credit</td>
+                                        <td className="text-right">{data.paymentBreakdown.creditCount}</td>
+                                        <td className="text-right">{fmtAmt(data.paymentBreakdown.creditAmount)}</td>
+                                    </tr>
+                                </ReportTable>
+                            </Section>
+
+                            <Section title="Expenses by category">
+                                {Object.keys(data.expCatMap).length === 0 ? <Empty>No expenses in this period</Empty> : (
+                                    <ReportTable head={['Category', 'Share', 'Amount']}>
+                                        {Object.entries(data.expCatMap).sort((a, b) => b[1] - a[1]).map(([cat, amt]) => (
+                                            <tr key={cat}>
+                                                <td>{cat}</td>
+                                                <td className="text-right">{data.totalExpenses ? ((amt / data.totalExpenses) * 100).toFixed(0) : 0}%</td>
+                                                <td className="text-right">{fmtAmt(amt)}</td>
+                                            </tr>
+                                        ))}
+                                    </ReportTable>
+                                )}
+                            </Section>
+                        </div>
+
+                        <div className="two-col">
+                            <Section title="Sales by hour" sub="8 AM – 9 PM · darker means more bills">
+                                <div className="hour-grid">
                                     {data.hourly.filter(h => h.hour >= 8 && h.hour <= 21).map(h => {
                                         const maxH = Math.max(...data.hourly.map(x => x.count), 1);
                                         const intensity = h.count / maxH;
                                         return (
-                                            <div key={h.hour} title={`${h.hour}:00 — ${h.count} sales, ${fmtAmt(h.amount)}`}
+                                            <div key={h.hour} title={`${h.hour}:00 — ${h.count} bills, ${fmtAmt(h.amount)}`}
                                                 style={{
-                                                    textAlign: 'center', padding: '8px 2px', borderRadius: 6, fontSize: 10,
-                                                    background: h.count === 0 ? 'var(--bg-secondary)' : `rgba(245, 158, 11, ${0.15 + intensity * 0.85})`,
-                                                    color: intensity > 0.5 ? '#fff' : 'var(--color-text)', fontWeight: intensity > 0.5 ? 700 : 400,
-                                                    cursor: 'default'
+                                                    background: h.count === 0 ? 'var(--bg-secondary)' : `color-mix(in srgb, var(--color-primary) ${Math.round((0.12 + intensity * 0.88) * 100)}%, var(--bg-primary))`,
+                                                    color: intensity > 0.5 ? 'var(--color-on-primary)' : 'var(--text-secondary)'
                                                 }}>
-                                                <div>{h.hour > 12 ? `${h.hour - 12}P` : h.hour === 12 ? '12P' : `${h.hour}A`}</div>
-                                                <div style={{ fontSize: 9, marginTop: 2 }}>{h.count}</div>
+                                                <div>{h.hour > 12 ? `${h.hour - 12}p` : h.hour === 12 ? '12p' : `${h.hour}a`}</div>
+                                                <div style={{ fontWeight: 600 }}>{h.count}</div>
                                             </div>
                                         );
                                     })}
                                 </div>
-                                <div style={{ marginTop: 10, fontSize: 11, color: 'var(--color-muted)' }}>
-                                    Darker = more sales. Hover for details. (8 AM – 9 PM shown)
-                                </div>
-                            </div>
+                            </Section>
 
-                            {/* Customer Loyalty */}
-                            <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 20 }}>
-                                <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 600 }}>🏅 Loyal Customers</h3>
-                                {data.loyalty.length === 0 ? (
-                                    <div style={{ color: 'var(--color-muted)', fontSize: 13 }}>No repeat customers in this period</div>
-                                ) : (
-                                    data.loyalty.map((c, i) => (
-                                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: '1px solid var(--border-color)', fontSize: 12 }}>
-                                            <span>
-                                                <span style={{ fontWeight: 600 }}>{c.name}</span>
-                                                {c.atRisk && <span style={{ marginLeft: 6, fontSize: 9, background: '#fee2e2', color: '#ef4444', padding: '2px 6px', borderRadius: 4, fontWeight: 700 }}>AT RISK</span>}
-                                            </span>
-                                            <span style={{ display: 'flex', gap: 10, fontSize: 11 }}>
-                                                <span style={{ color: '#f59e0b', fontWeight: 600 }}>{c.visits} visits</span>
-                                                <span style={{ color: 'var(--color-muted)' }}>{fmtAmt(c.totalSpent)}</span>
-                                                <span style={{ color: 'var(--color-muted)' }}>{c.daysSinceVisit}d ago</span>
-                                            </span>
-                                        </div>
-                                    ))
+                            <Section title="Repeat customers">
+                                {data.loyalty.length === 0 ? <Empty>No repeat customers in this period</Empty> : (
+                                    <ReportTable head={['Customer', 'Visits', 'Spent', 'Last visit']}>
+                                        {data.loyalty.map((c, i) => (
+                                            <tr key={i}>
+                                                <td>
+                                                    {c.name}
+                                                    {c.atRisk && <span className="badge badge-danger" style={{ marginLeft: 6 }}>Inactive</span>}
+                                                </td>
+                                                <td className="text-right">{c.visits}</td>
+                                                <td className="text-right">{fmtAmt(c.totalSpent)}</td>
+                                                <td className="text-right">{c.daysSinceVisit}d ago</td>
+                                            </tr>
+                                        ))}
+                                    </ReportTable>
                                 )}
-                            </div>
+                            </Section>
                         </div>
-
-                        {/* AI Health Score */}
-                        <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #eff6ff 100%)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 20, marginBottom: 28, textAlign: 'center' }}>
-                            <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700 }}>⚡ AI Shop Health Score</h3>
-                            <div style={{ position: 'relative', display: 'inline-block', width: 120, height: 120 }}>
-                                <svg viewBox="0 0 120 120" width="120" height="120">
-                                    <circle cx="60" cy="60" r="50" fill="none" stroke="#e5e7eb" strokeWidth="10" />
-                                    <circle cx="60" cy="60" r="50" fill="none"
-                                        stroke={data.healthScore >= 70 ? '#10b981' : data.healthScore >= 40 ? '#f59e0b' : '#ef4444'}
-                                        strokeWidth="10" strokeDasharray={`${(data.healthScore / 100) * 314} 314`}
-                                        strokeLinecap="round" transform="rotate(-90 60 60)" style={{ transition: 'stroke-dasharray 1s ease' }} />
-                                </svg>
-                                <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', fontSize: 28, fontWeight: 800, color: data.healthScore >= 70 ? '#10b981' : data.healthScore >= 40 ? '#f59e0b' : '#ef4444' }}>
-                                    {data.healthScore}
-                                </div>
-                            </div>
-                            <div style={{ marginTop: 8, fontSize: 13, fontWeight: 600, color: data.healthScore >= 70 ? '#065f46' : data.healthScore >= 40 ? '#92400e' : '#991b1b' }}>
-                                {data.healthScore >= 70 ? '🟢 Healthy' : data.healthScore >= 40 ? '🟡 Needs Attention' : '🔴 Critical'}
-                            </div>
-                            <div style={{ fontSize: 11, color: 'var(--color-muted)', marginTop: 4 }}>Based on revenue trend, credit risk, expense ratio & customer diversity</div>
-                        </div>
-
 
                         {data.forecast && (
-                            <div style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 10, padding: 20, marginTop: 28 }}>
-                                <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 700 }}>🤖 AI Demand Forecasting</h3>
-                                <p style={{ margin: '0 0 18px', fontSize: 11, color: 'var(--color-muted)' }}>Based on {data.forecast.totalDays} days of transaction history</p>
-
-                                {/* Revenue Projection */}
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, marginBottom: 20 }}>
-                                    <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: 14, borderLeft: '4px solid #f59e0b' }}>
-                                        <div style={{ fontSize: 11, color: 'var(--color-muted)', marginBottom: 4 }}>Avg Daily Revenue</div>
-                                        <div style={{ fontSize: 18, fontWeight: 700, color: '#f59e0b' }}>{fmtAmt(data.forecast.avgDailyRevenue)}</div>
-                                    </div>
-                                    <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: 14, borderLeft: '4px solid #10b981' }}>
-                                        <div style={{ fontSize: 11, color: 'var(--color-muted)', marginBottom: 4 }}>Projected Next Period</div>
-                                        <div style={{ fontSize: 18, fontWeight: 700, color: '#10b981' }}>{fmtAmt(data.forecast.projectedNextPeriod)}</div>
-                                    </div>
-                                    <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: 14, borderLeft: `4px solid ${data.forecast.growthRate >= 0 ? '#10b981' : '#ef4444'}` }}>
-                                        <div style={{ fontSize: 11, color: 'var(--color-muted)', marginBottom: 4 }}>Revenue Trend</div>
-                                        <div style={{ fontSize: 18, fontWeight: 700, color: data.forecast.growthRate >= 0 ? '#10b981' : '#ef4444' }}>
-                                            {data.forecast.growthRate >= 0 ? '📈' : '📉'} {data.forecast.growthRate.toFixed(1)}%
-                                        </div>
-                                    </div>
-                                    <div style={{ background: 'var(--bg-secondary)', borderRadius: 8, padding: 14, borderLeft: '4px solid #B8860B' }}>
-                                        <div style={{ fontSize: 11, color: 'var(--color-muted)', marginBottom: 4 }}>Avg Daily Gold</div>
-                                        <div style={{ fontSize: 18, fontWeight: 700, color: '#B8860B' }}>{fmtWt(data.forecast.avgDailyGold)}</div>
-                                    </div>
+                            <Section title="Sales trends" sub={`Based on ${data.forecast.totalDays} days of history`}>
+                                <div className="stat-grid" style={{ marginBottom: '1.25rem' }}>
+                                    <StatCard label="Avg daily revenue" value={fmtAmt(data.forecast.avgDailyRevenue)} />
+                                    <StatCard label="Projected next period" value={fmtAmt(data.forecast.projectedNextPeriod)} />
+                                    <StatCard label="Revenue trend" value={`${data.forecast.growthRate >= 0 ? '+' : ''}${data.forecast.growthRate.toFixed(1)}%`} tone={data.forecast.growthRate >= 0 ? 'success' : 'danger'} />
+                                    <StatCard label="Avg daily gold" value={fmtWt(data.forecast.avgDailyGold)} />
                                 </div>
 
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-                                    {/* Best Selling Days */}
+                                <div className="two-col" style={{ gap: '1.5rem' }}>
                                     <div>
-                                        <h4 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>📅 Best Selling Days</h4>
-                                        {data.forecast.dayOfWeek.length === 0 && <div style={{ color: 'var(--color-muted)', fontSize: 12 }}>No data</div>}
-                                        {data.forecast.dayOfWeek.map((d, i) => (
-                                            <div key={d.day} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border-color)', fontSize: 12 }}>
-                                                <span style={{ fontWeight: i < 2 ? 600 : 400 }}>
-                                                    {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}.`} {d.day}
-                                                </span>
-                                                <span style={{ display: 'flex', gap: 12, fontSize: 11 }}>
-                                                    <span style={{ color: '#f59e0b', fontWeight: 600 }}>{fmtAmt(d.amount)}</span>
-                                                    <span style={{ color: 'var(--color-muted)' }}>{d.count} bills</span>
-                                                </span>
-                                            </div>
-                                        ))}
+                                        <h4 className="subsection-title">Best selling days</h4>
+                                        {data.forecast.dayOfWeek.length === 0 ? <Empty>No data</Empty> : (
+                                            <ReportTable head={['Day', 'Bills', 'Amount']}>
+                                                {data.forecast.dayOfWeek.map(d => (
+                                                    <tr key={d.day}>
+                                                        <td>{d.day}</td>
+                                                        <td className="text-right">{d.count}</td>
+                                                        <td className="text-right">{fmtAmt(d.amount)}</td>
+                                                    </tr>
+                                                ))}
+                                            </ReportTable>
+                                        )}
                                     </div>
 
-                                    {/* Metal Demand Split & Top Items */}
                                     <div>
-                                        <h4 style={{ margin: '0 0 12px', fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>⚖️ Metal Demand Split</h4>
-                                        <div style={{ display: 'flex', height: 28, borderRadius: 6, overflow: 'hidden', marginBottom: 8 }}>
-                                            <div style={{ width: `${data.forecast.goldRatio}%`, background: 'linear-gradient(90deg,#B8860B,#DAA520)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10, fontWeight: 700 }}>
-                                                {data.forecast.goldRatio > 10 ? `Gold ${data.forecast.goldRatio.toFixed(0)}%` : ''}
-                                            </div>
-                                            <div style={{ width: `${data.forecast.silverRatio}%`, background: 'linear-gradient(90deg,#6b7280,#9ca3af)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 10, fontWeight: 700 }}>
-                                                {data.forecast.silverRatio > 10 ? `Silver ${data.forecast.silverRatio.toFixed(0)}%` : ''}
-                                            </div>
-                                            {(100 - data.forecast.goldRatio - data.forecast.silverRatio) > 5 && (
-                                                <div style={{ flex: 1, background: '#e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, color: '#666' }}>Other</div>
-                                            )}
+                                        <h4 className="subsection-title">Metal split</h4>
+                                        <div className="split-bar" aria-hidden="true">
+                                            <div style={{ width: `${data.forecast.goldRatio}%`, background: 'var(--metal-gold)' }} />
+                                            <div style={{ width: `${data.forecast.silverRatio}%`, background: 'var(--metal-silver)' }} />
+                                        </div>
+                                        <div className="stat-sub" style={{ marginBottom: '1rem' }}>
+                                            <span className="legend-dot" style={{ background: 'var(--metal-gold)' }} />Gold {data.forecast.goldRatio.toFixed(0)}%
+                                            <span className="legend-dot" style={{ background: 'var(--metal-silver)', marginLeft: 12 }} />Silver {data.forecast.silverRatio.toFixed(0)}%
                                         </div>
 
-                                        <h4 style={{ margin: '16px 0 10px', fontSize: 13, fontWeight: 600, color: 'var(--color-text)' }}>🔥 Top Selling Items</h4>
-                                        {data.forecast.topItems.map((it, i) => (
-                                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: '1px solid var(--border-color)', fontSize: 12 }}>
-                                                <span>
-                                                    <span style={{ color: it.metal === 'gold' ? '#B8860B' : '#6b7280', fontWeight: 600 }}>{it.metal === 'gold' ? '🟡' : '⚪'}</span>
-                                                    {' '}{it.name}
-                                                </span>
-                                                <span style={{ fontSize: 11, color: 'var(--color-muted)' }}>{it.count}× | {fmtWt(it.totalWeight)}</span>
-                                            </div>
-                                        ))}
+                                        <h4 className="subsection-title">Top selling items</h4>
+                                        {data.forecast.topItems.length === 0 ? <Empty>No data</Empty> : (
+                                            <ReportTable head={['Item', 'Sold', 'Weight']}>
+                                                {data.forecast.topItems.map((it, i) => (
+                                                    <tr key={i}>
+                                                        <td><span className="legend-dot" style={{ background: it.metal === 'gold' ? 'var(--metal-gold)' : 'var(--metal-silver)' }} />{it.name}</td>
+                                                        <td className="text-right">{it.count}</td>
+                                                        <td className="text-right">{fmtWt(it.totalWeight)}</td>
+                                                    </tr>
+                                                ))}
+                                            </ReportTable>
+                                        )}
                                     </div>
                                 </div>
 
-                                {/* AI Insights */}
-                                <div style={{ marginTop: 18, padding: 14, background: 'linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%)', borderRadius: 8, border: '1px dashed #93c5fd' }}>
-                                    <h4 style={{ margin: '0 0 8px', fontSize: 13, fontWeight: 700, color: '#1e3a8a' }}>💡 AI Insights</h4>
-                                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: '#334155', lineHeight: 1.8 }}>
-                                        {data.forecast.dayOfWeek.length > 0 && (
-                                            <li><b>{data.forecast.dayOfWeek[0].day}</b> is your busiest day — consider stocking more inventory and keeping staff ready.</li>
-                                        )}
-                                        {data.forecast.growthRate > 5 && (
-                                            <li>📈 Sales are <b>growing {data.forecast.growthRate.toFixed(0)}%</b> — great momentum! Plan for increased stock requirements.</li>
-                                        )}
-                                        {data.forecast.growthRate < -5 && (
-                                            <li>📉 Sales <b>declined {Math.abs(data.forecast.growthRate).toFixed(0)}%</b> — consider promotions or reaching out to repeat customers.</li>
-                                        )}
-                                        {data.forecast.goldRatio > 70 && (
-                                            <li>🟡 <b>{data.forecast.goldRatio.toFixed(0)}%</b> of revenue is from gold — ensure gold stock is always replenished.</li>
-                                        )}
-                                        {data.forecast.silverRatio > 40 && (
-                                            <li>⚪ Silver accounts for <b>{data.forecast.silverRatio.toFixed(0)}%</b> of sales — a strong silver market, keep diverse silver inventory.</li>
-                                        )}
-                                        {data.forecast.topItems.length > 0 && (
-                                            <li>🔥 <b>{data.forecast.topItems[0].name}</b> is your best-seller ({data.forecast.topItems[0].count} sold) — ensure this item type is always in stock.</li>
-                                        )}
-                                        <li>💰 At current pace, expect <b>{fmtAmt(data.forecast.avgDailyRevenue * 30)}</b> in revenue over the next 30 days.</li>
-                                    </ul>
-                                </div>
-                            </div>
+                                <h4 className="subsection-title" style={{ marginTop: '1.25rem' }}>Observations</h4>
+                                <ul className="report-notes">
+                                    {data.forecast.dayOfWeek.length > 0 && (
+                                        <li><b>{data.forecast.dayOfWeek[0].day}</b> is the busiest day.</li>
+                                    )}
+                                    {data.forecast.growthRate > 5 && (
+                                        <li>Sales are up <b>{data.forecast.growthRate.toFixed(0)}%</b> on the previous period.</li>
+                                    )}
+                                    {data.forecast.growthRate < -5 && (
+                                        <li>Sales are down <b>{Math.abs(data.forecast.growthRate).toFixed(0)}%</b> on the previous period.</li>
+                                    )}
+                                    {data.forecast.goldRatio > 70 && (
+                                        <li>Gold makes up <b>{data.forecast.goldRatio.toFixed(0)}%</b> of revenue.</li>
+                                    )}
+                                    {data.forecast.silverRatio > 40 && (
+                                        <li>Silver makes up <b>{data.forecast.silverRatio.toFixed(0)}%</b> of sales.</li>
+                                    )}
+                                    {data.forecast.topItems.length > 0 && (
+                                        <li>Best-selling item: <b>{data.forecast.topItems[0].name}</b> ({data.forecast.topItems[0].count} sold).</li>
+                                    )}
+                                    <li>At the current pace, the next 30 days come to about <b>{fmtAmt(data.forecast.avgDailyRevenue * 30)}</b>.</li>
+                                </ul>
+                            </Section>
                         )}
                     </>
                 )}

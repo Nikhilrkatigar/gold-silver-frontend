@@ -201,7 +201,7 @@ export default function AccountInfo() {
       <div style={{ maxWidth: '800px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
           <h1 style={{ margin: 0 }}>Account Information</h1>
-          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>v3.5</span>
+          <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>v4.1</span>
         </div>
 
         <div className="card" style={{ marginBottom: '1.5rem' }}>
@@ -307,7 +307,7 @@ export default function AccountInfo() {
         {user?.gstEnabled && (
           <div className="card" style={{ marginBottom: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h3 style={{ margin: 0 }}>GST Settings ✅</h3>
+              <h3 style={{ margin: 0 }}>GST Settings </h3>
               {!editingGST && user?.gstSettings?.gstEditPermission !== 'admin' && (
                 <button
                   onClick={() => setEditingGST(true)}
@@ -392,7 +392,7 @@ export default function AccountInfo() {
                           padding: '0.75rem',
                           borderRadius: '4px',
                           border: gstFormData.defaultGSTRate === rate ? '2px solid var(--color-primary)' : '1px solid var(--border-color)',
-                          backgroundColor: gstFormData.defaultGSTRate === rate ? 'rgba(245, 158, 11, 0.1)' : 'transparent',
+                          backgroundColor: gstFormData.defaultGSTRate === rate ? 'var(--accent-soft)' : 'transparent',
                           color: 'var(--color-text)',
                           cursor: 'pointer',
                           fontWeight: gstFormData.defaultGSTRate === rate ? 600 : 400,
@@ -451,9 +451,9 @@ export default function AccountInfo() {
         )}
 
         {!user?.gstEnabled && (
-          <div className="card" style={{ marginBottom: '1.5rem', padding: '2rem', backgroundColor: 'rgba(102, 126, 234, 0.05)', border: '2px solid #667eea', borderRadius: '8px' }}>
+          <div className="card" style={{ marginBottom: '1.5rem', padding: '2rem', backgroundColor: 'var(--bg-secondary)', border: '2px solid var(--color-primary)', borderRadius: '8px' }}>
             <div style={{ textAlign: 'center' }}>
-              <h3 style={{ margin: '0 0 1rem 0', color: '#667eea' }}>📋 GST Feature</h3>
+              <h3 style={{ margin: '0 0 1rem 0', color: 'var(--text-primary)' }}>GST Feature</h3>
               <div style={{ fontSize: '1rem', fontWeight: 500, marginBottom: '0.5rem', color: 'var(--color-text)' }}>
                 GST is available for implementation
               </div>
@@ -488,7 +488,7 @@ export default function AccountInfo() {
                     padding: '1rem',
                     border: `2px solid ${isActive ? 'var(--color-primary)' : 'var(--border-color)'}`,
                     borderRadius: '8px',
-                    background: isActive ? 'rgba(245, 158, 11, 0.1)' : 'transparent',
+                    background: isActive ? 'var(--accent-soft)' : 'transparent',
                     color: 'var(--color-text)',
                     cursor: 'pointer',
                     transition: 'all 0.2s',
@@ -591,7 +591,7 @@ export default function AccountInfo() {
                   padding: '1.5rem',
                   border: `2px solid ${labourChargeType === 'full' ? 'var(--color-primary)' : 'var(--border-color)'}`,
                   borderRadius: '8px',
-                  background: labourChargeType === 'full' ? 'rgba(245, 158, 11, 0.1)' : 'transparent',
+                  background: labourChargeType === 'full' ? 'var(--accent-soft)' : 'transparent',
                   color: 'var(--color-text)',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
@@ -612,7 +612,7 @@ export default function AccountInfo() {
                   padding: '1.5rem',
                   border: `2px solid ${labourChargeType === 'per-gram' ? 'var(--color-primary)' : 'var(--border-color)'}`,
                   borderRadius: '8px',
-                  background: labourChargeType === 'per-gram' ? 'rgba(245, 158, 11, 0.1)' : 'transparent',
+                  background: labourChargeType === 'per-gram' ? 'var(--accent-soft)' : 'transparent',
                   color: 'var(--color-text)',
                   cursor: 'pointer',
                   transition: 'all 0.2s',
@@ -631,8 +631,8 @@ export default function AccountInfo() {
           </div>
           <div style={{
             padding: '1rem',
-            backgroundColor: 'rgba(102, 126, 234, 0.05)',
-            borderLeft: '4px solid #667eea',
+            backgroundColor: 'var(--bg-secondary)',
+            borderLeft: '4px solid var(--color-primary)',
             borderRadius: '4px'
           }}>
             <p style={{ margin: '0', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
@@ -643,9 +643,9 @@ export default function AccountInfo() {
 
         <div className="card" style={{ marginBottom: '1.5rem', textAlign: 'center', padding: '1.5rem', backgroundColor: 'var(--bg-secondary)', borderTop: '2px solid var(--color-primary)' }}>
           <p style={{ margin: '0.5rem 0', fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Built and Developed by</p>
-          <h4 style={{ margin: '0.5rem 0', fontWeight: 600 }}>Katigar Softwares</h4>
+          <h4 style={{ margin: '0.5rem 0', fontWeight: 600 }}>Shakti Softwares</h4>
           <a href="tel:8904286980" style={{ color: 'var(--color-primary)', textDecoration: 'none', fontSize: '0.875rem', fontWeight: 500 }}>
-            📞 8904286980
+            8904286980
           </a>
         </div>
 

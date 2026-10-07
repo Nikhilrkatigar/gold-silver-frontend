@@ -82,7 +82,7 @@ const VoucherTemplate = ({ formData, items, ledgers, user, voucherData }) => {
         <p style={{ margin: '5px 0', fontSize: '16px' }}>SALE RECEIPT</p>
         {formData.invoiceType === 'gst' && (
           <div style={{ margin: '10px 0', padding: '5px 10px', backgroundColor: '#e8f5e9', border: '2px solid #4caf50', borderRadius: '4px', display: 'inline-block', fontSize: '14px', fontWeight: 'bold', color: '#2e7d32' }}>
-            📄 GST INVOICE
+            GST INVOICE
           </div>
         )}
       </div>
@@ -121,7 +121,7 @@ const VoucherTemplate = ({ formData, items, ledgers, user, voucherData }) => {
             <tr key={index}>
               <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center' }}>{index + 1}</td>
               <td style={{ border: '1px solid #000', padding: '5px' }}>{item.itemName}</td>
-              <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center', color: item.metalType === 'gold' ? '#FFD700' : '#C0C0C0', fontWeight: 'bold' }}>{item.metalType === 'gold' ? 'GOLD' : 'SILVER'}</td>
+              <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center', color: item.metalType === 'gold' ? 'var(--metal-gold)' : 'var(--metal-silver)', fontWeight: 'bold' }}>{item.metalType === 'gold' ? 'GOLD' : 'SILVER'}</td>
               <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'center' }}>{item.pieces}</td>
               <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right' }}>{parseFloat(item.grossWeight).toFixed(3)}</td>
               <td style={{ border: '1px solid #000', padding: '5px', textAlign: 'right' }}>{parseFloat(item.lessWeight).toFixed(3)}</td>
@@ -248,7 +248,7 @@ const VoucherTemplate = ({ formData, items, ledgers, user, voucherData }) => {
           {parseFloat(formData.roundOff || 0) !== 0 && (
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
               <div>Round Off</div>
-              <div style={{ color: parseFloat(formData.roundOff) > 0 ? '#27ae60' : '#e74c3c' }}>₹{parseFloat(formData.roundOff || 0).toFixed(2)}</div>
+              <div style={{ color: parseFloat(formData.roundOff) > 0 ? 'var(--color-success)' : 'var(--color-danger)' }}>₹{parseFloat(formData.roundOff || 0).toFixed(2)}</div>
             </div>
           )}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px', fontWeight: 'bold' }}>
@@ -268,7 +268,7 @@ const VoucherTemplate = ({ formData, items, ledgers, user, voucherData }) => {
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
                 <div>Old Bal Gold Fine Wt</div>
                 {/* Dark gold — visible on white paper (#FFD700 is invisible) */}
-                <div style={{ color: '#B8860B', fontWeight: 'bold' }}>{oldBalanceGold?.toFixed(3) || '0.000'} g</div>
+                <div style={{ color: 'var(--metal-gold)', fontWeight: 'bold' }}>{oldBalanceGold?.toFixed(3) || '0.000'} g</div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
                 <div>Old Bal Silver Fine Wt</div>
@@ -286,7 +286,7 @@ const VoucherTemplate = ({ formData, items, ledgers, user, voucherData }) => {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
                 <div>Cur Bal Gold Fine Wt</div>
-                <div style={{ color: '#B8860B', fontWeight: 'bold' }}>{curBalanceGold?.toFixed(3) || '0.000'} g</div>
+                <div style={{ color: 'var(--metal-gold)', fontWeight: 'bold' }}>{curBalanceGold?.toFixed(3) || '0.000'} g</div>
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px', fontSize: '12px' }}>
                 <div>Cur Bal Silver Fine Wt</div>
@@ -1583,7 +1583,7 @@ export default function Billing() {
                 <div>
                   <p>PDF downloaded! Share it via:</p>
                   <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" style={{ marginRight: '10px', color: '#25D366', textDecoration: 'none', fontWeight: 'bold' }}>
-                    📱 WhatsApp
+                    WhatsApp
                   </a>
                 </div>,
                 { autoClose: 5000 }
@@ -1620,9 +1620,9 @@ export default function Billing() {
   return (
     <Layout>
       <PullToRefresh onRefresh={handleRefresh}>
-        <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '15px' }} className="fade-in">
-            <h1 style={{ color: 'var(--color-primary)', marginBottom: 0, margin: 0 }}>{editingVoucherId ? '✏️ Edit Voucher' : '📋 Create Voucher'}</h1>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '15px' }} className="fade-in">
+            <h1 style={{ color: 'var(--text-primary)', marginBottom: 0, margin: 0 }}>{editingVoucherId ? 'Edit Voucher' : 'Create Voucher'}</h1>
 
             {/* GST Billing Mode Selector & Refresh Button */}
             <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -1631,20 +1631,8 @@ export default function Billing() {
                 type="button"
                 onClick={handleRefresh}
                 disabled={isLoading}
-                style={{
-                  padding: '8px 12px',
-                  backgroundColor: isLoading ? '#95a5a6' : 'var(--color-primary)',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: isLoading ? 'not-allowed' : 'pointer',
-                  fontWeight: 'bold',
-                  fontSize: '14px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  transition: 'all 0.3s'
-                }}
+                className="btn btn-secondary btn-icon"
+                aria-label="Refresh"
                 title="Refresh data (or pull down to refresh)"
               >
                 <FiRefreshCw style={{ animation: isLoading ? 'spin 1s linear infinite' : 'none' }} />
@@ -1665,7 +1653,7 @@ export default function Billing() {
                     style={{
                       padding: '8px 16px',
                       backgroundColor: editingVoucherId || !editingVoucherId ? 'var(--color-primary)' : 'transparent',
-                      color: editingVoucherId || !editingVoucherId ? '#fff' : 'var(--color-text)',
+                      color: 'var(--color-on-primary)',
                       border: 'none',
                       borderRadius: '4px',
                       cursor: 'pointer',
@@ -1680,8 +1668,8 @@ export default function Billing() {
                     onClick={() => window.location.href = '/gst-billing'}
                     style={{
                       padding: '8px 16px',
-                      backgroundColor: '#27ae60',
-                      color: '#fff',
+                      backgroundColor: 'transparent',
+                      color: 'var(--color-text)',
                       border: 'none',
                       borderRadius: '4px',
                       cursor: 'pointer',
@@ -1690,7 +1678,7 @@ export default function Billing() {
                       transition: 'all 0.3s'
                     }}
                   >
-                    📄 GST Billing
+                    GST Billing
                   </button>
                 </div>
               )}
@@ -1707,9 +1695,9 @@ export default function Billing() {
 
           {/* Customer Selection */}
           {!isLoading && (
-            <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }} className="fade-in">
+            <div className="card fade-in" style={{ marginBottom: '1rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', flexWrap: 'wrap', gap: '10px' }}>
-                <h3 style={{ marginTop: 0, marginBottom: 0 }}>Select Customer</h3>
+                <h3 className="section-title" style={{ marginBottom: 0 }}>Customer</h3>
                 <button
                   type="button"
                   onClick={() => {
@@ -1752,20 +1740,11 @@ export default function Billing() {
                     setShowCustomerDropdown(true);
                   }}
                   onFocus={() => setShowCustomerDropdown(true)}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: '4px',
-                    border: formErrors.ledgerId ? '2px solid #e74c3c' : '1px solid var(--border-color)',
-                    backgroundColor: 'var(--bg-primary)',
-                    color: 'var(--color-text)',
-                    boxSizing: 'border-box',
-                    fontSize: '13px',
-                    outline: formErrors.ledgerId ? 'none' : undefined
-                  }}
+                  className="input"
+                  style={formErrors.ledgerId ? { borderColor: 'var(--color-danger)' } : undefined}
                 />
                 {formErrors.ledgerId && (
-                  <div style={{ color: '#e74c3c', fontSize: '11px', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <div style={{ color: 'var(--color-danger)', fontSize: '11px', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <span>⚠</span> {formErrors.ledgerId}
                   </div>
                 )}
@@ -1825,181 +1804,147 @@ export default function Billing() {
           {/* Voucher Details */}
           {!isLoading && (
             <form onSubmit={handleSubmit} style={{ marginBottom: '30px' }} className="fade-in">
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px', marginBottom: '20px' }}>
+              <div className="card" style={{ marginBottom: '1rem' }}>
+              <h3 className="section-title">Voucher</h3>
+              <div className="form-grid">
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Voucher Number</label>
+                  <label className="input-label">Voucher Number</label>
                   <input
                     type="text"
                     required
                     value={formData.voucherNumber}
                     onChange={(e) => setFormData(prev => ({ ...prev, voucherNumber: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-primary)',
-                      color: 'var(--color-text)',
-                      boxSizing: 'border-box',
-                      fontSize: '13px'
-                    }}
+                    className="input"
                   />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Date</label>
+                  <label className="input-label">Date</label>
                   <input
                     type="date"
                     required
                     value={formData.date}
                     onChange={(e) => setFormData(prev => ({ ...prev, date: e.target.value }))}
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-primary)',
-                      color: 'var(--color-text)',
-                      boxSizing: 'border-box',
-                      fontSize: '13px'
-                    }}
+                    className="input"
                   />
                 </div>
 
+                <div className="span-2">
+                  <div>
+                    <label className="input-label">Payment Type</label>
+                    <select
+                      className="input"
+                      value={formData.paymentType}
+                      onChange={(e) => {
+                        setFormData({ ...formData, paymentType: e.target.value });
+                        setItems([]);
+                      }}
+                    >
+                      <optgroup label="Billing">
+                        <option value="cash">Cash Bill (No Balance)</option>
+                        <option value="credit">Credit Bill (Tracks Balance)</option>
+                      </optgroup>
+                      <optgroup label="Settlement">
+                        <option value="add_cash">Add Cash to Balance</option>
+                        <option value="add_gold">Add Gold Fine Weight</option>
+                        <option value="add_silver">Add Silver Fine Weight</option>
+                        <option value="money_to_gold">Money to Gold Fine</option>
+                        <option value="money_to_silver">Money to Silver Fine</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                  <small className="field-hint">
+                    {FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType)
+                      ? 'Settlement: use item table to calculate fine weight'
+                      : (SETTLEMENT_PAYMENT_TYPES.includes(formData.paymentType) ? 'Settlement: Enter amount to adjust balance' : (formData.paymentType === 'credit' ? 'On Balance' : 'Immediate'))}
+                  </small>
+                </div>
+              </div>
+              </div>
+
+              <div className="card" style={{ marginBottom: '1rem' }}>
+              <h3 className="section-title">Rates &amp; Amounts</h3>
+              <div className="form-grid">
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Gold Rate (₹/g)</label>
+                  <label className="input-label">Gold Rate (₹/g)</label>
                   <input
                     type="number"
                     step="0.01"
                     value={formData.goldRate}
                     onChange={(e) => setFormData(prev => ({ ...prev, goldRate: e.target.value }))}
                     placeholder="0"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-primary)',
-                      color: 'var(--color-text)',
-                      boxSizing: 'border-box',
-                      fontSize: '13px'
-                    }}
+                    className="input"
                   />
-                  <small style={{ display: 'block', marginTop: '2px', color: 'var(--color-muted)', fontSize: '10px' }}>
-                    (negative allowed)
+                  <small className="field-hint">
+                    Negative allowed
                   </small>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Silver Rate (₹/g)</label>
+                  <label className="input-label">Silver Rate (₹/g)</label>
                   <input
                     type="number"
                     step="0.01"
                     value={formData.silverRate}
                     onChange={(e) => setFormData(prev => ({ ...prev, silverRate: e.target.value }))}
                     placeholder="0"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-primary)',
-                      color: 'var(--color-text)',
-                      boxSizing: 'border-box',
-                      fontSize: '13px'
-                    }}
+                    className="input"
                   />
-                  <small style={{ display: 'block', marginTop: '2px', color: 'var(--color-muted)', fontSize: '10px' }}>
-                    (negative allowed)
+                  <small className="field-hint">
+                    Negative allowed
                   </small>
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Stone Amount (₹)</label>
+                  <label className="input-label">Stone Amount (₹)</label>
                   <input
                     type="number"
                     step="0.01"
                     value={formData.stoneAmount}
                     onChange={(e) => setFormData(prev => ({ ...prev, stoneAmount: e.target.value }))}
                     placeholder="0.00"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-primary)',
-                      color: 'var(--color-text)',
-                      boxSizing: 'border-box',
-                      fontSize: '13px'
-                    }}
+                    className="input"
                   />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Fine Amount (₹)</label>
+                  <label className="input-label">Fine Amount (₹)</label>
                   <input
                     type="number"
                     step="0.01"
                     value={formData.fineAmount}
                     onChange={(e) => setFormData(prev => ({ ...prev, fineAmount: e.target.value }))}
                     placeholder="0.00"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-primary)',
-                      color: 'var(--color-text)',
-                      boxSizing: 'border-box',
-                      fontSize: '13px'
-                    }}
+                    className="input"
                   />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Issue Gross (g)</label>
+                  <label className="input-label">Issue Gross (g)</label>
                   <input
                     type="number"
                     step="0.001"
                     value={formData.issueGross}
                     onChange={(e) => setFormData(prev => ({ ...prev, issueGross: e.target.value }))}
                     placeholder="0.000"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-primary)',
-                      color: 'var(--color-text)',
-                      boxSizing: 'border-box',
-                      fontSize: '13px'
-                    }}
+                    className="input"
                   />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Receipt Gross (g)</label>
+                  <label className="input-label">Receipt Gross (g)</label>
                   <input
                     type="number"
                     step="0.001"
                     value={formData.receiptGross}
                     onChange={(e) => setFormData(prev => ({ ...prev, receiptGross: e.target.value }))}
                     placeholder="0.000"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-primary)',
-                      color: 'var(--color-text)',
-                      boxSizing: 'border-box',
-                      fontSize: '13px'
-                    }}
+                    className="input"
                   />
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Cash Received (₹)</label>
+                  <label className="input-label">Cash Received (₹)</label>
                   <input
                     type="number"
                     step="0.01"
@@ -2011,83 +1956,38 @@ export default function Billing() {
                     }}
                     placeholder={FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType) ? '0.000' : '0.00'}
                     readOnly={FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType)}
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      borderRadius: '4px',
-                      border: formErrors.cashReceived ? '2px solid #ef4444' : '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-primary)',
-                      color: 'var(--color-text)',
-                      boxSizing: 'border-box',
-                      fontSize: '13px'
-                    }}
+                    className="input"
+                    style={formErrors.cashReceived ? { borderColor: 'var(--color-danger)' } : undefined}
                   />
                   {formErrors.cashReceived && (
-                    <small style={{ display: 'block', marginTop: '4px', color: '#ef4444', fontSize: '11px' }}>
+                    <small className="field-hint" style={{ color: 'var(--color-danger)' }}>
                       {formErrors.cashReceived}
                     </small>
                   )}
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Round Off (₹)</label>
+                  <label className="input-label">Round Off (₹)</label>
                   <input
                     type="number"
                     step="0.01"
                     value={formData.roundOff}
                     onChange={(e) => setFormData(prev => ({ ...prev, roundOff: e.target.value }))}
                     placeholder="0.00"
-                    style={{
-                      width: '100%',
-                      padding: '8px',
-                      borderRadius: '4px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-primary)',
-                      color: 'var(--color-text)',
-                      boxSizing: 'border-box',
-                      fontSize: '13px'
-                    }}
+                    className="input"
                   />
-                  <small style={{ display: 'block', marginTop: '2px', color: 'var(--color-muted)', fontSize: '10px' }}>
-                    (adjustment for final amount - positive or negative)
+                  <small className="field-hint">
+                    ± adjustment to final amount
                   </small>
                 </div>
 
-                <div>
-                  <div className="input-group">
-                    <label className="input-label">Payment Type</label>
-                    <select
-                      className="input"
-                      value={formData.paymentType}
-                      onChange={(e) => {
-                        setFormData({ ...formData, paymentType: e.target.value });
-                        setItems([]);
-                      }}
-                    >
-                      <optgroup label="Billing">
-                        <option value="cash">💵 Cash Bill (No Balance)</option>
-                        <option value="credit">💳 Credit Bill (Tracks Balance)</option>
-                      </optgroup>
-                      <optgroup label="Settlement">
-                        <option value="add_cash">💰 Add Cash to Balance</option>
-                        <option value="add_gold">🟡 Add Gold Fine Weight</option>
-                        <option value="add_silver">⚪ Add Silver Fine Weight</option>
-                        <option value="money_to_gold">💵➔🟡 Money to Gold Fine</option>
-                        <option value="money_to_silver">💵➔⚪ Money to Silver Fine</option>
-                      </optgroup>
-                    </select>
-                  </div><small style={{ display: 'block', marginTop: '2px', color: 'var(--color-muted)', fontSize: '10px' }}>
-                    {FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType)
-                      ? 'Settlement: use item table to calculate fine weight'
-                      : (SETTLEMENT_PAYMENT_TYPES.includes(formData.paymentType) ? 'Settlement: Enter amount to adjust balance' : (formData.paymentType === 'credit' ? 'On Balance' : 'Immediate'))}
-                  </small>
-                </div>
+              </div>
               </div>
 
               {/* Items Section - Cash/credit plus gold/silver fine settlement modes */}
               {(!SETTLEMENT_PAYMENT_TYPES.includes(formData.paymentType) || FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType)) && (
-                <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
-                  <h3>{FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType) ? 'Fine Weight Entries' : 'Items'}</h3>
+                <div className="card" style={{ marginBottom: '1rem' }}>
+                  <h3 className="section-title">{FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType) ? 'Fine Weight Entries' : 'Items'}</h3>
 
                   {/* Item Scanner for Item Mode */}
                   {user?.stockMode === 'item' && !FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType) && (
@@ -2097,31 +1997,15 @@ export default function Billing() {
                     />
                   )}
 
-                  <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
+                  <div style={{ marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                     {formData.paymentType !== 'add_silver' && (
-                      <button type="button" onClick={() => addRow('gold')} style={{
-                        padding: '10px 15px',
-                        backgroundColor: '#FFD700',
-                        color: '#000',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontWeight: 'bold'
-                      }}>
-                        <FiPlus /> Add Gold Item
+                      <button type="button" onClick={() => addRow('gold')} className="btn btn-secondary">
+                        <FiPlus style={{ color: 'var(--metal-gold)' }} /> Add Gold Item
                       </button>
                     )}
                     {formData.paymentType !== 'add_gold' && (
-                      <button type="button" onClick={() => addRow('silver')} style={{
-                        padding: '10px 15px',
-                        backgroundColor: '#C0C0C0',
-                        color: '#000',
-                        border: 'none',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontWeight: 'bold'
-                      }}>
-                        <FiPlus /> Add Silver Item
+                      <button type="button" onClick={() => addRow('silver')} className="btn btn-secondary">
+                        <FiPlus style={{ color: 'var(--metal-silver)' }} /> Add Silver Item
                       </button>
                     )}
                   </div>
@@ -2133,7 +2017,7 @@ export default function Billing() {
                       fontSize: '14px'
                     }}>
                       <thead>
-                        <tr style={{ backgroundColor: 'var(--bg-primary)', borderBottom: '2px solid var(--border-color)' }}>
+                        <tr style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
                           <th style={{ padding: '10px', textAlign: 'left', borderRight: '1px solid var(--border-color)' }}>Item Name *</th>
                           <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Metal</th>
                           <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Pcs</th>
@@ -2170,7 +2054,7 @@ export default function Billing() {
                               <span style={{
                                 padding: '5px 10px',
                                 borderRadius: '4px',
-                                backgroundColor: item.metalType === 'gold' ? '#FFD700' : '#C0C0C0',
+                                backgroundColor: item.metalType === 'gold' ? 'var(--metal-gold)' : 'var(--metal-silver)',
                                 color: '#000',
                                 fontWeight: 'bold'
                               }}>{item.metalType === 'gold' ? 'GOLD' : 'SILVER'}</span>
@@ -2363,17 +2247,17 @@ export default function Billing() {
               {/* Direct settlement section - gold/silver fine modes use the item table above */}
               {DIRECT_SETTLEMENT_PAYMENT_TYPES.includes(formData.paymentType) && (
                 <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', border: '2px solid var(--color-primary)' }}>
-                  <h3 style={{ marginTop: 0, color: 'var(--color-primary)' }}>
-                    {formData.paymentType === 'add_cash' && '💰 Add Cash to Balance'}
-                    {formData.paymentType === 'add_gold' && '🟡 Add Gold Fine Weight'}
-                    {formData.paymentType === 'add_silver' && '⚪ Add Silver Fine Weight'}
-                    {formData.paymentType === 'money_to_gold' && '💵➔🟡 Money to Gold Fine'}
-                    {formData.paymentType === 'money_to_silver' && '💵➔⚪ Money to Silver Fine'}
+                  <h3 style={{ marginTop: 0, color: 'var(--text-primary)' }}>
+                    {formData.paymentType === 'add_cash' && 'Add Cash to Balance'}
+                    {formData.paymentType === 'add_gold' && 'Add Gold Fine Weight'}
+                    {formData.paymentType === 'add_silver' && 'Add Silver Fine Weight'}
+                    {formData.paymentType === 'money_to_gold' && 'Money to Gold Fine'}
+                    {formData.paymentType === 'money_to_silver' && 'Money to Silver Fine'}
                   </h3>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
                     {formData.paymentType === 'add_cash' && (
                       <div>
-                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Amount to Add (₹)</label>
+                        <label className="input-label">Amount to Add (₹)</label>
                         <input
                           type="number"
                           step="0.01"
@@ -2391,14 +2275,14 @@ export default function Billing() {
                             fontSize: '14px'
                           }}
                         />
-                        <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
+                        <small className="field-hint">
                           Positive value: subtract from balance | Negative value: add to balance (allowed)
                         </small>
                       </div>
                     )}
                     {formData.paymentType === 'add_gold' && (
                       <div>
-                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Gold Fine Weight to Add (g)</label>
+                        <label className="input-label">Gold Fine Weight to Add (g)</label>
                         <input
                           type="number"
                           step="0.001"
@@ -2416,14 +2300,14 @@ export default function Billing() {
                             fontSize: '14px'
                           }}
                         />
-                        <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
+                        <small className="field-hint">
                           This weight will be added to customer's gold balance
                         </small>
                       </div>
                     )}
                     {formData.paymentType === 'add_silver' && (
                       <div>
-                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Silver Fine Weight to Add (g)</label>
+                        <label className="input-label">Silver Fine Weight to Add (g)</label>
                         <input
                           type="number"
                           step="0.001"
@@ -2441,14 +2325,14 @@ export default function Billing() {
                             fontSize: '14px'
                           }}
                         />
-                        <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
+                        <small className="field-hint">
                           This weight will be added to customer's silver balance
                         </small>
                       </div>
                     )}
                     {formData.paymentType === 'money_to_gold' && (
                       <div>
-                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Cash Payment (₹)</label>
+                        <label className="input-label">Cash Payment (₹)</label>
                         <input
                           type="number"
                           step="0.01"
@@ -2466,14 +2350,14 @@ export default function Billing() {
                             fontSize: '14px'
                           }}
                         />
-                        <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
+                        <small className="field-hint">
                           Customer pays to settle gold fine dues at ₹{parseFloat(formData.goldRate || 0).toFixed(2)}/g rate
                         </small>
                       </div>
                     )}
                     {formData.paymentType === 'money_to_silver' && (
                       <div>
-                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Cash Payment (₹)</label>
+                        <label className="input-label">Cash Payment (₹)</label>
                         <input
                           type="number"
                           step="0.01"
@@ -2491,14 +2375,14 @@ export default function Billing() {
                             fontSize: '14px'
                           }}
                         />
-                        <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
+                        <small className="field-hint">
                           Customer pays to settle silver fine dues at ₹{parseFloat(formData.silverRate || 0).toFixed(2)}/g rate
                         </small>
                       </div>
                     )}
                     {(formData.paymentType === 'money_to_gold' || formData.paymentType === 'money_to_silver') && (
                       <div>
-                        <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Calculated Fine Weight</label>
+                        <label className="input-label">Calculated Fine Weight</label>
                         <div style={{
                           padding: '10px',
                           borderRadius: '4px',
@@ -2519,7 +2403,7 @@ export default function Billing() {
                       </div>
                     )}
                     <div>
-                      <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>Current Balance</label>
+                      <label className="input-label">Current Balance</label>
                       <div style={{
                         padding: '10px',
                         borderRadius: '4px',
@@ -2540,7 +2424,7 @@ export default function Billing() {
                       </div>
                     </div>
                     <div>
-                      <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold', fontSize: '13px' }}>New Balance</label>
+                      <label className="input-label">New Balance</label>
                       <div style={{
                         padding: '10px',
                         borderRadius: '4px',
@@ -2566,10 +2450,10 @@ export default function Billing() {
 
               {/* Balance Summary Section - Now after Items, before Narration - Only for billing and fine weight settlement types */}
               {!['add_cash'].includes(formData.paymentType) && (
-                <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px' }}>
-                  <h3 style={{ marginTop: 0 }}>Balance Summary</h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', fontSize: '14px' }}>
-                    <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
+                <div className="card" style={{ marginBottom: '1rem' }}>
+                  <h3 className="section-title">Balance Summary</h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', fontSize: '14px' }}>
+                    <div style={{ padding: '0.875rem 1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius)', border: '1px solid var(--border-color)' }}>
                       <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Net Balance</div>
                       <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--color-primary)' }}>
                         ₹{(
@@ -2582,7 +2466,7 @@ export default function Billing() {
                       <div style={{ fontSize: '10px', color: 'var(--color-muted)', marginTop: '3px' }}>Total - Cash Received</div>
                     </div>
 
-                    <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
+                    <div style={{ padding: '0.875rem 1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius)', border: '1px solid var(--border-color)' }}>
                       <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Cur Bal Amount</div>
                       <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--color-primary)' }}>
                         ₹{(
@@ -2598,9 +2482,9 @@ export default function Billing() {
                       <div style={{ fontSize: '10px', color: 'var(--color-muted)', marginTop: '3px' }}>Net + Old Balance</div>
                     </div>
 
-                    <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
+                    <div style={{ padding: '0.875rem 1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius)', border: '1px solid var(--border-color)' }}>
                       <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Cur Bal Gold Fine Wt</div>
-                      <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#FFD700' }}>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--metal-gold)' }}>
                         {formData.paymentType === 'credit' 
                           ? ((items.filter(item => item.metalType === 'gold').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.goldFineWeight) || 0)).toFixed(3) 
                           : formData.paymentType === 'add_gold'
@@ -2609,9 +2493,9 @@ export default function Billing() {
                       </div>
                     </div>
 
-                    <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
+                    <div style={{ padding: '0.875rem 1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius)', border: '1px solid var(--border-color)' }}>
                       <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Cur Bal Silver Fine Wt</div>
-                      <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#C0C0C0' }}>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--metal-silver)' }}>
                         {formData.paymentType === 'credit' 
                           ? ((items.filter(item => item.metalType === 'silver').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.silverFineWeight) || 0)).toFixed(3) 
                           : formData.paymentType === 'add_silver'
@@ -2620,7 +2504,7 @@ export default function Billing() {
                       </div>
                     </div>
 
-                    <div style={{ padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
+                    <div style={{ padding: '0.875rem 1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius)', border: '1px solid var(--border-color)' }}>
                       <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Receipt Gross</div>
                       <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--color-primary)' }}>
                         {(items.reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)).toFixed(3)}g
@@ -2633,21 +2517,21 @@ export default function Billing() {
 
               {/* Old Balance Details Section - Moved after Balance Summary - Only for billing and fine weight settlement types */}
               {!['add_cash'].includes(formData.paymentType) && (
-                <div style={{ marginBottom: '30px', padding: '20px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', border: `2px solid ${formData.paymentType === 'credit' ? 'var(--color-success, #4caf50)' : 'var(--color-warning, #ff9800)'}`, borderLeft: `4px solid ${formData.paymentType === 'credit' ? 'var(--color-success, #4caf50)' : 'var(--color-warning, #ff9800)'}` }}>
-                  <h3 style={{ marginTop: 0, color: 'var(--color-text)' }}>
+                <div className="card" style={{ marginBottom: '1rem', borderLeft: `3px solid ${formData.paymentType === 'credit' ? 'var(--color-success)' : 'var(--color-warning)'}` }}>
+                  <h3 className="section-title">
                     Old Balance Details ({
                       formData.paymentType === 'credit' 
-                        ? '📋 Credit Bill' 
+                        ? 'Credit Bill' 
                         : formData.paymentType === 'add_gold'
-                          ? '🟡 Add Gold Fine Weight'
+                          ? 'Add Gold Fine Weight'
                           : formData.paymentType === 'add_silver'
-                            ? '⚪ Add Silver Fine Weight'
-                            : '💰 Cash Bill'
+                            ? 'Add Silver Fine Weight'
+                            : 'Cash Bill'
                     })
                   </h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px', fontSize: '14px' }}>
+                  <div className="form-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
                     <div>
-                      <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Old Bal Amount (₹)</label>
+                      <label className="input-label">Old Bal Amount (₹)</label>
                       <div style={{
                         padding: '10px',
                         borderRadius: '4px',
@@ -2670,19 +2554,19 @@ export default function Billing() {
                           : (selectedLedger?.balances?.cashBalance ? `₹${parseFloat(selectedLedger.balances.cashBalance).toFixed(2)}` : '₹0.00')
                         }
                       </div>
-                      <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
-                        {formData.paymentType === 'credit' ? '📋 Balance from previous credit bills and cash bills' : '💰 Balance from cash bills only'}
+                      <small className="field-hint">
+                        {formData.paymentType === 'credit' ? 'Balance from previous credit bills and cash bills' : 'Balance from cash bills only'}
                       </small>
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Old Bal Gold Fine Wt (g)</label>
+                      <label className="input-label">Old Bal Gold Fine Wt (g)</label>
                       <div style={{
                         padding: '10px',
                         borderRadius: '4px',
                         border: '1px solid var(--border-color)',
                         backgroundColor: 'var(--bg-primary)',
-                        color: '#FFD700',
+                        color: 'var(--metal-gold)',
                         minHeight: '42px',
                         display: 'flex',
                         alignItems: 'center',
@@ -2691,7 +2575,7 @@ export default function Billing() {
                       }}>
                         {selectedLedger?.balances?.goldFineWeight !== undefined ? `${parseFloat(selectedLedger.balances.goldFineWeight).toFixed(3)}g` : '0.000g'}
                       </div>
-                      <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
+                      <small className="field-hint">
                         {['credit', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'].includes(formData.paymentType) 
                           ? 'Auto-fetched from customer ledger' 
                           : 'Not applicable for cash bills'}
@@ -2699,13 +2583,13 @@ export default function Billing() {
                     </div>
 
                     <div>
-                      <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Old Bal Silver Fine Wt (g)</label>
+                      <label className="input-label">Old Bal Silver Fine Wt (g)</label>
                       <div style={{
                         padding: '10px',
                         borderRadius: '4px',
                         border: '1px solid var(--border-color)',
                         backgroundColor: 'var(--bg-primary)',
-                        color: '#C0C0C0',
+                        color: 'var(--metal-silver)',
                         minHeight: '42px',
                         display: 'flex',
                         alignItems: 'center',
@@ -2714,7 +2598,7 @@ export default function Billing() {
                       }}>
                         {selectedLedger?.balances?.silverFineWeight !== undefined ? `${parseFloat(selectedLedger.balances.silverFineWeight).toFixed(3)}g` : '0.000g'}
                       </div>
-                      <small style={{ display: 'block', marginTop: '5px', color: 'var(--color-muted)', fontSize: '11px' }}>
+                      <small className="field-hint">
                         {['credit', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'].includes(formData.paymentType) 
                           ? 'Auto-fetched from customer ledger' 
                           : 'Not applicable for cash bills'}
@@ -2725,101 +2609,30 @@ export default function Billing() {
               )}
 
               {/* Narration */}
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Narration</label>
+              <div className="card" style={{ marginBottom: '1rem' }}>
+                <label className="section-title" htmlFor="voucher-narration" style={{ display: 'block' }}>Narration</label>
                 <textarea
                   value={formData.narration}
                   onChange={(e) => setFormData(prev => ({ ...prev, narration: e.target.value }))}
                   placeholder="Any additional notes..."
                   rows="3"
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    borderRadius: '4px',
-                    border: '1px solid var(--border-color)',
-                    backgroundColor: 'var(--bg-primary)',
-                    color: 'var(--color-text)',
-                    boxSizing: 'border-box'
-                  }}
+                  id="voucher-narration"
+                  className="input"
                 />
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                <button
-                  type="button"
-                  onClick={handlePrint}
-                  style={{
-                    padding: '12px 20px',
-                    backgroundColor: '#3498db',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '16px'
-                  }}
-                >
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={handlePrint} className="btn btn-secondary">
                   <FiPrinter /> Print
                 </button>
-
-                <button
-                  type="button"
-                  onClick={handleShare}
-                  style={{
-                    padding: '12px 20px',
-                    backgroundColor: '#27ae60',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '16px'
-                  }}
-                >
+                <button type="button" onClick={handleShare} className="btn btn-secondary">
                   <FiShare2 /> Share PDF
                 </button>
-
-                {/* WhatsApp Share */}
-                <button
-                  type="button"
-                  onClick={handleWhatsAppShare}
-                  title="Share receipt via WhatsApp"
-                  style={{
-                    padding: '12px 20px',
-                    backgroundColor: '#25D366',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '16px'
-                  }}
-                >
-                  📱 WhatsApp
+                <button type="button" onClick={handleWhatsAppShare} title="Share receipt via WhatsApp" className="btn btn-secondary">
+                  WhatsApp
                 </button>
-
-                <button
-                  type="submit"
-                  style={{
-                    padding: '12px 20px',
-                    backgroundColor: 'var(--color-primary)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '16px'
-                  }}
-                >
+                <button type="submit" className="btn btn-primary" style={{ flex: '1 1 160px', maxWidth: 260 }}>
                   <FiSave /> {editingVoucherId ? 'Update Voucher' : 'Save Voucher'}
                 </button>
               </div>
@@ -2927,7 +2740,7 @@ export default function Billing() {
                         />
                       </div>
                       <div>
-                        <label style={{ fontSize: '0.75rem', color: '#FFD700', display: 'block', marginBottom: '3px' }}>Gold Fine (g)</label>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--metal-gold)', display: 'block', marginBottom: '3px' }}>Gold Fine (g)</label>
                         <input
                           type="number"
                           value={ledgerFormData.oldBalGold}
@@ -2947,7 +2760,7 @@ export default function Billing() {
                         />
                       </div>
                       <div>
-                        <label style={{ fontSize: '0.75rem', color: '#C0C0C0', display: 'block', marginBottom: '3px' }}>Silver Fine (g)</label>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--metal-silver)', display: 'block', marginBottom: '3px' }}>Silver Fine (g)</label>
                         <input
                           type="number"
                           value={ledgerFormData.oldBalSilver}
