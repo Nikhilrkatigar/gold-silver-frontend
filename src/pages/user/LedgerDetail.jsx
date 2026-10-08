@@ -72,10 +72,12 @@ const getVoucherBalanceDetails = (voucher, ledger) => {
     voucher?.balanceSnapshot?.oldBalance?.silverFineWeight,
     toFiniteNumber(ledger?.balances?.silverFineWeight) - silverFineWeight
   );
-  // Always use current ledger balance for display (not historical balance snapshot)
-  const currentAmount = getLedgerAmountBalance(ledger);
-  const currentGold = toFiniteNumber(ledger?.balances?.goldFineWeight);
-  const currentSilver = toFiniteNumber(ledger?.balances?.silverFineWeight);
+  // Balance right after this bill (saved with it), so old + this bill = current on a reprint.
+  // Falls back to today's balance only for very old vouchers saved without a snapshot.
+  const snapCurrent = voucher?.balanceSnapshot?.currentBalance;
+  const currentAmount = pickFirstFinite(snapCurrent?.amount, getLedgerAmountBalance(ledger));
+  const currentGold = pickFirstFinite(snapCurrent?.goldFineWeight, ledger?.balances?.goldFineWeight);
+  const currentSilver = pickFirstFinite(snapCurrent?.silverFineWeight, ledger?.balances?.silverFineWeight);
 
   return {
     oldAmount,
@@ -88,6 +90,35 @@ const getVoucherBalanceDetails = (voucher, ledger) => {
     receiptGross
   };
 };
+
+const SETTLEMENT_LABELS = {
+  add_cash: 'Cash received',
+  add_gold: 'Gold received',
+  add_silver: 'Silver received',
+  money_to_gold: 'Cash to gold',
+  money_to_silver: 'Cash to silver'
+};
+
+// Metal received is in grams, everything else in rupees
+const formatTxnAmount = (txn) => {
+  const value = toFiniteNumber(txn.total ?? txn.amount);
+  if (txn.paymentType === 'add_gold' || txn.paymentType === 'add_silver') return `${value.toFixed(3)} g`;
+  return `${value < 0 ? '−' : ''}₹${Math.abs(value).toFixed(2)}`;
+};
+
+// Positive value = customer owes the shop, negative = shop owes the customer
+const BalanceFigure = ({ value, text }) => (
+  <div>
+    <div style={{ fontSize: '1.2rem', fontWeight: 600, color: value > 0 ? 'var(--color-danger)' : value < 0 ? 'var(--color-success)' : undefined }}>
+      {text(Math.abs(value))}
+    </div>
+    {value !== 0 && (
+      <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+        {value > 0 ? 'Customer owes us' : 'We owe customer'}
+      </div>
+    )}
+  </div>
+);
 
 export default function LedgerDetail() {
   const { user } = useAuth();
@@ -151,7 +182,7 @@ export default function LedgerDetail() {
     setConfirmDialog({
       isOpen: true,
       title: 'Recalculate Balance',
-      message: 'This will recalculate the balance from all transactions. Continue?',
+      message: 'This rebuilds the balance from the opening balance plus every entry below. Use it if the balance looks wrong. Entries themselves are not changed.',
       danger: false,
       confirmText: 'Recalculate',
       onConfirm: async () => {
@@ -173,7 +204,7 @@ export default function LedgerDetail() {
     setConfirmDialog({
       isOpen: true,
       title: 'Delete Voucher',
-      message: 'Permanently delete this voucher? This cannot be undone!',
+      message: 'Delete this voucher? Its amount and weight will be removed from the customer balance. Only delete entries that were made by mistake. This cannot be undone.',
       danger: true,
       confirmText: 'Delete',
       onConfirm: async () => {
@@ -182,7 +213,7 @@ export default function LedgerDetail() {
           toast.success('Voucher deleted successfully!');
           fetchLedgerDetails();
         } catch (error) {
-          toast.error('Failed to delete voucher');
+          toast.error(error.response?.data?.message || 'Failed to delete voucher', { autoClose: 8000 });
         }
       }
     });
@@ -280,7 +311,7 @@ export default function LedgerDetail() {
                 <tr>
                   <td>${index + 1}</td>
                   <td>${item.itemName}</td>
-                  <td style="text-align: center; color: ${item.metalType === 'gold' ? '#FFD700' : '#C0C0C0'}; font-weight: bold;">${item.metalType === 'gold' ? 'GOLD' : 'SILVER'}</td>
+                  <td style="text-align: center; color: ${item.metalType === 'gold' ? '#B8860B' : '#555555'}; font-weight: bold;">${item.metalType === 'gold' ? 'GOLD' : 'SILVER'}</td>
                   <td>${item.pieces}</td>
                   <td>${parseFloat(item.grossWeight).toFixed(3)}</td>
                   <td>${parseFloat(item.lessWeight).toFixed(3)}</td>
@@ -351,11 +382,11 @@ export default function LedgerDetail() {
             <div style="font-weight: bold; margin-bottom: 10px;">Customer Balance</div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
               <div>Fine Gold</div>
-              <div style="color: #FFD700; font-weight: bold;">${(-balanceDetails.currentGold).toFixed(3)} g</div>
+              <div style="color: #B8860B; font-weight: bold;">${(-balanceDetails.currentGold).toFixed(3)} g</div>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
               <div>Fine Silver</div>
-              <div style="color: #C0C0C0; font-weight: bold;">${(-balanceDetails.currentSilver).toFixed(3)} g</div>
+              <div style="color: #555555; font-weight: bold;">${(-balanceDetails.currentSilver).toFixed(3)} g</div>
             </div>
             <div style="display: flex; justify-content: space-between;">
               <div>Cash Balance</div>
@@ -517,7 +548,7 @@ export default function LedgerDetail() {
     setConfirmDialog({
       isOpen: true,
       title: 'Delete Settlement',
-      message: 'Permanently delete this settlement?',
+      message: 'Delete this settlement? Its amount will be removed from the customer balance. Only delete entries that were made by mistake. This cannot be undone.',
       danger: true,
       confirmText: 'Delete',
       onConfirm: async () => {
@@ -527,7 +558,7 @@ export default function LedgerDetail() {
           toast.success('Settlement deleted successfully');
           fetchLedgerDetails();
         } catch (error) {
-          toast.error('Failed to delete settlement');
+          toast.error(error.response?.data?.message || 'Failed to delete settlement', { autoClose: 8000 });
         }
       }
     });
@@ -537,7 +568,7 @@ export default function LedgerDetail() {
     setConfirmDialog({
       isOpen: true,
       title: 'Delete All Vouchers',
-      message: 'Delete ALL vouchers for this ledger? This cannot be undone!',
+      message: 'Delete ALL entries for this customer? Stock moved by these entries is put back, and the balance goes back to the opening balance. This cannot be undone.',
       danger: true,
       confirmText: 'Delete All',
       onConfirm: async () => {
@@ -546,7 +577,7 @@ export default function LedgerDetail() {
           toast.success('All vouchers deleted successfully');
           fetchLedgerDetails();
         } catch (error) {
-          toast.error('Failed to delete vouchers');
+          toast.error(error.response?.data?.message || 'Failed to delete vouchers', { autoClose: 8000 });
         }
       }
     });
@@ -708,11 +739,11 @@ export default function LedgerDetail() {
               <div style="font-weight: bold; margin-bottom: 10px; font-size: 13px; color: #000000;">Customer Balance</div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
                 <span>Fine Gold</span>
-                <span style="color: #FFD700; font-weight: bold;">${(-balanceDetails.currentGold).toFixed(3)} g</span>
+                <span style="color: #B8860B; font-weight: bold;">${(-balanceDetails.currentGold).toFixed(3)} g</span>
               </div>
               <div style="display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 12px; color: #333333;">
                 <span>Fine Silver</span>
-                <span style="color: #C0C0C0; font-weight: bold;">${(-balanceDetails.currentSilver).toFixed(3)} g</span>
+                <span style="color: #555555; font-weight: bold;">${(-balanceDetails.currentSilver).toFixed(3)} g</span>
               </div>
               <div style="display: flex; justify-content: space-between; font-size: 12px; color: #333333;">
                 <span>Cash Balance</span>
@@ -1439,25 +1470,15 @@ export default function LedgerDetail() {
 
                 <div>
                   <div className="text-muted" style={{ fontSize: '0.875rem' }}> Fine Gold</div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 600, color: ledger?.balances?.goldFineWeight > 0 ? 'red' : undefined }}>
-                    {ledger?.balances?.goldFineWeight > 0 ? '-' : ''}{Math.abs(ledger?.balances?.goldFineWeight || 0).toFixed(3)} g
-                  </div>
+                  <BalanceFigure value={toFiniteNumber(ledger?.balances?.goldFineWeight)} text={(v) => `${v.toFixed(3)} g`} />
                 </div>
                 <div>
                   <div className="text-muted" style={{ fontSize: '0.875rem' }}> Fine Silver</div>
-                  <div style={{ fontSize: '1.2rem', fontWeight: 600, color: ledger?.balances?.silverFineWeight > 0 ? 'red' : undefined }}>
-                    {ledger?.balances?.silverFineWeight > 0 ? '-' : ''}{Math.abs(ledger?.balances?.silverFineWeight || 0).toFixed(3)} g
-                  </div>
+                  <BalanceFigure value={toFiniteNumber(ledger?.balances?.silverFineWeight)} text={(v) => `${v.toFixed(3)} g`} />
                 </div>
                 <div>
                   <div className="text-muted" style={{ fontSize: '0.875rem' }}>Cash Balance</div>
-                  <div style={{
-                    fontSize: '1.2rem',
-                    fontWeight: 600,
-                    color: displayCashBalance < 0 ? 'red' : displayCashBalance > 0 ? 'green' : undefined
-                  }}>
-                    {formatSignedCurrency(displayCashBalance)}
-                  </div>
+                  <BalanceFigure value={-displayCashBalance} text={(v) => `₹${v.toFixed(2)}`} />
                 </div>
               </div>
 
@@ -1590,9 +1611,9 @@ export default function LedgerDetail() {
         </div>
 
         <div className="card" style={{ marginBottom: '1.5rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3>Transactions</h3>
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+            <h3 style={{ margin: 0 }}>Transactions</h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
               <button onClick={handleRecalculateBalance} className="btn btn-sm btn-secondary">
                 Recalculate Balance
               </button>
@@ -1624,37 +1645,25 @@ export default function LedgerDetail() {
           </div>
 
           <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <button
-              onClick={handleClearFilters}
-              className="btn btn-sm btn-secondary"
-              style={{ padding: '6px 16px' }}
-            >
+            <button onClick={handleClearFilters} className="btn btn-sm btn-secondary">
               Clear Filters
             </button>
-            <button
-              onClick={handleExportCSV}
-              className="btn btn-sm"
-              style={{ padding: '6px 16px', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '6px' }}
-            >
+            <button onClick={handleExportCSV} className="btn btn-sm btn-secondary">
               Export CSV
             </button>
-            <button
-              onClick={() => { setExportDates({ from: '', to: '' }); setShowExportModal(true); }}
-              className="btn btn-sm"
-              style={{ padding: '6px 16px', background: 'var(--color-primary)', color: 'var(--color-on-primary)', border: 'none', borderRadius: '6px', fontWeight: 600 }}
-            >
+            <button onClick={() => { setExportDates({ from: '', to: '' }); setShowExportModal(true); }} className="btn btn-sm btn-primary">
               Export Statement
             </button>
           </div>
 
           <div className="table-container">
-            <table className="table">
+            <table className="table txn-table no-scroll">
               <thead>
                 <tr>
                   <th>Date</th>
                   <th>Type</th>
                   <th>Voucher/Settlement #</th>
-                  <th>Amount</th>
+                  <th style={{ textAlign: 'right' }}>Amount</th>
                   <th style={{ textAlign: 'center' }}>Actions</th>
                 </tr>
               </thead>
@@ -1666,8 +1675,8 @@ export default function LedgerDetail() {
 
                   return (
                     <tr key={txn._id}>
-                      <td>{format(new Date(txn.date), 'dd MMM yyyy')}</td>
-                      <td>
+                      <td className="txn-date">{format(new Date(txn.date), 'dd MMM yyyy')}</td>
+                      <td className="txn-type">
                         {isSettlementType ? (
                           <span className="badge badge-success">Settlement</span>
                         ) : txn.voucherType === 'purchase' ? (
@@ -1678,14 +1687,14 @@ export default function LedgerDetail() {
                           <span className="badge badge-info">Sale</span>
                         )}
                       </td>
-                      <td>
+                      <td className="txn-ref">
                         {isSettlementType
-                          ? `SET-${txn._id.substring(0, 6).toUpperCase()} (${txn.paymentType})`
-                          : txn.voucherNumber}
+                          ? `SET-${txn._id.substring(0, 6).toUpperCase()} · ${SETTLEMENT_LABELS[txn.paymentType] || txn.paymentType}`
+                          : `#${txn.voucherNumber}`}
                       </td>
-                      <td>{txn.total?.toFixed(2) || txn.amount?.toFixed(2) || '0.00'}</td>
-                      <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                      <td className="txn-amount num">{formatTxnAmount(txn)}</td>
+                      <td className="txn-actions">
+                        <div className="txn-actions-row">
                           {!isSettlementType && txn.type === 'voucher' && (
                             <button
                               onClick={() => {
@@ -1698,6 +1707,7 @@ export default function LedgerDetail() {
                               }}
                               className="btn btn-sm btn-secondary"
                               title="Edit"
+                              aria-label="Edit"
                               data-tour={i === 0 ? 'txn-edit' : undefined}
                             >
                               <FiEdit2 />
@@ -1707,6 +1717,7 @@ export default function LedgerDetail() {
                             onClick={() => isSettlementType ? handlePreviewSettlement(txn) : handlePreviewVoucher(txn)}
                             className="btn btn-sm btn-secondary"
                             title="Preview"
+                            aria-label="Preview"
                             data-tour={i === 0 ? 'txn-view' : undefined}
                           >
                             <FiEye />
@@ -1715,6 +1726,7 @@ export default function LedgerDetail() {
                             onClick={() => isSettlementType ? handlePrintSettlement(txn) : handlePrintVoucher(txn)}
                             className="btn btn-sm btn-secondary"
                             title="Print"
+                            aria-label="Print"
                           >
                             <FiPrinter />
                           </button>
@@ -1722,6 +1734,7 @@ export default function LedgerDetail() {
                             onClick={() => isSettlementType ? handleShareSettlement(txn) : handleShareVoucher(txn)}
                             className="btn btn-sm btn-secondary"
                             title="Share"
+                            aria-label="Share"
                           >
                             <FiShare2 />
                           </button>
@@ -1729,6 +1742,7 @@ export default function LedgerDetail() {
                             onClick={() => isSettlementType ? handleDeleteSettlement(txn._id) : handleDeleteVoucher(txn._id)}
                             className="btn btn-sm btn-danger"
                             title={isSettlementType ? 'Delete Settlement' : 'Delete Voucher'}
+                            aria-label={isSettlementType ? 'Delete Settlement' : 'Delete Voucher'}
                             data-tour={i === 0 ? 'txn-delete' : undefined}
                           >
                             <FiTrash2 />

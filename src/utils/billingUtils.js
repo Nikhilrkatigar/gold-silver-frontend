@@ -136,3 +136,86 @@ export const PURCHASE_TYPES = [
 ];
 
 export const getPurchaseType = (value) => PURCHASE_TYPES.find((t) => t.value === value);
+
+// Ledger balance before/after this entry. Used when saving and for print/share of an unsaved entry,
+// so the printed old/current balance always matches what gets saved.
+export const buildBalanceSnapshot = (paymentType, balances = {}, items = [], formData = {}) => {
+  const n = (v) => parseFloat(v) || 0;
+  const credit = n(balances.creditBalance);
+  const cash = n(balances.cashBalance);
+  const gold = n(balances.goldFineWeight);
+  const silver = n(balances.silverFineWeight);
+  const fine = (metal) => items.filter(i => !metal || i.metalType === metal).reduce((s, i) => s + n(i.fineWeight), 0);
+  const billNet = items.reduce((s, i) => s + n(i.amount), 0) + n(formData.stoneAmount) + n(formData.fineAmount) - n(formData.cashReceived);
+
+  const metalAfter = (old, metal, addType, moneyType, rate) => {
+    if (paymentType === 'credit') return old + fine(metal);
+    if (paymentType === addType) return old - fine();
+    if (paymentType === moneyType) return old - n(formData.cashReceived) / (n(rate) || 1);
+    return old;
+  };
+
+  return {
+    oldBalance: { creditAmount: credit, cashAmount: cash, totalAmount: credit + cash, goldFineWeight: gold, silverFineWeight: silver },
+    currentBalance: {
+      // Metal settlements (add_gold/silver, money_to_gold/silver) leave the cash balance unchanged on the ledger.
+      amount: credit + cash + (['credit', 'cash', 'add_cash'].includes(paymentType) ? billNet : 0),
+      goldFineWeight: metalAfter(gold, 'gold', 'add_gold', 'money_to_gold', formData.goldRate),
+      silverFineWeight: metalAfter(silver, 'silver', 'add_silver', 'money_to_silver', formData.silverRate)
+    }
+  };
+};
+
+// Plain-language warnings for entries that are probably a mistake. The user can still save after reading them.
+// Pass balances = null when editing an existing entry (its own effect is already inside the balance).
+export const getEntryWarnings = (paymentType, balances, items = [], formData = {}, today = new Date()) => {
+  const n = (v) => parseFloat(v) || 0;
+  const rs = (v) => `₹${Math.abs(v).toFixed(2)}`;
+  const g = (v) => `${Math.abs(v).toFixed(3)} g`;
+  const received = n(formData.cashReceived);
+  const warnings = [];
+
+  const checkMetal = (metal, incoming) => {
+    const owed = n(balances[metal === 'gold' ? 'goldFineWeight' : 'silverFineWeight']);
+    if (incoming <= owed) return;
+    warnings.push(owed > 0
+      ? `Customer owes ${g(owed)} ${metal} but you are receiving ${g(incoming)}. The shop will then owe the customer ${g(incoming - owed)} ${metal}.`
+      : `Customer doesn't owe any ${metal} right now. After this entry the shop will owe the customer ${g(incoming - owed)} ${metal}.`);
+  };
+
+  if (balances) {
+    const owedCash = n(balances.cashBalance) + n(balances.creditBalance);
+    if (paymentType === 'add_cash' && received < 0) {
+      warnings.push(`A negative amount adds ${rs(received)} to what the customer owes. Use it only to correct a mistake. If the wrong entry was made recently, deleting it is cleaner.`);
+    } else if (paymentType === 'add_cash' && received > owedCash) {
+      warnings.push(owedCash > 0
+        ? `Customer owes ${rs(owedCash)} but you are entering ${rs(received)}. The extra ${rs(received - owedCash)} will be kept as the customer's advance.`
+        : `Customer doesn't owe any cash right now. The full ${rs(received)} will be kept as the customer's advance.`);
+    }
+    const fineIn = items.reduce((s, i) => s + n(i.fineWeight), 0);
+    if (paymentType === 'add_gold') checkMetal('gold', fineIn);
+    if (paymentType === 'add_silver') checkMetal('silver', fineIn);
+    if (paymentType === 'money_to_gold' && n(formData.goldRate) > 0) checkMetal('gold', received / n(formData.goldRate));
+    if (paymentType === 'money_to_silver' && n(formData.silverRate) > 0) checkMetal('silver', received / n(formData.silverRate));
+  }
+
+  if (paymentType === 'credit' || paymentType === 'cash') {
+    items.forEach((item) => {
+      const name = item.itemName || 'An item';
+      if (n(item.fineWeight) <= 0) warnings.push(`"${name}" has ${g(n(item.fineWeight))} fine weight. Check the weight and melting %.`);
+      else if (n(item.fineWeight) > n(item.grossWeight) && n(item.grossWeight) > 0) warnings.push(`"${name}" has more fine weight (${g(n(item.fineWeight))}) than its gross weight (${g(n(item.grossWeight))}). Check melting % and wastage.`);
+    });
+    const billTotal = items.reduce((s, i) => s + n(i.amount), 0) + n(formData.stoneAmount) + n(formData.fineAmount);
+    if (paymentType === 'cash' && received > billTotal) {
+      warnings.push(`Customer paid ${rs(received)} for a bill of ${rs(billTotal)}. The extra ${rs(received - billTotal)} will be kept as the customer's advance.`);
+    }
+  }
+
+  const pad = (v) => String(v).padStart(2, '0');
+  const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+  if (formData.date && formData.date > todayStr) {
+    warnings.push(`The entry date (${formData.date}) is in the future.`);
+  }
+
+  return warnings;
+};

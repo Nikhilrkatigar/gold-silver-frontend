@@ -67,7 +67,7 @@ export default function ConfirmDialog({
                         </div>
 
                         <div className="modal-body">
-                            <p style={{ fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>{message}</p>
+                            <p style={{ fontSize: '0.9375rem', color: 'var(--text-secondary)', whiteSpace: 'pre-line' }}>{message}</p>
                         </div>
 
                         <div className="modal-footer">

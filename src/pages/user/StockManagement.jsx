@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { expenseAPI, karigarAPI, settlementAPI, stockAPI, voucherAPI } from '../../services/api';
+import { expenseAPI, karigarAPI, stockAPI, voucherAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import Layout from '../../components/Layout';
 import { FiDownload, FiEye, FiPrinter, FiRotateCcw, FiX } from 'react-icons/fi';
+import { AnimatePresence, motion } from 'motion/react';
+import { overlayMotion, panelMotion } from '../../components/ConfirmDialog';
 import { toast } from 'react-toastify';
 import { SkeletonStat, SkeletonTable } from '../../components/Skeleton';
 import PullToRefresh from '../../components/PullToRefresh';
@@ -408,29 +410,6 @@ const StockManagement = () => {
         dateTime
       });
 
-      if (totalAmount > 0) {
-        try {
-          await settlementAPI.create({
-            ledgerId: 'system',
-            date: dateTime,
-            narration: `Stock Purchase: Gold ${goldInput || 0}g, Silver ${silverInput || 0}g`,
-            direction: 'payment',
-            metalType: 'cash',
-            fineGiven: 0,
-            amount: totalAmount,
-            balanceBefore: cashInHand,
-            balanceAfter: {
-              amount: cashInHand - totalAmount,
-              fineWeight: 0
-            },
-            isStockPurchase: true
-          });
-        } catch (settleErr) {
-          console.warn('Settlement entry creation failed but stock was added:', settleErr);
-          toast.warning('Stock added but cash tracking entry failed.');
-        }
-      }
-
       toast.success('Stock added successfully.');
       setGoldInput('');
       setSilverInput('');
@@ -577,18 +556,59 @@ const StockManagement = () => {
     ]);
   };
 
+  // Same date/time block in both forms
+  const dateTimeFields = (
+    <div className="stock-datetime">
+      <div className="stock-date">
+        <label className="input-label" htmlFor="stock-date">Date</label>
+        <input id="stock-date" type="date" className="input" value={stockDate} onChange={(e) => setStockDate(e.target.value)} required />
+      </div>
+      <div>
+        <label className="input-label" htmlFor="stock-hour">Hour</label>
+        <select id="stock-hour" className="input" value={stockHour} onChange={(e) => setStockHour(e.target.value)}>
+          {HOUR_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+        </select>
+      </div>
+      <div>
+        <label className="input-label" htmlFor="stock-minute">Minute</label>
+        <select id="stock-minute" className="input" value={stockMinute} onChange={(e) => setStockMinute(e.target.value)}>
+          {MINUTE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+        </select>
+      </div>
+      <div>
+        <label className="input-label" htmlFor="stock-meridiem">AM / PM</label>
+        <select id="stock-meridiem" className="input" value={stockMeridiem} onChange={(e) => setStockMeridiem(e.target.value)}>
+          <option value="AM">AM</option>
+          <option value="PM">PM</option>
+        </select>
+      </div>
+    </div>
+  );
+
+  const cashTone = cashInHand < 0 ? 'negative' : 'positive';
+  const money = (value) => `${value < 0 ? '−' : ''}₹${Math.abs(value).toFixed(2)}`;
+  const breakdownRows = cashBreakdown ? [
+    ['Cash received from customers', cashBreakdown.cashFromSales || 0, true],
+    ['Cash additions', cashBreakdown.cashAdded || 0],
+    ['Customer liabilities (we owe)', -(cashBreakdown.customerLiabilities || 0)],
+    ['Paid for old gold purchases', -(cashBreakdown.paidForPurchases || 0)],
+    ['Stock purchases', -(cashBreakdown.stockPurchases || 0)],
+    ['Cash expenses', -(cashBreakdown.cashExpenses || 0)],
+    ['Karigar amount balance', cashBreakdown.karigarCharges || 0]
+  ].filter(([, value, always]) => always || value !== 0) : [];
+
   return (
     <Layout>
       <PullToRefresh onRefresh={handleRefresh}>
-        <div className="card fade-in" style={{ maxWidth: 900, margin: '2rem auto', padding: 32, boxShadow: 'var(--shadow-md)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, gap: 12, flexWrap: 'wrap' }}>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Stock Management</h1>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button className="btn btn-secondary" onClick={handleExportHistory} title="Export CSV">
-                <FiDownload size={16} /> Export CSV
+        <div className="card fade-in stock-page">
+          <div className="stock-header">
+            <h1>Stock Management</h1>
+            <div className="stock-toolbar">
+              <button className="btn btn-secondary" onClick={handleExportHistory}>
+                <FiDownload size={16} aria-hidden="true" /> Export CSV
               </button>
-              <button className="btn btn-secondary" onClick={handlePrintReport} title="Print Report">
-                <FiPrinter size={16} /> Print Report
+              <button className="btn btn-secondary" onClick={handlePrintReport}>
+                <FiPrinter size={16} aria-hidden="true" /> Print
               </button>
               <button
                 className="btn btn-secondary"
@@ -604,477 +624,222 @@ const StockManagement = () => {
                 }}
                 title="Undo last stock input"
               >
-                <FiRotateCcw size={16} /> Undo
+                <FiRotateCcw size={16} aria-hidden="true" /> Undo
               </button>
             </div>
           </div>
 
-          {/* â”€â”€ Current Stock â”€â”€ */}
-          <div data-tour="stock-current" style={{ marginBottom: 24, padding: 16, backgroundColor: 'var(--bg-secondary)', borderRadius: 8, border: '2px solid var(--color-primary)' }}>
-            <h3 style={{ fontWeight: 600, marginBottom: 12, marginTop: 0 }}>Current Stock</h3>
+          {/* ── Current Stock ── */}
+          <section data-tour="stock-current" className="stock-section" aria-labelledby="stock-current-title">
+            <h3 id="stock-current-title">Current Stock</h3>
             {loading ? (
               <SkeletonStat count={2} />
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }} className="fade-in">
-                <div style={{ padding: 12, backgroundColor: 'var(--bg-primary)', borderRadius: 6, borderLeft: '4px solid var(--metal-gold)' }}>
-                  <div style={{ fontSize: '0.9rem', color: 'var(--color-muted)', marginBottom: 4 }}>Gold</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--metal-gold)' }}>{parseFloat(goldStock).toFixed(4)} g</div>
+              <div className="stock-metals fade-in">
+                <div className="stock-metal gold">
+                  <div className="stock-metal-label">Gold</div>
+                  <div className="stock-metal-value num">{parseFloat(goldStock).toFixed(4)} g</div>
                 </div>
-                <div style={{ padding: 12, backgroundColor: 'var(--bg-primary)', borderRadius: 6, borderLeft: '4px solid var(--metal-silver)' }}>
-                  <div style={{ fontSize: '0.9rem', color: 'var(--color-muted)', marginBottom: 4 }}>Silver</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--metal-silver)' }}>{parseFloat(silverStock).toFixed(2)} g</div>
+                <div className="stock-metal silver">
+                  <div className="stock-metal-label">Silver</div>
+                  <div className="stock-metal-value num">{parseFloat(silverStock).toFixed(2)} g</div>
                 </div>
               </div>
             )}
-          </div>
+          </section>
 
-          {/* â”€â”€ Cash in Hand â”€â”€ */}
-          <div
+          {/* ── Cash in Hand (tap for details) ── */}
+          <button
+            type="button"
             data-tour="stock-cash"
-            role="button"
-            tabIndex={0}
+            className={`cash-card ${cashTone}`}
             onClick={handleCashBreakdownOpen}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' || event.key === ' ') {
-                event.preventDefault();
-                handleCashBreakdownOpen();
-              }
-            }}
-            title="View cash breakdown"
-            style={{
-              marginBottom: 24,
-              borderRadius: 10,
-              overflow: 'hidden',
-              border: `2px solid ${cashInHand < 0 ? 'var(--color-danger)' : '#22c55e'}`,
-              cursor: 'pointer',
-              boxShadow: cashDetailsOpen ? '0 0 0 3px rgba(34, 197, 94, 0.18)' : 'none'
-            }}
+            aria-haspopup="dialog"
           >
-            {/* Header */}
-            <div style={{
-              padding: '12px 18px',
-              background: cashInHand < 0 ? '#fee2e2' : '#dcfce7',
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              borderBottom: `1px solid ${cashInHand < 0 ? '#fca5a5' : '#86efac'}`
-            }}>
-              <span style={{ fontWeight: 700, fontSize: 15, color: cashInHand < 0 ? '#991b1b' : '#166534', display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <FiEye size={15} />
-                Cash in Hand
-              </span>
-              <span style={{ fontSize: 22, fontWeight: 800, color: cashInHand < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
-                {cashInHand < 0 ? '-' : ''}{'\u20B9'}{Math.abs(cashInHand).toFixed(2)}
-              </span>
-            </div>
-
-            {/* Breakdown */}
+            <span className="cash-card-head">
+              <span className="cash-card-title"><FiEye size={15} aria-hidden="true" /> Cash in Hand</span>
+              <span className="cash-card-total num">{money(cashInHand)}</span>
+            </span>
             {cashBreakdown && (
-              <div style={{ padding: '10px 18px', background: 'var(--bg-secondary)', display: 'flex', flexDirection: 'column', gap: 6 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                  <span style={{ color: 'var(--color-muted)' }}>Cash received from customers</span>
-                  <span style={{ fontWeight: 600, color: 'var(--color-success)' }}>+{'\u20B9'}{(cashBreakdown.cashFromSales || 0).toFixed(2)}</span>
-                </div>
-                {(cashBreakdown.cashAdded || 0) > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                    <span style={{ color: 'var(--color-muted)' }}>Cash additions (injected)</span>
-                    <span style={{ fontWeight: 600, color: 'var(--color-success)' }}>+{'\u20B9'}{(cashBreakdown.cashAdded || 0).toFixed(2)}</span>
-                  </div>
-                )}
-                {(cashBreakdown.customerLiabilities || 0) > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                    <span style={{ color: 'var(--color-muted)' }}>Customer liabilities (we owe)</span>
-                    <span style={{ fontWeight: 600, color: 'var(--color-danger)' }}>-{'\u20B9'}{(cashBreakdown.customerLiabilities || 0).toFixed(2)}</span>
-                  </div>
-                )}
-                {(cashBreakdown.paidForPurchases || 0) > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                    <span style={{ color: 'var(--color-muted)' }}>Paid for old gold purchases</span>
-                    <span style={{ fontWeight: 600, color: 'var(--color-danger)' }}>-{'\u20B9'}{(cashBreakdown.paidForPurchases || 0).toFixed(2)}</span>
-                  </div>
-                )}
-                {(cashBreakdown.stockPurchases || 0) > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                    <span style={{ color: 'var(--color-muted)' }}>Stock purchases</span>
-                    <span style={{ fontWeight: 600, color: 'var(--color-danger)' }}>-{'\u20B9'}{(cashBreakdown.stockPurchases || 0).toFixed(2)}</span>
-                  </div>
-                )}
-                {(cashBreakdown.cashExpenses || 0) > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                    <span style={{ color: 'var(--color-muted)' }}>Cash expenses</span>
-                    <span style={{ fontWeight: 600, color: 'var(--color-danger)' }}>-{'\u20B9'}{(cashBreakdown.cashExpenses || 0).toFixed(2)}</span>
-                  </div>
-                )}
-                {(cashBreakdown.karigarCharges || 0) !== 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                    <span style={{ color: 'var(--color-muted)' }}>Karigar amount balance</span>
-                    <span style={{ fontWeight: 600, color: (cashBreakdown.karigarCharges || 0) < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
-                      {(cashBreakdown.karigarCharges || 0) >= 0 ? '+' : ''}{formatCurrency(cashBreakdown.karigarCharges || 0)}
-                    </span>
-                  </div>
-                )}
-                <div style={{ borderTop: '1px solid var(--border-color)', marginTop: 4, paddingTop: 6, display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700 }}>
-                  <span>Net Cash in Hand</span>
-                  <span style={{ color: cashInHand < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
-                    {cashInHand < 0 ? '-' : ''}{'\u20B9'}{Math.abs(cashInHand).toFixed(2)}
+              <span className="cash-card-rows">
+                {breakdownRows.map(([label, value]) => (
+                  <span key={label} className="cash-row-line">
+                    <span>{label}</span>
+                    <span className={`num ${value < 0 ? 'neg' : 'pos'}`}>{value > 0 ? '+' : ''}{money(value)}</span>
                   </span>
-                </div>
+                ))}
+                <span className="cash-row-line total">
+                  <span>Net Cash in Hand</span>
+                  <span className={`num ${cashInHand < 0 ? 'neg' : 'pos'}`}>{money(cashInHand)}</span>
+                </span>
                 {customerLiabilities > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700 }}>
-                    <span>Effective Cash After Liabilities</span>
-                    <span style={{ color: effectiveCashAfterLiabilities < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
-                      {effectiveCashAfterLiabilities < 0 ? '-' : ''}{'\u20B9'}{Math.abs(effectiveCashAfterLiabilities).toFixed(2)}
-                    </span>
-                  </div>
+                  <span className="cash-row-line total">
+                    <span>Effective cash after liabilities</span>
+                    <span className={`num ${effectiveCashAfterLiabilities < 0 ? 'neg' : 'pos'}`}>{money(effectiveCashAfterLiabilities)}</span>
+                  </span>
                 )}
-              </div>
+                <span className="cash-card-hint">Tap to see every entry</span>
+              </span>
             )}
-          </div>
+          </button>
 
-          {/* —— Tabs for Add Stock vs Add Money —— */}
-          <div data-tour="stock-add" style={{ display: 'flex', gap: 12, marginBottom: 20, borderBottom: '1px solid var(--border-color)', paddingBottom: 8 }}>
-            <button
-              onClick={() => { setActiveTab('stock'); setError(''); }}
-              type="button"
-              style={{
-                padding: '8px 16px',
-                fontWeight: 600,
-                borderBottom: activeTab === 'stock' ? '3px solid var(--color-primary)' : 'none',
-                background: 'none',
-                border: 'none',
-                color: activeTab === 'stock' ? 'var(--color-primary)' : 'var(--color-muted)',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-            >
-              Add Gold/Silver Stock
-            </button>
-            <button
-              onClick={() => { setActiveTab('money'); setError(''); }}
-              type="button"
-              style={{
-                padding: '8px 16px',
-                fontWeight: 600,
-                borderBottom: activeTab === 'money' ? '3px solid var(--color-primary)' : 'none',
-                background: 'none',
-                border: 'none',
-                color: activeTab === 'money' ? 'var(--color-primary)' : 'var(--color-muted)',
-                cursor: 'pointer',
-                transition: 'all 0.2s'
-              }}
-            >
-              Add Money (Cash)
-            </button>
+          {/* ── Add Stock / Add Money ── */}
+          <div data-tour="stock-add" className="seg-tabs" role="tablist" aria-label="What to add">
+            {[['stock', 'Gold / Silver'], ['money', 'Cash']].map(([key, label]) => (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={activeTab === key}
+                className={`seg-tab${activeTab === key ? ' active' : ''}`}
+                onClick={() => { setActiveTab(key); setError(''); }}
+              >
+                {label}
+              </button>
+            ))}
           </div>
 
           {activeTab === 'stock' ? (
-            <form onSubmit={handleAddStock} style={{ marginBottom: 24, padding: 16, backgroundColor: 'var(--bg-secondary)', borderRadius: 8 }}>
-              <h3 style={{ marginTop: 0, marginBottom: 16, fontWeight: 600 }}>Add Stock</h3>
+            <form onSubmit={handleAddStock} className="stock-section stock-form">
+              <h3>Add Stock</h3>
+              {dateTimeFields}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
-                <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ fontWeight: 500, display: 'block', marginBottom: 6 }}>Stock Date</label>
-                  <input
-                    type="date"
-                    className="input"
-                    value={stockDate}
-                    onChange={(e) => setStockDate(e.target.value)}
-                    style={{ width: '100%' }}
-                    required
-                  />
-                </div>
-                <div>
-                  <label style={{ fontWeight: 500, display: 'block', marginBottom: 6 }}>Hour</label>
-                  <select className="input" value={stockHour} onChange={(e) => setStockHour(e.target.value)} style={{ width: '100%' }}>
-                    {HOUR_OPTIONS.map((option) => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ fontWeight: 500, display: 'block', marginBottom: 6 }}>Minute</label>
-                  <select className="input" value={stockMinute} onChange={(e) => setStockMinute(e.target.value)} style={{ width: '100%' }}>
-                    {MINUTE_OPTIONS.map((option) => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div style={{ marginBottom: 16, maxWidth: 180 }}>
-                <label style={{ fontWeight: 500, display: 'block', marginBottom: 6 }}>AM / PM</label>
-                <select className="input" value={stockMeridiem} onChange={(e) => setStockMeridiem(e.target.value)} style={{ width: '100%' }}>
-                  <option value="AM">AM</option>
-                  <option value="PM">PM</option>
-                </select>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-                <div>
-                  <label style={{ fontWeight: 500, display: 'block', marginBottom: 6 }}>Gold Stock to Add (g)</label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={goldInput}
-                    onChange={(e) => setGoldInput(e.target.value)}
-                    step="0.01"
-                    min="0"
-                    placeholder="Enter gold grams"
-                    required={silverInput === ''}
-                    style={{ width: '100%', marginBottom: 10 }}
-                  />
-                  <label style={{ fontWeight: 500, display: 'block', marginBottom: 6 }}>Gold Amount (Rs)</label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={goldAmount}
-                    onChange={(e) => setGoldAmount(e.target.value)}
-                    step="0.01"
-                    min="0"
-                    placeholder="Enter gold cost"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-
-                <div>
-                  <label style={{ fontWeight: 500, display: 'block', marginBottom: 6 }}>Silver Stock to Add (g)</label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={silverInput}
-                    onChange={(e) => setSilverInput(e.target.value)}
-                    step="0.01"
-                    min="0"
-                    placeholder="Enter silver grams"
-                    required={goldInput === ''}
-                    style={{ width: '100%', marginBottom: 10 }}
-                  />
-                  <label style={{ fontWeight: 500, display: 'block', marginBottom: 6 }}>Silver Amount (Rs)</label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={silverAmount}
-                    onChange={(e) => setSilverAmount(e.target.value)}
-                    step="0.01"
-                    min="0"
-                    placeholder="Enter silver cost"
-                    style={{ width: '100%' }}
-                  />
-                </div>
+              <div className="stock-metal-inputs">
+                <fieldset>
+                  <legend>Gold</legend>
+                  <label className="input-label" htmlFor="gold-grams">Grams to add</label>
+                  <input id="gold-grams" type="number" inputMode="decimal" className="input" value={goldInput} onChange={(e) => setGoldInput(e.target.value)} step="0.01" min="0" placeholder="0.00" required={silverInput === ''} />
+                  <label className="input-label" htmlFor="gold-cost">Cost (₹)</label>
+                  <input id="gold-cost" type="number" inputMode="decimal" className="input" value={goldAmount} onChange={(e) => setGoldAmount(e.target.value)} step="0.01" min="0" placeholder="0.00" />
+                </fieldset>
+                <fieldset>
+                  <legend>Silver</legend>
+                  <label className="input-label" htmlFor="silver-grams">Grams to add</label>
+                  <input id="silver-grams" type="number" inputMode="decimal" className="input" value={silverInput} onChange={(e) => setSilverInput(e.target.value)} step="0.01" min="0" placeholder="0.00" required={goldInput === ''} />
+                  <label className="input-label" htmlFor="silver-cost">Cost (₹)</label>
+                  <input id="silver-cost" type="number" inputMode="decimal" className="input" value={silverAmount} onChange={(e) => setSilverAmount(e.target.value)} step="0.01" min="0" placeholder="0.00" />
+                </fieldset>
               </div>
 
               {totalAmount > 0 && (
-                <div style={{ padding: 12, backgroundColor: 'var(--bg-primary)', borderRadius: 6, marginBottom: 16 }}>
-                  <div style={{ fontSize: '0.9rem', color: 'var(--color-muted)', marginBottom: 4 }}>Total Purchase Cost</div>
-                  <div style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--color-primary)' }}>Rs {totalAmount.toFixed(2)}</div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--color-muted)', marginTop: 8 }}>Available Cash: Rs {cashInHand.toFixed(2)}</div>
+                <div className="stock-total">
+                  <div className="stock-metal-label">Total purchase cost</div>
+                  <div className="stock-total-value num">₹{totalAmount.toFixed(2)}</div>
+                  <div className="field-hint">Available cash: {money(cashInHand)}</div>
                 </div>
               )}
 
-              <button type="submit" className="btn btn-primary" style={{ padding: '10px 32px', fontWeight: 600, fontSize: '1rem', borderRadius: 8 }}>
-                Add Stock
-              </button>
-              {error && <div style={{ color: 'var(--color-danger)', marginTop: 8 }}>{error}</div>}
+              <button type="submit" className="btn btn-primary btn-lg stock-submit">Add Stock</button>
+              {error && <div role="alert" className="stock-error">{error}</div>}
             </form>
           ) : (
-            <form onSubmit={handleAddMoney} style={{ marginBottom: 24, padding: 16, backgroundColor: 'var(--bg-secondary)', borderRadius: 8 }}>
-              <h3 style={{ marginTop: 0, marginBottom: 16, fontWeight: 600 }}>Add Money (Cash)</h3>
+            <form onSubmit={handleAddMoney} className="stock-section stock-form">
+              <h3>Add Money (Cash)</h3>
+              {dateTimeFields}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
-                <div style={{ gridColumn: 'span 2' }}>
-                  <label style={{ fontWeight: 500, display: 'block', marginBottom: 6 }}>Date</label>
-                  <input
-                    type="date"
-                    className="input"
-                    value={stockDate}
-                    onChange={(e) => setStockDate(e.target.value)}
-                    style={{ width: '100%' }}
-                    required
-                  />
-                </div>
-                <div>
-                  <label style={{ fontWeight: 500, display: 'block', marginBottom: 6 }}>Hour</label>
-                  <select className="input" value={stockHour} onChange={(e) => setStockHour(e.target.value)} style={{ width: '100%' }}>
-                    {HOUR_OPTIONS.map((option) => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label style={{ fontWeight: 500, display: 'block', marginBottom: 6 }}>Minute</label>
-                  <select className="input" value={stockMinute} onChange={(e) => setStockMinute(e.target.value)} style={{ width: '100%' }}>
-                    {MINUTE_OPTIONS.map((option) => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+              <label className="input-label" htmlFor="money-amount">Amount to add (₹) *</label>
+              <input id="money-amount" type="number" inputMode="decimal" className="input" value={moneyInput} onChange={(e) => setMoneyInput(e.target.value)} step="0.01" min="0.01" placeholder="0.00" required />
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
-                <div>
-                  <label style={{ fontWeight: 500, display: 'block', marginBottom: 6 }}>AM / PM</label>
-                  <select className="input" value={stockMeridiem} onChange={(e) => setStockMeridiem(e.target.value)} style={{ width: '100%' }}>
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label style={{ fontWeight: 500, display: 'block', marginBottom: 6 }}>Amount to Add (Rs) *</label>
-                  <input
-                    type="number"
-                    className="input"
-                    value={moneyInput}
-                    onChange={(e) => setMoneyInput(e.target.value)}
-                    step="0.01"
-                    min="0.01"
-                    placeholder="Enter amount to inject"
-                    required
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-
-              <button type="submit" className="btn btn-primary" style={{ padding: '10px 32px', fontWeight: 600, fontSize: '1rem', borderRadius: 8 }}>
-                Add Money
-              </button>
-              {error && <div style={{ color: 'var(--color-danger)', marginTop: 8 }}>{error}</div>}
+              <button type="submit" className="btn btn-primary btn-lg stock-submit">Add Money</button>
+              {error && <div role="alert" className="stock-error">{error}</div>}
             </form>
           )}
 
-          <div data-tour="stock-history">
-            <h3 style={{ fontWeight: 600, marginBottom: 12 }}>Stock Input History</h3>
+          <section data-tour="stock-history" aria-labelledby="stock-history-title">
+            <h3 id="stock-history-title">Stock Input History</h3>
             {loading ? (
               <SkeletonTable rows={5} columns={5} />
             ) : (
               <div className="table-container fade-in">
-                <table className="table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <table className="table stock-history no-scroll">
                   <thead>
                     <tr>
-                      <th style={{ borderBottom: '1px solid #ccc', textAlign: 'left' }}>Date</th>
-                      <th style={{ borderBottom: '1px solid #ccc', textAlign: 'left' }}>Time</th>
-                      <th style={{ borderBottom: '1px solid #ccc', textAlign: 'left' }}>Gold Added (g)</th>
-                      <th style={{ borderBottom: '1px solid #ccc', textAlign: 'left' }}>Silver Added (g)</th>
-                      <th style={{ borderBottom: '1px solid #ccc', textAlign: 'left' }}>Cash Amount</th>
+                      <th>Date</th>
+                      <th>Time</th>
+                      <th style={{ textAlign: 'right' }}>Gold (g)</th>
+                      <th style={{ textAlign: 'right' }}>Silver (g)</th>
+                      <th style={{ textAlign: 'right' }}>Cash</th>
                     </tr>
                   </thead>
                   <tbody>
                     {history.length === 0 ? (
-                      <tr><td colSpan={5}>No stock input history.</td></tr>
-                    ) : history.map((entry) => (
-                      <tr key={entry._id || `${entry.date}-${entry.gold}-${entry.silver}`}>
-                        <td>{formatDate12Hour(entry.date)}</td>
-                        <td>{formatTime12Hour(entry.date)}</td>
-                        <td>{entry.type === 'cash_addition' ? (
-                          <span style={{ fontSize: '0.8rem', backgroundColor: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>Cash Added</span>
-                        ) : Number(entry.gold || 0).toFixed(3)}</td>
-                        <td>{entry.type === 'cash_addition' ? '-' : Number(entry.silver || 0).toFixed(2)}</td>
-                        <td style={{ color: entry.type === 'cash_addition' ? 'var(--color-success)' : 'inherit', fontWeight: entry.type === 'cash_addition' ? 700 : 'normal' }}>
-                          {entry.type === 'cash_addition' ? '+' : ''}{Number(entry.cashAmount || 0).toFixed(2)}
-                        </td>
-                      </tr>
-                    ))}
+                      <tr><td colSpan={5} className="sh-empty">No stock added yet. Use the form above to add gold, silver or cash.</td></tr>
+                    ) : history.map((entry) => {
+                      const isCash = entry.type === 'cash_addition';
+                      return (
+                        <tr key={entry._id || `${entry.date}-${entry.gold}-${entry.silver}`}>
+                          <td className="sh-date">{formatDate12Hour(entry.date)}</td>
+                          <td className="sh-time">{formatTime12Hour(entry.date)}</td>
+                          {isCash ? (
+                            <td className="sh-cash-tag" colSpan={2}><span className="badge badge-success">Cash added</span></td>
+                          ) : (
+                            <>
+                              <td className="sh-gold num" data-label="Gold">{Number(entry.gold || 0).toFixed(3)}</td>
+                              <td className="sh-silver num" data-label="Silver">{Number(entry.silver || 0).toFixed(2)}</td>
+                            </>
+                          )}
+                          <td className={`sh-cash num${isCash ? ' pos' : ''}`}>{isCash ? '+' : ''}₹{Number(entry.cashAmount || 0).toFixed(2)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             )}
-          </div>
+          </section>
         </div>
       </PullToRefresh>
 
-      {cashDetailsOpen && (
-        <div
-          onClick={() => setCashDetailsOpen(false)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(15, 23, 42, 0.55)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: 16,
-            zIndex: 1000
-          }}
-        >
-          <div
-            className="card"
-            onClick={(event) => event.stopPropagation()}
-            style={{
-              width: 'min(760px, 100%)',
-              maxHeight: '86vh',
-              overflow: 'hidden',
-              padding: 0,
-              display: 'flex',
-              flexDirection: 'column'
-            }}
-          >
-            <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-              <div>
-                <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800 }}>Cash in Hand</h2>
-                <div style={{ marginTop: 4, fontSize: 13, color: 'var(--color-muted)' }}>
-                  Net {formatCurrency(cashInHand)}
+      <AnimatePresence>
+        {cashDetailsOpen && (
+          <motion.div className="modal-overlay" onClick={() => setCashDetailsOpen(false)} style={{ animation: 'none' }} {...overlayMotion}>
+            <motion.div
+              className="modal cash-sheet"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="cash-sheet-title"
+              onClick={(event) => event.stopPropagation()}
+              style={{ animation: 'none' }}
+              {...panelMotion}
+            >
+              <div className="modal-header">
+                <div>
+                  <h2 id="cash-sheet-title" className="modal-title">Cash in Hand</h2>
+                  <div className="field-hint">Net {formatCurrency(cashInHand)}</div>
                 </div>
+                <button type="button" className="btn btn-icon" onClick={() => setCashDetailsOpen(false)} aria-label="Close">
+                  <FiX size={20} />
+                </button>
               </div>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => setCashDetailsOpen(false)}
-                title="Close"
-                style={{ padding: 8, minWidth: 40, display: 'inline-flex', justifyContent: 'center' }}
-              >
-                <FiX size={18} />
-              </button>
-            </div>
 
-            <div style={{ padding: 22, overflow: 'auto' }}>
-              {cashDetailsLoading ? (
-                <div style={{ color: 'var(--color-muted)', padding: '20px 0' }}>Loading...</div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  {cashDetails.map((group) => (
-                    <div key={group.key} style={{ border: '1px solid var(--border-color)', borderRadius: 8, overflow: 'hidden' }}>
-                      <div style={{ padding: '10px 12px', background: 'var(--bg-secondary)', display: 'flex', justifyContent: 'space-between', gap: 12, fontWeight: 700 }}>
-                        <span>{group.title}</span>
-                        <span style={{ color: group.total < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
-                          {group.total >= 0 ? '+' : ''}{formatCurrency(group.total)}
-                        </span>
-                      </div>
-
-                      {group.rows.length === 0 ? (
-                        <div style={{ padding: '12px', color: 'var(--color-muted)', fontSize: 13 }}>No entries</div>
-                      ) : (
-                        <div>
-                          {group.rows.map((row) => (
-                            <div
-                              key={row.id || `${group.key}-${row.date}-${row.title}-${row.amount}`}
-                              style={{
-                                display: 'grid',
-                                gridTemplateColumns: '120px minmax(0, 1fr) auto',
-                                gap: 12,
-                                padding: '10px 12px',
-                                borderTop: '1px solid var(--border-color)',
-                                alignItems: 'center',
-                                fontSize: 13
-                              }}
-                            >
-                              <span style={{ color: 'var(--color-muted)' }}>{formatDate12Hour(row.date)}</span>
-                              <span style={{ minWidth: 0 }}>
-                                <span style={{ display: 'block', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.title}</span>
-                                <span style={{ display: 'block', color: 'var(--color-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.subtitle}</span>
-                              </span>
-                              <span style={{ fontWeight: 700, color: row.amount < 0 ? 'var(--color-danger)' : 'var(--color-success)' }}>
-                                {row.amount >= 0 ? '+' : ''}{formatCurrency(row.amount)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+              <div className="modal-body cash-sheet-body">
+                {cashDetailsLoading ? (
+                  <div className="field-hint">Loading…</div>
+                ) : cashDetails.map((group) => (
+                  <div key={group.key} className="cash-group">
+                    <div className="cash-group-head">
+                      <span>{group.title}</span>
+                      <span className={`num ${group.total < 0 ? 'neg' : 'pos'}`}>{group.total >= 0 ? '+' : ''}{formatCurrency(group.total)}</span>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+                    {group.rows.length === 0 ? (
+                      <div className="cash-entry-empty">No entries</div>
+                    ) : group.rows.map((row) => (
+                      <div key={row.id || `${group.key}-${row.date}-${row.title}-${row.amount}`} className="cash-entry">
+                        <span className="cash-entry-date">{formatDate12Hour(row.date)}</span>
+                        <span className="cash-entry-text">
+                          <span className="cash-entry-title">{row.title}</span>
+                          <span className="cash-entry-sub">{row.subtitle}</span>
+                        </span>
+                        <span className={`cash-entry-amount num ${row.amount < 0 ? 'neg' : 'pos'}`}>{row.amount >= 0 ? '+' : ''}{formatCurrency(row.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </Layout>
   );
 };

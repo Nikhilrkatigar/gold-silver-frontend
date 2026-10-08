@@ -71,7 +71,15 @@ export const ledgerAPI = {
 
 // Voucher APIs
 export const voucherAPI = {
-  create: (data) => api.post('/api/voucher', data),
+  // Server rejects the same entry saved moments ago (double tap); let the user confirm a genuine repeat
+  create: (data) => api.post('/api/voucher', data).catch((error) => {
+    const res = error.response;
+    if (res?.status === 409 && res.data?.code === 'DUPLICATE_ENTRY'
+      && window.confirm(`${res.data.message}\n\nIs this really a separate entry? Press OK to save it again.`)) {
+      return api.post('/api/voucher', { ...data, confirmDuplicate: true });
+    }
+    throw error;
+  }),
   update: (id, data) => api.put(`/api/voucher/${id}`, data),
   getAll: (params) => api.get('/api/voucher', { params }),
   getDueCredits: () => api.get('/api/voucher/due-credits'),

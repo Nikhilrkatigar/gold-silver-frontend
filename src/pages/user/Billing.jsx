@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import { ledgerAPI, voucherAPI, settlementAPI, itemAPI } from '../../services/api';
@@ -7,7 +7,8 @@ import { FiPlus, FiX, FiSave, FiPrinter, FiShare2, FiRefreshCw } from 'react-ico
 import { useAuth } from '../../context/AuthContext';
 import html2pdf from 'html2pdf.js';
 import { isValidGSTFormat, extractStateFromGST, calculateGST } from '../../utils/gstCalculations';
-import { calculateTotals } from '../../utils/billingUtils';
+import { calculateTotals, buildBalanceSnapshot, getEntryWarnings } from '../../utils/billingUtils';
+import ConfirmDialog from '../../components/ConfirmDialog';
 import PullToRefresh from '../../components/PullToRefresh';
 import { SkeletonTable, SkeletonStat } from '../../components/Skeleton';
 import ItemScanner from '../../components/ItemScanner';
@@ -15,6 +16,16 @@ import ItemScanner from '../../components/ItemScanner';
 const SETTLEMENT_PAYMENT_TYPES = ['add_cash', 'add_gold', 'add_silver', 'money_to_gold', 'money_to_silver'];
 const FINE_WEIGHT_SETTLEMENT_TYPES = ['add_gold', 'add_silver'];
 const DIRECT_SETTLEMENT_PAYMENT_TYPES = ['add_cash', 'money_to_gold', 'money_to_silver'];
+
+// Numeric columns of the items table (cards on phones). Pieces don't change fine or amount.
+const ITEM_FIELDS = [
+  { key: 'pieces', label: 'Pcs', step: '1', min: '1', inputMode: 'numeric' },
+  { key: 'grossWeight', label: 'Gross (g) *', step: '0.001', placeholder: '0.000', required: true },
+  { key: 'lessWeight', label: 'Less (g)', step: '0.001', placeholder: '0.000' },
+  { key: 'melting', label: 'Melting %', step: '0.1', min: '0', max: '100', placeholder: '0.0' },
+  { key: 'wastage', label: 'Wastage (g)', step: '0.001', placeholder: '0.000' },
+  { key: 'labourRate', label: 'Labour (₹)', step: '0.01', placeholder: '0.00' }
+];
 
 // Voucher Print Template Component
 const VoucherTemplate = ({ formData, items, ledgers, user, voucherData }) => {
@@ -39,35 +50,14 @@ const VoucherTemplate = ({ formData, items, ledgers, user, voucherData }) => {
     // keep existing pieces count (calculateTotals already does this but ensure compatibility)
   };
 
-  // Calculate metal-specific totals
-  const goldTotal = items
-    .filter(item => item.metalType === 'gold')
-    .reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0);
-
-  const silverTotal = items
-    .filter(item => item.metalType === 'silver')
-    .reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0);
-
   // Use saved balance snapshot if available (for viewing saved vouchers), otherwise use calculated values
-  const oldBalanceAmount = voucherData?.balanceSnapshot?.oldBalance?.totalAmount ??
-    (formData.paymentType === 'credit' ? (ledger?.balances?.creditBalance || 0) : (ledger?.balances?.cashBalance || 0));
-
-  const oldBalanceGold = voucherData?.balanceSnapshot?.oldBalance?.goldFineWeight ??
-    (ledger?.balances?.goldFineWeight || 0);
-
-  const oldBalanceSilver = voucherData?.balanceSnapshot?.oldBalance?.silverFineWeight ??
-    (ledger?.balances?.silverFineWeight || 0);
-
-  const curBalanceAmount = voucherData?.balanceSnapshot?.currentBalance?.amount ??
-    (formData.paymentType === 'credit'
-      ? ((parseFloat(ledger?.balances?.creditBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)))
-      : ((parseFloat(ledger?.balances?.cashBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))));
-
-  const curBalanceGold = voucherData?.balanceSnapshot?.currentBalance?.goldFineWeight ??
-    (formData.paymentType === 'credit' ? ((parseFloat(ledger?.balances?.goldFineWeight || 0) + goldTotal)) : (parseFloat(ledger?.balances?.goldFineWeight) || 0));
-
-  const curBalanceSilver = voucherData?.balanceSnapshot?.currentBalance?.silverFineWeight ??
-    (formData.paymentType === 'credit' ? ((parseFloat(ledger?.balances?.silverFineWeight || 0) + silverTotal)) : (parseFloat(ledger?.balances?.silverFineWeight) || 0));
+  const snap = voucherData?.balanceSnapshot ?? buildBalanceSnapshot(formData.paymentType, ledger?.balances, items, formData);
+  const oldBalanceAmount = snap.oldBalance.totalAmount;
+  const oldBalanceGold = snap.oldBalance.goldFineWeight;
+  const oldBalanceSilver = snap.oldBalance.silverFineWeight;
+  const curBalanceAmount = snap.currentBalance.amount;
+  const curBalanceGold = snap.currentBalance.goldFineWeight;
+  const curBalanceSilver = snap.currentBalance.silverFineWeight;
 
   const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0) + (parseFloat(formData.roundOff) || 0);
 
@@ -345,6 +335,9 @@ export default function Billing() {
   const [selectedLedger, setSelectedLedger] = useState(null);
   const [savedVoucherData, setSavedVoucherData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const savingRef = useRef(false);
+  const [entryWarnings, setEntryWarnings] = useState(null);
   // Inline form validation errors — keyed by field name
   const [formErrors, setFormErrors] = useState({});
 
@@ -844,47 +837,9 @@ export default function Billing() {
       amount: parseFloat(item.amount) || 0
     }));
 
-    // Calculate balance snapshot at time of saving
-    const goldAddedInThisBill = cleanedItems
-      .filter(item => item.metalType === 'gold')
-      .reduce((sum, item) => sum + (item.fineWeight || 0), 0);
-
-    const silverAddedInThisBill = cleanedItems
-      .filter(item => item.metalType === 'silver')
-      .reduce((sum, item) => sum + (item.fineWeight || 0), 0);
-
-    const totalAmountInThisBill = cleanedItems.reduce((sum, item) => sum + (item.amount || 0), 0) + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0);
-    const netBalanceOfThisBill = totalAmountInThisBill - (parseFloat(formData.cashReceived) || 0);
-
-    const creditBalance = parseFloat(selectedLedger?.balances?.creditBalance) || 0;
-    const cashBalance = parseFloat(selectedLedger?.balances?.cashBalance) || 0;
-    const goldBalance = parseFloat(selectedLedger?.balances?.goldFineWeight) || 0;
-    const silverBalance = parseFloat(selectedLedger?.balances?.silverFineWeight) || 0;
-    const settlementFineWeight = isFineWeightSettlement ? calculateTotals().fineWeight : 0;
     const cashReceivedValue = isFineWeightSettlement
-      ? settlementFineWeight
+      ? calculateTotals().fineWeight
       : (parseFloat(formData.cashReceived) || 0);
-
-    const balanceSnapshot = {
-      oldBalance: {
-        creditAmount: creditBalance,
-        cashAmount: cashBalance,
-        totalAmount: creditBalance + cashBalance,
-        goldFineWeight: goldBalance,
-        silverFineWeight: silverBalance
-      },
-      currentBalance: {
-        amount: isFineWeightSettlement ? cashBalance : formData.paymentType === 'credit'
-          ? netBalanceOfThisBill + creditBalance + cashBalance
-          : netBalanceOfThisBill + cashBalance,
-        goldFineWeight: formData.paymentType === 'add_gold'
-          ? goldBalance - settlementFineWeight
-          : (formData.paymentType === 'credit' ? goldBalance + goldAddedInThisBill : goldBalance),
-        silverFineWeight: formData.paymentType === 'add_silver'
-          ? silverBalance - settlementFineWeight
-          : (formData.paymentType === 'credit' ? silverBalance + silverAddedInThisBill : silverBalance)
-      }
-    };
 
     const voucherData = {
       ledgerId: formData.ledgerId,
@@ -902,7 +857,6 @@ export default function Billing() {
       cashReceived: cashReceivedValue,
       roundOff: parseFloat(formData.roundOff) || 0,
       invoiceType: formData.invoiceType,
-      balanceSnapshot,
       ...(formData.invoiceType === 'gst' && {
         gstDetails: {
           gstRate: parseFloat(formData.gstRate) || 0
@@ -910,6 +864,21 @@ export default function Billing() {
       })
     };
 
+    // Likely mistakes (overpayment, wrong weights, future date): explain and let the user decide
+    const warnings = getEntryWarnings(formData.paymentType, editingVoucherId ? null : selectedLedger?.balances, cleanedItems, formData);
+    if (warnings.length > 0) {
+      setEntryWarnings({ warnings, onConfirm: () => saveVoucher(voucherData) });
+      return;
+    }
+    await saveVoucher(voucherData);
+  };
+
+  const saveVoucher = async (voucherData) => {
+    // Ref, not state: two quick taps can both run before a re-render
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setIsSaving(true);
+    let saved = false;
     try {
       const isSettlementType = SETTLEMENT_PAYMENT_TYPES.includes(formData.paymentType);
       const isItemModeBilling = user?.stockMode === 'item' && !isSettlementType;
@@ -966,12 +935,19 @@ export default function Billing() {
           : (isSettlementType ? 'Settlement created successfully! Balance updated.' : 'Voucher created successfully!')
       );
 
+      // Stay locked until the reload so the same entry can't be saved twice
+      saved = true;
       setTimeout(() => {
         window.location.reload();
       }, 1000);
     } catch (error) {
       console.error('Error saving voucher:', error);
       toast.error(error.response?.data?.message || 'Failed to save voucher');
+    } finally {
+      if (!saved) {
+        savingRef.current = false;
+        setIsSaving(false);
+      }
     }
   };
 
@@ -1012,37 +988,14 @@ export default function Billing() {
     const selectedLedger = ledgers.find(l => l._id === formData.ledgerId);
     const totals = calculateTotals();
 
-    // Calculate metal-specific totals for print
-    const goldTotal = items
-      .filter(item => item.metalType === 'gold')
-      .reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0);
-
-    const silverTotal = items
-      .filter(item => item.metalType === 'silver')
-      .reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0);
-
     // Use saved balance snapshot if available, otherwise calculate
-    const oldBalanceAmount = savedVoucherData?.balanceSnapshot?.oldBalance?.totalAmount ??
-      (formData.paymentType === 'credit'
-        ? (selectedLedger?.balances?.creditBalance || 0) + (selectedLedger?.balances?.cashBalance || 0)
-        : (selectedLedger?.balances?.cashBalance || 0));
-
-    const oldBalanceGold = savedVoucherData?.balanceSnapshot?.oldBalance?.goldFineWeight ??
-      (formData.paymentType === 'credit' ? (selectedLedger?.balances?.goldFineWeight || 0) : 0);
-
-    const oldBalanceSilver = savedVoucherData?.balanceSnapshot?.oldBalance?.silverFineWeight ??
-      (formData.paymentType === 'credit' ? (selectedLedger?.balances?.silverFineWeight || 0) : 0);
-
-    const curBalanceAmount = savedVoucherData?.balanceSnapshot?.currentBalance?.amount ??
-      (formData.paymentType === 'credit'
-        ? ((parseFloat(selectedLedger?.balances?.creditBalance || 0) + parseFloat(selectedLedger?.balances?.cashBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)))
-        : ((parseFloat(selectedLedger?.balances?.cashBalance || 0) + (totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0)) - (parseFloat(formData.cashReceived) || 0))));
-
-    const curBalanceGold = savedVoucherData?.balanceSnapshot?.currentBalance?.goldFineWeight ??
-      (formData.paymentType === 'credit' ? ((parseFloat(selectedLedger?.balances?.goldFineWeight || 0) + goldTotal)) : goldTotal);
-
-    const curBalanceSilver = savedVoucherData?.balanceSnapshot?.currentBalance?.silverFineWeight ??
-      (formData.paymentType === 'credit' ? ((parseFloat(selectedLedger?.balances?.silverFineWeight || 0) + silverTotal)) : silverTotal);
+    const snap = savedVoucherData?.balanceSnapshot ?? buildBalanceSnapshot(formData.paymentType, selectedLedger?.balances, items, formData);
+    const oldBalanceAmount = snap.oldBalance.totalAmount;
+    const oldBalanceGold = snap.oldBalance.goldFineWeight;
+    const oldBalanceSilver = snap.oldBalance.silverFineWeight;
+    const curBalanceAmount = snap.currentBalance.amount;
+    const curBalanceGold = snap.currentBalance.goldFineWeight;
+    const curBalanceSilver = snap.currentBalance.silverFineWeight;
 
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
@@ -1118,7 +1071,7 @@ export default function Billing() {
                 <tr>
                   <td style="text-align: center;">${index + 1}</td>
                   <td>${item.itemName}</td>
-                  <td style="text-align: center; color: ${item.metalType === 'gold' ? '#FFD700' : '#C0C0C0'}; font-weight: bold;">${item.metalType === 'gold' ? 'GOLD' : 'SILVER'}</td>
+                  <td style="text-align: center; color: ${item.metalType === 'gold' ? '#B8860B' : '#555555'}; font-weight: bold;">${item.metalType === 'gold' ? 'GOLD' : 'SILVER'}</td>
                   <td style="text-align: center;">${item.pieces}</td>
                   <td style="text-align: right;">${parseFloat(item.grossWeight).toFixed(3)}</td>
                   <td style="text-align: right;">${parseFloat(item.lessWeight).toFixed(3)}</td>
@@ -1236,11 +1189,11 @@ export default function Billing() {
               </div>
               <div class="balance-row">
                 <div>Cur Bal Gold Fine Wt</div>
-                <div style="color: #FFD700; font-weight: bold;">${curBalanceGold?.toFixed(3) || '0.000'} g</div>
+                <div style="color: #B8860B; font-weight: bold;">${curBalanceGold?.toFixed(3) || '0.000'} g</div>
               </div>
               <div class="balance-row">
                 <div>Cur Bal Silver Fine Wt</div>
-                <div style="color: #C0C0C0; font-weight: bold;">${curBalanceSilver?.toFixed(3) || '0.000'} g</div>
+                <div style="color: #555555; font-weight: bold;">${curBalanceSilver?.toFixed(3) || '0.000'} g</div>
               </div>
               <div class="balance-row" style="font-weight: bold;">
                 <div>Receipt Gross (Entry Fine)</div>
@@ -1294,6 +1247,7 @@ export default function Billing() {
       // Calculate grandTotal
       const totals = calculateTotals();
       const grandTotal = totals.amount + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0);
+      const shareSnap = savedVoucherData?.balanceSnapshot ?? buildBalanceSnapshot(formData.paymentType, ledger.balances, items, formData);
 
       // Create professional voucher content
       // IMPORTANT: Force light mode colors for PDF to work in both light and dark app themes
@@ -1442,15 +1396,15 @@ export default function Billing() {
               <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
                 <div>
                   <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Old Bal Amount</div>
-                  <div style="font-size: 14px; font-weight: bold; color: #000000;">₹${(savedVoucherData?.balanceSnapshot?.oldBalance?.totalAmount ?? (formData.paymentType === 'credit' ? (parseFloat(selectedLedger?.balances?.creditBalance || 0) + parseFloat(selectedLedger?.balances?.cashBalance || 0)) : parseFloat(selectedLedger?.balances?.cashBalance || 0))).toFixed(2)}</div>
+                  <div style="font-size: 14px; font-weight: bold; color: #000000;">₹${shareSnap.oldBalance.totalAmount.toFixed(2)}</div>
                 </div>
                 <div>
                   <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Old Bal Gold Fine Wt</div>
-                  <div style="font-size: 14px; font-weight: bold; color: #FFD700;">${(savedVoucherData?.balanceSnapshot?.oldBalance?.goldFineWeight ?? (formData.paymentType === 'credit' ? parseFloat(selectedLedger?.balances?.goldFineWeight || 0) : 0)).toFixed(3)} g</div>
+                  <div style="font-size: 14px; font-weight: bold; color: #B8860B;">${shareSnap.oldBalance.goldFineWeight.toFixed(3)} g</div>
                 </div>
                 <div>
                   <div style="color: #333333; margin-bottom: 5px; font-size: 12px;">Old Bal Silver Fine Wt</div>
-                  <div style="font-size: 14px; font-weight: bold; color: #C0C0C0;">${(savedVoucherData?.balanceSnapshot?.oldBalance?.silverFineWeight ?? (formData.paymentType === 'credit' ? parseFloat(selectedLedger?.balances?.silverFineWeight || 0) : 0)).toFixed(3)} g</div>
+                  <div style="font-size: 14px; font-weight: bold; color: #555555;">${shareSnap.oldBalance.silverFineWeight.toFixed(3)} g</div>
                 </div>
               </div>
             </div>
@@ -1460,15 +1414,15 @@ export default function Billing() {
               <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px;">
                 <div style="background-color: #d4edda; padding: 15px; border-radius: 4px;">
                   <div style="color: #155724; margin-bottom: 5px; font-size: 12px; font-weight: bold;">Cur Bal Amount</div>
-                  <div style="font-size: 16px; font-weight: bold; color: #155724;">₹${(savedVoucherData?.balanceSnapshot?.currentBalance?.amount ?? (formData.paymentType === 'credit' ? (((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)) + (parseFloat(selectedLedger?.balances?.creditBalance || 0) + parseFloat(selectedLedger?.balances?.cashBalance || 0))) : (((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + (parseFloat(formData.stoneAmount) || 0) + (parseFloat(formData.fineAmount) || 0)) - (parseFloat(formData.cashReceived) || 0)) + (parseFloat(selectedLedger?.balances?.cashBalance) || 0)))).toFixed(2)}</div>
+                  <div style="font-size: 16px; font-weight: bold; color: #155724;">₹${shareSnap.currentBalance.amount.toFixed(2)}</div>
                 </div>
                 <div style="background-color: #d4edda; padding: 15px; border-radius: 4px;">
                   <div style="color: #155724; margin-bottom: 5px; font-size: 12px; font-weight: bold;">Cur Bal Gold Fine Wt</div>
-                  <div style="font-size: 16px; font-weight: bold; color: #FFD700;">${(savedVoucherData?.balanceSnapshot?.currentBalance?.goldFineWeight ?? (formData.paymentType === 'credit' ? ((items.filter(item => item.metalType === 'gold').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.goldFineWeight) || 0)) : (items.filter(item => item.metalType === 'gold').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)))).toFixed(3)} g</div>
+                  <div style="font-size: 16px; font-weight: bold; color: #B8860B;">${shareSnap.currentBalance.goldFineWeight.toFixed(3)} g</div>
                 </div>
                 <div style="background-color: #d4edda; padding: 15px; border-radius: 4px;">
                   <div style="color: #155724; margin-bottom: 5px; font-size: 12px; font-weight: bold;">Cur Bal Silver Fine Wt</div>
-                  <div style="font-size: 16px; font-weight: bold; color: #C0C0C0;">${(savedVoucherData?.balanceSnapshot?.currentBalance?.silverFineWeight ?? (formData.paymentType === 'credit' ? ((items.filter(item => item.metalType === 'silver').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.silverFineWeight) || 0)) : (items.filter(item => item.metalType === 'silver').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)))).toFixed(3)} g</div>
+                  <div style="font-size: 16px; font-weight: bold; color: #555555;">${shareSnap.currentBalance.silverFineWeight.toFixed(3)} g</div>
                 </div>
               </div>
               <div style="margin-top: 15px; padding: 15px; background-color: #e2e3e5; border-radius: 4px;">
@@ -1868,7 +1822,7 @@ export default function Billing() {
                 <div>
                   <label className="input-label">Gold Rate (₹/g)</label>
                   <input
-                    type="number"
+                    type="number" inputMode="decimal"
                     step="0.01"
                     value={formData.goldRate}
                     onChange={(e) => setFormData(prev => ({ ...prev, goldRate: e.target.value }))}
@@ -1883,7 +1837,7 @@ export default function Billing() {
                 <div>
                   <label className="input-label">Silver Rate (₹/g)</label>
                   <input
-                    type="number"
+                    type="number" inputMode="decimal"
                     step="0.01"
                     value={formData.silverRate}
                     onChange={(e) => setFormData(prev => ({ ...prev, silverRate: e.target.value }))}
@@ -1898,7 +1852,7 @@ export default function Billing() {
                 <div>
                   <label className="input-label">Stone Amount (₹)</label>
                   <input
-                    type="number"
+                    type="number" inputMode="decimal"
                     step="0.01"
                     value={formData.stoneAmount}
                     onChange={(e) => setFormData(prev => ({ ...prev, stoneAmount: e.target.value }))}
@@ -1910,7 +1864,7 @@ export default function Billing() {
                 <div>
                   <label className="input-label">Fine Amount (₹)</label>
                   <input
-                    type="number"
+                    type="number" inputMode="decimal"
                     step="0.01"
                     value={formData.fineAmount}
                     onChange={(e) => setFormData(prev => ({ ...prev, fineAmount: e.target.value }))}
@@ -1922,7 +1876,7 @@ export default function Billing() {
                 <div>
                   <label className="input-label">Issue Gross (g)</label>
                   <input
-                    type="number"
+                    type="number" inputMode="decimal"
                     step="0.001"
                     value={formData.issueGross}
                     onChange={(e) => setFormData(prev => ({ ...prev, issueGross: e.target.value }))}
@@ -1934,7 +1888,7 @@ export default function Billing() {
                 <div>
                   <label className="input-label">Receipt Gross (g)</label>
                   <input
-                    type="number"
+                    type="number" inputMode="decimal"
                     step="0.001"
                     value={formData.receiptGross}
                     onChange={(e) => setFormData(prev => ({ ...prev, receiptGross: e.target.value }))}
@@ -1946,7 +1900,7 @@ export default function Billing() {
                 <div>
                   <label className="input-label">Cash Received (₹)</label>
                   <input
-                    type="number"
+                    type="number" inputMode="decimal"
                     step="0.01"
                     value={FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType) ? calculateTotals().fineWeight.toFixed(3) : formData.cashReceived}
                     onChange={(e) => {
@@ -1969,7 +1923,7 @@ export default function Billing() {
                 <div>
                   <label className="input-label">Round Off (₹)</label>
                   <input
-                    type="number"
+                    type="number" inputMode="decimal"
                     step="0.01"
                     value={formData.roundOff}
                     onChange={(e) => setFormData(prev => ({ ...prev, roundOff: e.target.value }))}
@@ -2010,200 +1964,62 @@ export default function Billing() {
                     )}
                   </div>
 
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{
-                      width: '100%',
-                      borderCollapse: 'collapse',
-                      fontSize: '14px'
-                    }}>
+                  <div className="items-table-wrap">
+                    <table className="items-table no-scroll">
                       <thead>
-                        <tr style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
-                          <th style={{ padding: '10px', textAlign: 'left', borderRight: '1px solid var(--border-color)' }}>Item Name *</th>
-                          <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Metal</th>
-                          <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Pcs</th>
-                          <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Gross (g) *</th>
-                          <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Less (g)</th>
-                          <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Melting %</th>
-                          <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Wastage (g)</th>
-                          <th style={{ padding: '10px', textAlign: 'center', borderRight: '1px solid var(--border-color)' }}>Labour (₹)</th>
-                          <th style={{ padding: '10px', textAlign: 'center' }}>Action</th>
+                        <tr>
+                          <th>Item Name *</th>
+                          <th>Metal</th>
+                          {ITEM_FIELDS.map((field) => <th key={field.key}>{field.label}</th>)}
+                          <th>Fine (g)</th>
+                          <th>Amount (₹)</th>
+                          <th><span className="sr-only">Remove</span></th>
                         </tr>
                       </thead>
                       <tbody>
                         {items.map((item, index) => (
-                          <tr key={index} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                            <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
+                          <tr key={index}>
+                            <td className="cell-name" data-label="Item name *">
                               <input
                                 type="text"
                                 required
+                                className="input"
                                 value={item.itemName}
                                 onChange={(e) => updateItem(index, 'itemName', e.target.value)}
-                                placeholder="Item name *"
-                                style={{
-                                  width: '100%',
-                                  padding: '5px',
-                                  borderRadius: '4px',
-                                  border: !item.itemName || item.itemName.trim() === '' ? '2px solid #ff4757' : '1px solid var(--border-color)',
-                                  backgroundColor: 'var(--bg-primary)',
-                                  color: 'var(--color-text)',
-                                  boxSizing: 'border-box'
-                                }}
+                                placeholder="Item name"
+                                aria-label={`Item ${index + 1} name`}
+                                aria-invalid={!item.itemName?.trim()}
                               />
                             </td>
-                            <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)', textAlign: 'center' }}>
-                              <span style={{
-                                padding: '5px 10px',
-                                borderRadius: '4px',
-                                backgroundColor: item.metalType === 'gold' ? 'var(--metal-gold)' : 'var(--metal-silver)',
-                                color: '#000',
-                                fontWeight: 'bold'
-                              }}>{item.metalType === 'gold' ? 'GOLD' : 'SILVER'}</span>
+                            <td className="cell-metal">
+                              <span className={`metal-badge ${item.metalType}`}>{item.metalType === 'gold' ? 'Gold' : 'Silver'}</span>
                             </td>
-                            <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
-                              <input
-                                type="number"
-                                min="1"
-                                value={item.pieces}
-                                onChange={(e) => updateItem(index, 'pieces', e.target.value)}
-                                style={{
-                                  width: '100%',
-                                  padding: '5px',
-                                  borderRadius: '4px',
-                                  border: '1px solid var(--border-color)',
-                                  backgroundColor: 'var(--bg-primary)',
-                                  color: 'var(--color-text)',
-                                  boxSizing: 'border-box',
-                                  textAlign: 'center'
-                                }}
-                              />
-                            </td>
-                            <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
-                              <input
-                                type="number"
-                                step="0.001"
-                                required
-                                value={item.grossWeight}
-                                onChange={(e) => {
-                                  updateItem(index, 'grossWeight', e.target.value);
-                                  calculateItem(index);
-                                }}
-                                placeholder="0.000 *"
-                                style={{
-                                  width: '100%',
-                                  padding: '5px',
-                                  borderRadius: '4px',
-                                  border: !item.grossWeight || parseFloat(item.grossWeight) <= 0 ? '2px solid #ff4757' : '1px solid var(--border-color)',
-                                  backgroundColor: 'var(--bg-primary)',
-                                  color: 'var(--color-text)',
-                                  boxSizing: 'border-box',
-                                  textAlign: 'right'
-                                }}
-                              />
-                            </td>
-                            <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
-                              <input
-                                type="number"
-                                step="0.001"
-                                value={item.lessWeight}
-                                onChange={(e) => {
-                                  updateItem(index, 'lessWeight', e.target.value);
-                                  calculateItem(index);
-                                }}
-                                placeholder="0.000"
-                                style={{
-                                  width: '100%',
-                                  padding: '5px',
-                                  borderRadius: '4px',
-                                  border: '1px solid var(--border-color)',
-                                  backgroundColor: 'var(--bg-primary)',
-                                  color: 'var(--color-text)',
-                                  boxSizing: 'border-box',
-                                  textAlign: 'right'
-                                }}
-                              />
-                            </td>
-                            <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
-                              <input
-                                type="number"
-                                step="0.1"
-                                min="0"
-                                max="100"
-                                value={item.melting}
-                                onChange={(e) => {
-                                  updateItem(index, 'melting', e.target.value);
-                                  calculateItem(index);
-                                }}
-                                placeholder="0.0"
-                                style={{
-                                  width: '100%',
-                                  padding: '5px',
-                                  borderRadius: '4px',
-                                  border: '1px solid var(--border-color)',
-                                  backgroundColor: 'var(--bg-primary)',
-                                  color: 'var(--color-text)',
-                                  boxSizing: 'border-box',
-                                  textAlign: 'right'
-                                }}
-                              />
-                            </td>
-                            <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
-                              <input
-                                type="number"
-                                step="0.001"
-                                value={item.wastage}
-                                onChange={(e) => {
-                                  updateItem(index, 'wastage', e.target.value);
-                                  calculateItem(index);
-                                }}
-                                placeholder="0.000"
-                                style={{
-                                  width: '100%',
-                                  padding: '5px',
-                                  borderRadius: '4px',
-                                  border: '1px solid var(--border-color)',
-                                  backgroundColor: 'var(--bg-primary)',
-                                  color: 'var(--color-text)',
-                                  boxSizing: 'border-box',
-                                  textAlign: 'right'
-                                }}
-                              />
-                            </td>
-                            <td style={{ padding: '10px', borderRight: '1px solid var(--border-color)' }}>
-                              <input
-                                type="number"
-                                step="0.01"
-                                value={item.labourRate}
-                                onChange={(e) => {
-                                  updateItem(index, 'labourRate', e.target.value);
-                                  calculateItem(index);
-                                }}
-                                placeholder="0.00"
-                                style={{
-                                  width: '100%',
-                                  padding: '5px',
-                                  borderRadius: '4px',
-                                  border: '1px solid var(--border-color)',
-                                  backgroundColor: 'var(--bg-primary)',
-                                  color: 'var(--color-text)',
-                                  boxSizing: 'border-box',
-                                  textAlign: 'right'
-                                }}
-                              />
-                            </td>
-                            <td style={{ padding: '10px', textAlign: 'center' }}>
-                              <button
-                                type="button"
-                                onClick={() => deleteRow(index)}
-                                style={{
-                                  padding: '5px 10px',
-                                  backgroundColor: '#ff4757',
-                                  color: 'white',
-                                  border: 'none',
-                                  borderRadius: '4px',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                <FiX /> Delete
+                            {ITEM_FIELDS.map((field) => (
+                              <td key={field.key} data-label={field.label}>
+                                <input
+                                  type="number" inputMode="decimal"
+                                  inputMode={field.inputMode || 'decimal'}
+                                  className="input num"
+                                  step={field.step}
+                                  min={field.min}
+                                  max={field.max}
+                                  required={field.required}
+                                  placeholder={field.placeholder}
+                                  value={item[field.key]}
+                                  aria-label={`Item ${index + 1} ${field.label}`}
+                                  aria-invalid={field.required ? !(parseFloat(item[field.key]) > 0) : undefined}
+                                  onChange={(e) => {
+                                    updateItem(index, field.key, e.target.value);
+                                    if (field.key !== 'pieces') calculateItem(index);
+                                  }}
+                                />
+                              </td>
+                            ))}
+                            <td className="cell-out num" data-label="Fine (g)">{(parseFloat(item.fineWeight) || 0).toFixed(3)}</td>
+                            <td className="cell-out num" data-label="Amount (₹)">{(parseFloat(item.amount) || 0).toFixed(2)}</td>
+                            <td className="cell-action">
+                              <button type="button" onClick={() => deleteRow(index)} className="btn btn-secondary btn-sm item-remove" aria-label={`Remove item ${index + 1}`}>
+                                <FiX aria-hidden="true" /> Remove
                               </button>
                             </td>
                           </tr>
@@ -2212,9 +2028,7 @@ export default function Billing() {
                     </table>
                   </div>
 
-                  <div style={{ marginTop: '10px', padding: '10px', backgroundColor: 'rgba(255, 71, 87, 0.1)', borderLeft: '3px solid #ff4757', borderRadius: '4px', fontSize: '12px', color: 'var(--color-text)' }}>
-                    <strong>Required fields:</strong> Item Name and Gross Weight marked with * (red border if empty)
-                  </div>
+                  <p className="field-hint">Fields marked * are required. Fine weight and amount update as you type.</p>
 
                   {items.length > 0 && (
                     <div style={{ marginTop: '20px', padding: '15px', backgroundColor: 'var(--bg-primary)', borderRadius: '4px' }}>
@@ -2259,7 +2073,7 @@ export default function Billing() {
                       <div>
                         <label className="input-label">Amount to Add (₹)</label>
                         <input
-                          type="number"
+                          type="number" inputMode="decimal"
                           step="0.01"
                           value={formData.cashReceived}
                           onChange={(e) => setFormData((prev) => ({ ...prev, cashReceived: e.target.value }))}
@@ -2284,7 +2098,7 @@ export default function Billing() {
                       <div>
                         <label className="input-label">Gold Fine Weight to Add (g)</label>
                         <input
-                          type="number"
+                          type="number" inputMode="decimal"
                           step="0.001"
                           value={formData.cashReceived}
                           onChange={(e) => setFormData((prev) => ({ ...prev, cashReceived: e.target.value }))}
@@ -2309,7 +2123,7 @@ export default function Billing() {
                       <div>
                         <label className="input-label">Silver Fine Weight to Add (g)</label>
                         <input
-                          type="number"
+                          type="number" inputMode="decimal"
                           step="0.001"
                           value={formData.cashReceived}
                           onChange={(e) => setFormData((prev) => ({ ...prev, cashReceived: e.target.value }))}
@@ -2334,7 +2148,7 @@ export default function Billing() {
                       <div>
                         <label className="input-label">Cash Payment (₹)</label>
                         <input
-                          type="number"
+                          type="number" inputMode="decimal"
                           step="0.01"
                           value={formData.cashReceived}
                           onChange={(e) => setFormData((prev) => ({ ...prev, cashReceived: e.target.value }))}
@@ -2359,7 +2173,7 @@ export default function Billing() {
                       <div>
                         <label className="input-label">Cash Payment (₹)</label>
                         <input
-                          type="number"
+                          type="number" inputMode="decimal"
                           step="0.01"
                           value={formData.cashReceived}
                           onChange={(e) => setFormData((prev) => ({ ...prev, cashReceived: e.target.value }))}
@@ -2469,15 +2283,7 @@ export default function Billing() {
                     <div style={{ padding: '0.875rem 1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius)', border: '1px solid var(--border-color)' }}>
                       <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Cur Bal Amount</div>
                       <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--color-primary)' }}>
-                        ₹{(
-                          ((items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0) + 
-                          (parseFloat(formData.stoneAmount) || 0) + 
-                          (parseFloat(formData.fineAmount) || 0)) - 
-                          (FINE_WEIGHT_SETTLEMENT_TYPES.includes(formData.paymentType) ? 0 : (parseFloat(formData.cashReceived) || 0))) + 
-                          (formData.paymentType === 'credit' 
-                            ? ((parseFloat(selectedLedger?.balances?.creditBalance) || 0) + (parseFloat(selectedLedger?.balances?.cashBalance) || 0)) 
-                            : (parseFloat(selectedLedger?.balances?.cashBalance) || 0))
-                        ).toFixed(2)}
+                        ₹{buildBalanceSnapshot(formData.paymentType, selectedLedger?.balances, items, formData).currentBalance.amount.toFixed(2)}
                       </div>
                       <div style={{ fontSize: '10px', color: 'var(--color-muted)', marginTop: '3px' }}>Net + Old Balance</div>
                     </div>
@@ -2485,22 +2291,14 @@ export default function Billing() {
                     <div style={{ padding: '0.875rem 1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius)', border: '1px solid var(--border-color)' }}>
                       <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Cur Bal Gold Fine Wt</div>
                       <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--metal-gold)' }}>
-                        {formData.paymentType === 'credit' 
-                          ? ((items.filter(item => item.metalType === 'gold').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.goldFineWeight) || 0)).toFixed(3) 
-                          : formData.paymentType === 'add_gold'
-                            ? ((parseFloat(selectedLedger?.balances?.goldFineWeight) || 0) - (calculateTotals().fineWeight || 0)).toFixed(3)
-                            : (parseFloat(selectedLedger?.balances?.goldFineWeight) || 0).toFixed(3)}g
+                        {buildBalanceSnapshot(formData.paymentType, selectedLedger?.balances, items, formData).currentBalance.goldFineWeight.toFixed(3)}g
                       </div>
                     </div>
 
                     <div style={{ padding: '0.875rem 1rem', backgroundColor: 'var(--bg-secondary)', borderRadius: 'var(--radius)', border: '1px solid var(--border-color)' }}>
                       <div style={{ color: 'var(--color-muted)', marginBottom: '5px', fontSize: '12px' }}>Cur Bal Silver Fine Wt</div>
                       <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--metal-silver)' }}>
-                        {formData.paymentType === 'credit' 
-                          ? ((items.filter(item => item.metalType === 'silver').reduce((sum, item) => sum + (parseFloat(item.fineWeight) || 0), 0)) + (parseFloat(selectedLedger?.balances?.silverFineWeight) || 0)).toFixed(3) 
-                          : formData.paymentType === 'add_silver'
-                            ? ((parseFloat(selectedLedger?.balances?.silverFineWeight) || 0) - (calculateTotals().fineWeight || 0)).toFixed(3)
-                            : (parseFloat(selectedLedger?.balances?.silverFineWeight) || 0).toFixed(3)}g
+                        {buildBalanceSnapshot(formData.paymentType, selectedLedger?.balances, items, formData).currentBalance.silverFineWeight.toFixed(3)}g
                       </div>
                     </div>
 
@@ -2622,7 +2420,7 @@ export default function Billing() {
               </div>
 
               {/* Action Buttons */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', justifyContent: 'flex-end' }} data-tour="bill-save">
+              <div className="bill-actions" data-tour="bill-save">
                 <button type="button" onClick={handlePrint} className="btn btn-secondary">
                   <FiPrinter /> Print
                 </button>
@@ -2632,12 +2430,22 @@ export default function Billing() {
                 <button type="button" onClick={handleWhatsAppShare} title="Share receipt via WhatsApp" className="btn btn-secondary">
                   WhatsApp
                 </button>
-                <button type="submit" className="btn btn-primary" style={{ flex: '1 1 160px', maxWidth: 260 }}>
-                  <FiSave /> {editingVoucherId ? 'Update Voucher' : 'Save Voucher'}
+                <button type="submit" className="btn btn-primary" disabled={isSaving} aria-busy={isSaving}>
+                  <FiSave /> {isSaving ? 'Saving…' : editingVoucherId ? 'Update Voucher' : 'Save Voucher'}
                 </button>
               </div>
             </form>
           )}
+
+          <ConfirmDialog
+            isOpen={Boolean(entryWarnings)}
+            title="Please check this entry"
+            message={entryWarnings?.warnings.map((w) => `• ${w}`).join('\n\n')}
+            confirmText="Save anyway"
+            cancelText="Go back and fix"
+            onConfirm={() => entryWarnings?.onConfirm()}
+            onClose={() => setEntryWarnings(null)}
+          />
 
           {/* Add Customer Modal */}
           {showAddLedgerModal && (
@@ -2722,7 +2530,7 @@ export default function Billing() {
                       <div>
                         <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '3px' }}>Amount (₹)</label>
                         <input
-                          type="number"
+                          type="number" inputMode="decimal"
                           value={ledgerFormData.oldBalAmount}
                           onChange={(e) => setLedgerFormData(prev => ({ ...prev, oldBalAmount: e.target.value }))}
                           placeholder="₹0.00"
@@ -2742,7 +2550,7 @@ export default function Billing() {
                       <div>
                         <label style={{ fontSize: '0.75rem', color: 'var(--metal-gold)', display: 'block', marginBottom: '3px' }}>Gold Fine (g)</label>
                         <input
-                          type="number"
+                          type="number" inputMode="decimal"
                           value={ledgerFormData.oldBalGold}
                           onChange={(e) => setLedgerFormData(prev => ({ ...prev, oldBalGold: e.target.value }))}
                           placeholder="0.000g"
@@ -2762,7 +2570,7 @@ export default function Billing() {
                       <div>
                         <label style={{ fontSize: '0.75rem', color: 'var(--metal-silver)', display: 'block', marginBottom: '3px' }}>Silver Fine (g)</label>
                         <input
-                          type="number"
+                          type="number" inputMode="decimal"
                           value={ledgerFormData.oldBalSilver}
                           onChange={(e) => setLedgerFormData(prev => ({ ...prev, oldBalSilver: e.target.value }))}
                           placeholder="0.000g"
